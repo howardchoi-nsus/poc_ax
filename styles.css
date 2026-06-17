@@ -273,13 +273,11 @@
   }
 
   .top-panel {
-    flex-shrink: 0;
+    width:100%;
     border-bottom: 1px solid var(--border);
     background: rgba(21, 31, 46, 0.55);
     padding: 14px 18px;
     display: grid;
-    grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 1.2fr);
-    gap: 14px;
   }
 
   .card {
