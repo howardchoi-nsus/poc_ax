@@ -3,18 +3,17 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Agent1 PRD Workflow Viewer</title>
+<title>Agent1 PRD 생성</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
 <header>
   <div class="logo">
-    <strong>Agent1 PRD Generation Workflow</strong>
+    <strong>Agent1 PRD 생성_POC</strong>
   </div>
-  <div class="repo-badge" id="repo-badge">howardchoi-nsus/poc_ax · main</div>
-  <div class="status-pill">Git Repository Source</div>
-  <button class="hbtn" id="btn-copy-left">Req 복사</button>
+  <div class="repo-badge" id="repo-badge">Git : howardchoi-nsus/poc_ax · main</div>
+  <button class="hbtn" id="btn-copy-left">요구사항 복사</button>
   <button class="hbtn" id="btn-copy-right">PRD 복사</button>
   <button class="hbtn primary" id="btn-refresh-top">새로고침</button>
 </header>
@@ -44,22 +43,26 @@
   <main>
     <section class="top-panel">
       <div class="card">
+        
         <div class="card-head">
           <strong>Process 1. Requirement Save</strong>
-          <span>Vercel Web → n8n Webhook → Git /source, /req</span>
         </div>
+
         <div class="card-body">
           <div class="form-grid">
+         
             <label>
               Requirement ID
               <input id="requirement-id" value="REQ_coupon_admin_20260611" />
             </label>
+         
             <label>
               Prompt Path
               <input id="prompt-path" value="prompts/prd-template-v1.md" />
             </label>
+         
             <label class="full">
-              Source File Path
+              Source File Path 22
               <input id="source-path" value="source/REQ_coupon_admin_20260611.txt" />
             </label>
             <label class="full">
