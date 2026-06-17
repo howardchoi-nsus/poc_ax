@@ -53,7 +53,7 @@
           <div class="form-grid">
             <label>
               Requirement Keyword
-              <input id="requirement-id" value="coupon_admin" placeholder="키워드 또는 업무명만 입력 예: coupon_admin" />
+              <input id="requirement-id" value="키워드 또는 구분명 입력" placeholder="키워드 또는 업무명만 입력 예: coupon_admin" />
               <small class="field-help">파일명은 REQ_[키워드]_YYMMDD_HHMMSS.txt 형식으로 자동 생성됩니다.</small>
             </label>
 
@@ -100,41 +100,6 @@
             <button class="btn primary" id="btn-save-req">요구사항 등록 실행</button>
             <button class="btn" id="btn-run-prd">선택 Req로 PRD 생성</button>
             <button class="btn danger" id="btn-clear">입력 초기화</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-head">
-          <strong>Workflow Status</strong>
-          <span>다이어그램 기준 폴더 구조</span>
-        </div>
-        <div class="card-body">
-          <div class="workflow">
-            <div class="step">
-              <b>/source</b>
-              <p>원본 요구사항 저장<br />txt, md, doc/docx, gdoc URL</p>
-            </div>
-            <div class="step req">
-              <b>/req</b>
-              <p>표준 Markdown 요구사항<br />PRD 생성의 기준 입력</p>
-            </div>
-            <div class="step">
-              <b>/prompts</b>
-              <p>PRD Agent 프롬프트<br />템플릿 버전 관리</p>
-            </div>
-            <div class="step prd">
-              <b>/prd</b>
-              <p>LLM이 생성한 PRD<br />오른쪽 패널에서 조회</p>
-            </div>
-            <div class="step map">
-              <b>/maps</b>
-              <p>Req-PRD 매핑 정보<br />2Column 연결 기준</p>
-            </div>
-            <div class="step log">
-              <b>/logs</b>
-              <p>n8n 실행 로그<br />실패/성공 이력 확인</p>
-            </div>
           </div>
         </div>
       </div>
