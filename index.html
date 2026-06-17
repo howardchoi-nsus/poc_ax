@@ -1,466 +1,1142 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MD Viewer</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agent1 PRD Workflow Viewer</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:      #f5f5f5;
-    --surface: #ffffff;
-    --border:  #e0e0e0;
-    --accent:  #5c5fef;
-    --accent2: #2196f3;
-    --text:    #1a1a1a;
-    --muted:   #888888;
-    --code-bg: #f0f0f0;
-    --hover:   #eeeeee;
-    --active:  rgba(92,95,239,0.10);
+    --bg: #0f1724;
+    --surface: #151f2e;
+    --surface2: #1b2638;
+    --surface3: #222f45;
+    --border: rgba(148, 163, 184, 0.22);
+    --accent: #66c8ff;
+    --accent2: #8b5cf6;
+    --ok: #4ade80;
+    --warn: #facc15;
+    --danger: #fb7185;
+    --text: #eef4ff;
+    --muted: #9aa8bd;
+    --code-bg: #101827;
+    --req: #60a5fa;
+    --prd: #fb7185;
+    --map: #34d399;
+    --log: #fbbf24;
+    --active: rgba(102, 200, 255, 0.12);
   }
 
   body {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     font-family: 'Inter', sans-serif;
-    background: var(--bg); color: var(--text);
-    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+    background:
+      radial-gradient(circle at 15% 5%, rgba(102, 200, 255, 0.12), transparent 32%),
+      radial-gradient(circle at 85% 0%, rgba(139, 92, 246, 0.12), transparent 30%),
+      var(--bg);
+    color: var(--text);
   }
 
-  /* Header */
   header {
-    display: flex; align-items: center; gap: 12px;
-    padding: 0 20px; height: 50px;
-    background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0;
+    height: 58px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(15, 23, 36, 0.86);
+    backdrop-filter: blur(16px);
   }
-  .logo { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; color: var(--accent); }
-  .logo span { color: var(--accent2); }
+
+  .logo {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.05;
+  }
+
+  .logo strong {
+    font-size: 16px;
+    letter-spacing: -0.02em;
+  }
+
+  .logo span {
+    margin-top: 5px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
   .repo-badge {
-    display: flex; align-items: center; gap: 6px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 6px; padding: 3px 10px;
-    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--muted);
+    font: 11px 'JetBrains Mono', monospace;
   }
-  .repo-badge svg { opacity: 0.5; }
-  .header-actions { margin-left: auto; display: flex; gap: 8px; }
+
+  .status-pill {
+    padding: 5px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    color: var(--ok);
+    background: rgba(74, 222, 128, 0.08);
+    font-size: 11px;
+    margin-left: auto;
+  }
+
   .hbtn {
-    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500;
-    padding: 5px 13px; border-radius: 6px; border: 1px solid var(--border);
-    background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    padding: 7px 11px;
+    font: 12px 'Inter', sans-serif;
+    cursor: pointer;
+    transition: 0.15s;
   }
-  .hbtn:hover { border-color: var(--accent); color: var(--accent); }
-  .hbtn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-  /* Body */
-  .body { flex: 1; display: flex; overflow: hidden; }
+  .hbtn:hover { color: var(--accent); border-color: rgba(102, 200, 255, 0.55); }
+  .hbtn.primary {
+    background: linear-gradient(135deg, rgba(102, 200, 255, 0.22), rgba(139, 92, 246, 0.18));
+    border-color: rgba(102, 200, 255, 0.55);
+    color: var(--text);
+  }
 
-  /* Sidebar */
-  #sidebar {
-    width: 250px; background: var(--surface);
+  .layout {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+
+  aside {
+    min-width: 0;
+    background: rgba(21, 31, 46, 0.9);
     border-right: 1px solid var(--border);
-    display: flex; flex-direction: column; flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
   }
-  .sidebar-header { padding: 14px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
-  .sidebar-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; display: flex; align-items: center; gap: 6px; }
-  .branch-tag {
-    font-family: 'JetBrains Mono', monospace; font-size: 10px;
-    background: rgba(124,106,247,0.15); color: var(--accent);
-    padding: 2px 7px; border-radius: 4px; margin-left: auto;
+
+  .side-head {
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
-  .search-wrap { position: relative; }
-  .search-wrap svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+
+  .section-title {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .branch {
+    font: 10px 'JetBrains Mono', monospace;
+    color: var(--accent);
+    background: rgba(102, 200, 255, 0.11);
+    border: 1px solid rgba(102, 200, 255, 0.25);
+    padding: 2px 7px;
+    border-radius: 5px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .tab {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 4px;
+    background: rgba(255,255,255,0.025);
+    color: var(--muted);
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  .tab.active {
+    color: var(--text);
+    border-color: rgba(102, 200, 255, 0.5);
+    background: var(--active);
+  }
+
+  .search-wrap {
+    position: relative;
+  }
+
   #search {
-    width: 100%; padding: 6px 10px 6px 30px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 6px; color: var(--text);
-    font-family: 'Inter', sans-serif; font-size: 12px;
-    outline: none; transition: border-color 0.15s;
+    width: 100%;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    outline: none;
   }
-  #search:focus { border-color: var(--accent); }
-  #search::placeholder { color: var(--muted); }
 
-  .refresh-btn {
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    width: 100%; padding: 6px; border-radius: 6px;
-    border: 1px solid var(--border); background: transparent;
-    color: var(--muted); font-family: 'Inter', sans-serif; font-size: 11px;
-    cursor: pointer; transition: all 0.15s;
+  #search:focus { border-color: rgba(102, 200, 255, 0.55); }
+
+  .side-actions {
+    display: flex;
+    gap: 7px;
   }
-  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .refresh-btn.loading svg { animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
 
-  #file-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+  .side-actions button {
+    flex: 1;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.025);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 7px 8px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+
+  .side-actions button:hover { color: var(--accent); border-color: rgba(102,200,255,0.55); }
+
+  #file-list {
+    flex: 1;
+    overflow: auto;
+    padding: 6px 0;
+  }
+
   .file-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 14px; cursor: pointer;
-    border-left: 2px solid transparent; transition: all 0.1s;
+    padding: 10px 13px;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    gap: 8px;
+    transition: 0.12s;
   }
-  .file-item:hover { background: var(--hover); }
+
+  .file-item:hover { background: rgba(255,255,255,0.04); }
   .file-item.active { background: var(--active); border-left-color: var(--accent); }
-  .fi-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-  .fi-size { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); flex-shrink: 0; }
-  .file-item svg { flex-shrink: 0; opacity: 0.45; }
-  .file-item.active svg { opacity: 1; }
 
-  .file-count { font-size: 10px; color: var(--muted); }
-
-  .empty-list { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.8; }
-  .error-msg { padding: 16px; color: #f87171; font-size: 12px; line-height: 1.7; background: rgba(248,113,113,0.08); margin: 8px; border-radius: 8px; border: 1px solid rgba(248,113,113,0.2); }
-
-  /* Resize handle */
-  #resize-handle { width: 4px; cursor: col-resize; background: transparent; transition: background 0.15s; flex-shrink: 0; }
-  #resize-handle:hover, #resize-handle.dragging { background: var(--accent); }
-
-  /* Main */
-  #main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-  #welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
-  .welcome-icon { width: 64px; height: 64px; border-radius: 50%; border: 2px dashed var(--border); display: flex; align-items: center; justify-content: center; }
-  .welcome-icon svg { opacity: 0.3; }
-  #welcome h2 { font-size: 16px; font-weight: 600; }
-  #welcome p { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.7; }
-
-  /* Doc bar */
-  #doc-bar {
-    display: none; align-items: center; gap: 10px;
-    padding: 0 20px; height: 42px;
-    border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
+  .fi-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
   }
-  .doc-title { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; }
-  .doc-meta { font-size: 11px; color: var(--muted); }
-  .doc-link { margin-left: auto; }
-  .doc-link a {
-    font-size: 11px; color: var(--muted); text-decoration: none;
-    display: flex; align-items: center; gap: 4px;
-    padding: 4px 10px; border: 1px solid var(--border); border-radius: 5px;
-    transition: all 0.15s;
+
+  .fi-meta {
+    font: 10px 'JetBrains Mono', monospace;
+    color: var(--muted);
   }
-  .doc-link a:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* Content */
-  #content-area { display: none; flex: 1; overflow: hidden; }
-  .split { display: flex; height: 100%; }
-  .pane-editor, .pane-preview { flex: 1; overflow-y: auto; padding: 32px 36px; }
-  .pane-editor { border-right: 1px solid var(--border); background: var(--code-bg); }
-  textarea#editor {
-    width: 100%; height: 100%;
-    font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.8;
-    background: transparent; border: none; outline: none; color: var(--text); resize: none;
+  .fi-path {
+    grid-column: 1 / -1;
+    color: var(--muted);
+    font: 10px 'JetBrains Mono', monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
-  .split.preview-only .pane-editor { display: none; }
 
-  /* Markdown */
-  .md-body { font-size: 15px; line-height: 1.85; color: var(--text); max-width: 780px; }
-  .md-body h1,.md-body h2,.md-body h3,.md-body h4 { font-weight: 600; margin: 1.6em 0 0.5em; line-height: 1.3; }
-  .md-body h1 { font-size: 1.9em; color: #111; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
-  .md-body h2 { font-size: 1.35em; color: #222; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-  .md-body h3 { font-size: 1.12em; color: var(--accent); }
-  .md-body h4 { font-size: 0.95em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-  .md-body p { margin: 0.85em 0; }
-  .md-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(92,95,239,0.3); }
-  .md-body a:hover { border-color: var(--accent); }
-  .md-body strong { color: #111; font-weight: 600; }
-  .md-body em { color: var(--accent2); font-style: italic; }
-  .md-body ul,.md-body ol { padding-left: 1.6em; margin: 0.7em 0; }
-  .md-body li { margin: 0.3em 0; }
-  .md-body blockquote { border-left: 3px solid var(--accent); margin: 1.2em 0; padding: 0.6em 1.2em; background: rgba(92,95,239,0.05); border-radius: 0 6px 6px 0; color: var(--muted); }
-  .md-body code { font-family: 'JetBrains Mono', monospace; font-size: 0.84em; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; color: #555; }
-  .md-body pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; overflow-x: auto; margin: 1.2em 0; }
-  .md-body pre code { background: none; border: none; padding: 0; font-size: 13px; color: #333; line-height: 1.7; }
-  .md-body table { width: 100%; border-collapse: collapse; margin: 1.2em 0; font-size: 14px; }
-  .md-body th { background: #ebebeb; color: var(--accent); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--accent); }
-  .md-body td { padding: 9px 14px; border-bottom: 1px solid var(--border); }
-  .md-body tr:hover td { background: rgba(0,0,0,0.02); }
-  .md-body hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
-  .md-body img { max-width: 100%; border-radius: 8px; margin: 1em 0; }
+  .empty, .error {
+    margin: 10px;
+    padding: 16px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.7;
+    text-align: center;
+  }
 
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  .error {
+    border-color: rgba(251, 113, 133, 0.28);
+    background: rgba(251, 113, 133, 0.07);
+    color: #fecdd3;
+    text-align: left;
+  }
+
+  main {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .top-panel {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    background: rgba(21, 31, 46, 0.55);
+    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 1.2fr);
+    gap: 14px;
+  }
+
+  .card {
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.035);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .card-head {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .card-head strong { font-size: 12px; }
+  .card-head span { color: var(--muted); font-size: 11px; }
+
+  .card-body {
+    padding: 12px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  input, textarea, select {
+    width: 100%;
+    border: 1px solid var(--border);
+    background: var(--code-bg);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 10px;
+    outline: none;
+    font: 12px 'Inter', sans-serif;
+  }
+
+  textarea {
+    min-height: 90px;
+    resize: vertical;
+    line-height: 1.65;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: rgba(102, 200, 255, 0.55);
+  }
+
+  .full { grid-column: 1 / -1; }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .btn {
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.035);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+
+  .btn:hover { border-color: rgba(102,200,255,0.55); color: var(--accent); }
+  .btn.primary {
+    background: rgba(102, 200, 255, 0.15);
+    border-color: rgba(102, 200, 255, 0.5);
+  }
+  .btn.danger {
+    border-color: rgba(251, 113, 133, 0.35);
+    color: #fecdd3;
+  }
+
+  .workflow {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0,1fr));
+    gap: 8px;
+  }
+
+  .step {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    background: rgba(15, 23, 36, 0.54);
+    min-height: 74px;
+  }
+
+  .step b {
+    display: block;
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  .step p {
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.45;
+  }
+
+  .step.req { border-color: rgba(96,165,250,0.36); }
+  .step.prd { border-color: rgba(251,113,133,0.36); }
+  .step.map { border-color: rgba(52,211,153,0.36); }
+  .step.log { border-color: rgba(251,191,36,0.36); }
+
+  .viewer-toolbar {
+    flex-shrink: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(15, 23, 36, 0.55);
+  }
+
+  .viewer-toolbar strong { font-size: 13px; }
+  .viewer-toolbar .muted { color: var(--muted); font-size: 11px; }
+  .viewer-toolbar .spacer { flex: 1; }
+
+  .viewer {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pane {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+  }
+
+  .pane:last-child { border-right: none; }
+
+  .pane-head {
+    flex-shrink: 0;
+    height: 42px;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(21, 31, 46, 0.62);
+  }
+
+  .pane-head b { font-size: 12px; }
+  .pane-head .source {
+    color: var(--muted);
+    font: 10px 'JetBrains Mono', monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pane-head .spacer { flex: 1; }
+
+  .gh-link {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 11px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+  }
+
+  .gh-link:hover { color: var(--accent); border-color: rgba(102,200,255,0.55); }
+
+  .pane-body {
+    flex: 1;
+    overflow: auto;
+    padding: 28px 34px;
+  }
+
+  .raw-box {
+    width: 100%;
+    height: 100%;
+    min-height: 420px;
+    background: transparent;
+    color: var(--text);
+    border: none;
+    padding: 0;
+    font: 12px/1.8 'JetBrains Mono', monospace;
+    resize: none;
+  }
+
+  .md-body {
+    color: var(--text);
+    max-width: 900px;
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  .md-body h1,.md-body h2,.md-body h3,.md-body h4 {
+    margin: 1.55em 0 0.55em;
+    line-height: 1.3;
+  }
+
+  .md-body h1 { font-size: 1.7em; padding-bottom: 9px; border-bottom: 2px solid var(--accent); }
+  .md-body h2 { font-size: 1.28em; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
+  .md-body h3 { font-size: 1.08em; color: var(--accent); }
+  .md-body p { margin: 0.75em 0; }
+  .md-body ul,.md-body ol { padding-left: 1.45em; margin: 0.65em 0; }
+  .md-body li { margin: 0.26em 0; }
+  .md-body code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 0.86em;
+  }
+  .md-body pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 15px;
+    overflow-x: auto;
+    margin: 1em 0;
+  }
+  .md-body pre code { border: none; padding: 0; }
+  .md-body table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 13px; }
+  .md-body th,.md-body td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+  .md-body th { color: var(--accent); background: rgba(102,200,255,0.08); }
+
+  .toast {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: 0.2s;
+    font-size: 12px;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.32); border-radius: 99px; }
 
-  /* Skeleton */
-  .skeleton { background: var(--border); border-radius: 4px; animation: pulse 1.2s ease-in-out infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-  .sk-item { display: flex; align-items: center; gap: 8px; padding: 8px 14px; }
-  .sk-icon { width: 13px; height: 13px; border-radius: 3px; flex-shrink:0; }
-  .sk-text { height: 11px; border-radius: 3px; }
-
-  #toast {
-    position: fixed; bottom: 22px; right: 22px;
-    background: #4ade80; color: #000;
-    font-size: 12px; font-weight: 600;
-    padding: 9px 16px; border-radius: 7px;
-    opacity: 0; transform: translateY(6px); transition: all 0.2s; pointer-events: none;
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 260px minmax(0, 1fr); }
+    .top-panel { grid-template-columns: 1fr; max-height: 360px; overflow: auto; }
+    .workflow { grid-template-columns: repeat(3, minmax(0,1fr)); }
   }
-  #toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 820px) {
+    body { overflow: auto; height: auto; min-height: 100vh; }
+    .layout { display: block; }
+    aside { height: 340px; border-right: none; border-bottom: 1px solid var(--border); }
+    main { min-height: 760px; }
+    .viewer { grid-template-columns: 1fr; }
+    .pane { min-height: 520px; border-right: none; border-bottom: 1px solid var(--border); }
+  }
 </style>
 </head>
 <body>
-
 <header>
-  <div class="logo">md<span>.</span>view</div>
-  <div class="repo-badge">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-    howardchoi-nsus/poc_ax · prd
+  <div class="logo">
+    <strong>Agent1 PRD Generation Workflow</strong>
+    <span>요구사항 등록 → Git Repository 저장 → PRD 생성 → 2Column 검토</span>
   </div>
-  <div class="header-actions">
-    <button class="hbtn active" id="btn-preview">미리보기</button>
-    <button class="hbtn" id="btn-split">분할 보기</button>
-    <button class="hbtn" id="btn-copy">복사</button>
-  </div>
+  <div class="repo-badge" id="repo-badge">howardchoi-nsus/poc_ax · main</div>
+  <div class="status-pill">Git Repository Source</div>
+  <button class="hbtn" id="btn-copy-left">Req 복사</button>
+  <button class="hbtn" id="btn-copy-right">PRD 복사</button>
+  <button class="hbtn primary" id="btn-refresh-top">새로고침</button>
 </header>
 
-<div class="body">
-  <div id="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-title">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-        prd 폴더
-        <span class="branch-tag">main</span>
+<div class="layout">
+  <aside>
+    <div class="side-head">
+      <div class="section-title">
+        Repository Areas
+        <span class="branch" id="branch-label">main</span>
       </div>
-      <div class="search-wrap">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="search" placeholder="파일 검색...">
+      <div class="tabs">
+        <button class="tab active" data-area="req">/Req</button>
+        <button class="tab" data-area="prd">/PRD</button>
+        <button class="tab" data-area="maps">/Maps</button>
+        <button class="tab" data-area="logs">/Logs</button>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <span class="file-count" id="file-count"></span>
-        <button class="refresh-btn" id="refresh-btn" style="width:auto;padding:4px 10px;">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          새로고침
-        </button>
+      <input type="text" id="search" placeholder="파일 검색..." />
+      <div class="side-actions">
+        <button id="btn-refresh">목록 갱신</button>
+        <button id="btn-open-latest">최신 매핑 열기</button>
       </div>
     </div>
-    <div id="file-list">
-      <div class="empty-list">불러오는 중...</div>
-    </div>
-  </div>
+    <div id="file-list"><div class="empty">불러오는 중...</div></div>
+  </aside>
 
-  <div id="resize-handle"></div>
-
-  <div id="main-area">
-    <div id="welcome">
-      <div class="welcome-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
-        </svg>
+  <main>
+    <section class="top-panel">
+      <div class="card">
+        <div class="card-head">
+          <strong>Process 1. Requirement Save</strong>
+          <span>Vercel Web → n8n Webhook → Git /source, /req</span>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <label>
+              Requirement ID
+              <input id="requirement-id" value="REQ_coupon_admin_20260611" />
+            </label>
+            <label>
+              Prompt Path
+              <input id="prompt-path" value="prompts/prd-template-v1.md" />
+            </label>
+            <label class="full">
+              Source File Path
+              <input id="source-path" value="source/REQ_coupon_admin_20260611.txt" />
+            </label>
+            <label class="full">
+              요구사항 원문
+              <textarea id="requirement-text" placeholder="여기에 요구사항을 입력하거나, 아래 파일 선택으로 txt/md 내용을 불러오세요."></textarea>
+            </label>
+            <label class="full">
+              로컬 파일 불러오기
+              <input id="local-file" type="file" accept=".txt,.md,.markdown,.doc,.docx" />
+            </label>
+          </div>
+          <div class="btn-row">
+            <button class="btn primary" id="btn-save-req">요구사항 등록 실행</button>
+            <button class="btn" id="btn-run-prd">선택 Req로 PRD 생성</button>
+            <button class="btn danger" id="btn-clear">입력 초기화</button>
+          </div>
+        </div>
       </div>
-      <h2>파일을 선택하세요</h2>
-      <p>좌측 목록에서 MD 파일을 클릭하면<br>여기에 렌더링됩니다</p>
+
+      <div class="card">
+        <div class="card-head">
+          <strong>Workflow Status</strong>
+          <span>다이어그램 기준 폴더 구조</span>
+        </div>
+        <div class="card-body">
+          <div class="workflow">
+            <div class="step">
+              <b>/source</b>
+              <p>원본 요구사항 저장<br />txt, md, doc/docx, gdoc URL</p>
+            </div>
+            <div class="step req">
+              <b>/req</b>
+              <p>표준 Markdown 요구사항<br />PRD 생성의 기준 입력</p>
+            </div>
+            <div class="step">
+              <b>/prompts</b>
+              <p>PRD Agent 프롬프트<br />템플릿 버전 관리</p>
+            </div>
+            <div class="step prd">
+              <b>/prd</b>
+              <p>LLM이 생성한 PRD<br />오른쪽 패널에서 조회</p>
+            </div>
+            <div class="step map">
+              <b>/maps</b>
+              <p>Req-PRD 매핑 정보<br />2Column 연결 기준</p>
+            </div>
+            <div class="step log">
+              <b>/logs</b>
+              <p>n8n 실행 로그<br />실패/성공 이력 확인</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="viewer-toolbar">
+      <strong>2Column Viewer</strong>
+      <span class="muted" id="viewer-meta">좌측 요구사항, 우측 PRD를 비교합니다.</span>
+      <span class="spacer"></span>
+      <button class="hbtn" id="btn-toggle-raw">Raw 보기</button>
+      <button class="hbtn" id="btn-open-map">매핑 JSON 보기</button>
     </div>
 
-    <div id="doc-bar">
-      <span class="doc-title" id="doc-title"></span>
-      <span class="doc-meta" id="doc-meta"></span>
-      <div class="doc-link">
-        <a id="gh-link" href="#" target="_blank">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-          GitHub에서 보기
-        </a>
-      </div>
-    </div>
+    <section class="viewer">
+      <article class="pane">
+        <div class="pane-head">
+          <b style="color:var(--req)">Left Panel: Requirements</b>
+          <span class="source" id="req-source">Source: /req</span>
+          <span class="spacer"></span>
+          <a class="gh-link" id="req-gh" target="_blank" href="#">GitHub</a>
+        </div>
+        <div class="pane-body">
+          <div class="md-body" id="req-preview">
+            <p style="color:var(--muted)">좌측 목록에서 /Req 파일을 선택하거나, /Maps 파일을 선택하면 연결된 요구사항이 표시됩니다.</p>
+          </div>
+          <textarea class="raw-box" id="req-raw" style="display:none" spellcheck="false"></textarea>
+        </div>
+      </article>
 
-    <div id="content-area">
-      <div class="split preview-only">
-        <div class="pane-editor"><textarea id="editor" spellcheck="false"></textarea></div>
-        <div class="pane-preview"><div class="md-body" id="preview"></div></div>
-      </div>
-    </div>
-  </div>
+      <article class="pane">
+        <div class="pane-head">
+          <b style="color:var(--prd)">Right Panel: PRD</b>
+          <span class="source" id="prd-source">Source: /prd</span>
+          <span class="spacer"></span>
+          <a class="gh-link" id="prd-gh" target="_blank" href="#">GitHub</a>
+        </div>
+        <div class="pane-body">
+          <div class="md-body" id="prd-preview">
+            <p style="color:var(--muted)">매핑된 PRD가 있으면 오른쪽에 표시됩니다. /PRD 파일을 직접 선택해도 볼 수 있습니다.</p>
+          </div>
+          <textarea class="raw-box" id="prd-raw" style="display:none" spellcheck="false"></textarea>
+        </div>
+      </article>
+    </section>
+  </main>
 </div>
 
-<div id="toast">✓ 복사 완료</div>
+<div class="toast" id="toast"></div>
 
 <script>
-// ── Config ──────────────────────────────────────────
-const OWNER  = 'howardchoi-nsus';
-const REPO   = 'poc_ax';
-const BRANCH = 'main';
-const FOLDER = 'prd';
-const API    = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}?ref=${BRANCH}`;
-const RAW    = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${FOLDER}`;
-const GH_URL = `https://github.com/${OWNER}/${REPO}/blob/${BRANCH}/${FOLDER}`;
-// ────────────────────────────────────────────────────
+/**
+ * Vercel 배포 전 수정할 값
+ * - GitHub Repository가 public이면 토큰 없이 조회 가능합니다.
+ * - GitHub에 쓰기 작업은 브라우저에서 직접 하지 말고 n8n Webhook을 통해 처리합니다.
+ * - n8n Webhook URL은 Vercel Environment Variable로 주입하는 방식을 권장합니다.
+ */
+const CONFIG = {
+  // GitHub 조회는 /api 프록시를 통해 서버에서 인증 처리합니다.
+  owner: 'howardchoi-nsus',
+  repo: 'poc_ax',
+  branch: 'main',
+  folders: {
+    source: 'source',
+    req: 'req',
+    prompts: 'prompts',
+    prd: 'prd',
+    maps: 'maps',
+    logs: 'logs'
+  },
+
+  // 예: 'https://YOUR-N8N-DOMAIN/webhook/requirement-save'
+  requirementSaveWebhook: '',
+  // 예: 'https://YOUR-N8N-DOMAIN/webhook/agent1-prd-generate'
+  prdGenerateWebhook: ''
+};
 
 marked.setOptions({ breaks: true, gfm: true });
 
-let allFiles = [];
-let activeIdx = null;
-let currentMode = 'preview';
+let currentArea = 'req';
+let filesByArea = { req: [], prd: [], maps: [], logs: [] };
+let selectedReq = null;
+let selectedPrd = null;
+let selectedMap = null;
+let rawMode = false;
 
-const fileList   = document.getElementById('file-list');
-const fileCount  = document.getElementById('file-count');
-const search     = document.getElementById('search');
-const welcome    = document.getElementById('welcome');
-const docBar     = document.getElementById('doc-bar');
-const docTitle   = document.getElementById('doc-title');
-const docMeta    = document.getElementById('doc-meta');
-const ghLink     = document.getElementById('gh-link');
-const contentArea= document.getElementById('content-area');
-const editor     = document.getElementById('editor');
-const preview    = document.getElementById('preview');
-const split      = document.querySelector('.split');
-const toast      = document.getElementById('toast');
-const btnPreview = document.getElementById('btn-preview');
-const btnSplit   = document.getElementById('btn-split');
-const btnCopy    = document.getElementById('btn-copy');
-const refreshBtn = document.getElementById('refresh-btn');
+const el = (id) => document.getElementById(id);
+const fileList = el('file-list');
+const search = el('search');
+const toast = el('toast');
 
-// ── Fetch file list ──────────────────────────────────
-async function fetchFileList() {
-  setLoading(true);
-  try {
-    const res = await fetch(API);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `HTTP ${res.status}`);
-    }
-    const data = await res.json();
-    allFiles = data
-      .filter(f => f.type === 'file' && /\.(md|markdown)$/i.test(f.name))
-      .sort((a, b) => a.name.localeCompare(b.name));
-    fileCount.textContent = `${allFiles.length}개 파일`;
-    renderList(allFiles);
-  } catch (e) {
-    fileList.innerHTML = `<div class="error-msg">⚠️ 불러오기 실패<br><br>${e.message}<br><br>레포가 공개(public)인지, 폴더 경로가 올바른지 확인하세요.</div>`;
-    fileCount.textContent = '';
-  } finally {
-    setLoading(false);
-  }
+const apiFor = (folder) => `/api/github-list?folder=${encodeURIComponent(folder)}`;
+const rawFor = (path) => `/api/github-file?path=${encodeURIComponent(path)}`;
+const ghFor = (path) => `https://github.com/${CONFIG.owner}/${CONFIG.repo}/blob/${CONFIG.branch}/${path}`;
+
+function initLabels() {
+  el('repo-badge').textContent = `${CONFIG.owner}/${CONFIG.repo} · ${CONFIG.branch}`;
+  el('branch-label').textContent = CONFIG.branch;
 }
 
-function setLoading(on) {
-  refreshBtn.classList.toggle('loading', on);
-  if (on) {
-    fileList.innerHTML = [1,2,3,4,5].map(i => `
-      <div class="sk-item">
-        <div class="skeleton sk-icon"></div>
-        <div class="skeleton sk-text" style="width:${55+i*7}%"></div>
-      </div>`).join('');
-    fileCount.textContent = '불러오는 중...';
-  }
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
 }
 
-// ── Render list ──────────────────────────────────────
-function renderList(files) {
-  if (!files.length) {
-    fileList.innerHTML = '<div class="empty-list">MD 파일이 없습니다</div>';
-    return;
-  }
-  fileList.innerHTML = files.map((f, i) => {
-    const origIdx = allFiles.indexOf(f);
-    const name = f.name.replace(/\.(md|markdown)$/i, '');
-    const size = formatSize(f.size);
-    return `<div class="file-item${origIdx === activeIdx ? ' active' : ''}" data-idx="${origIdx}">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-        <polyline points="14 2 14 8 20 8"/>
-      </svg>
-      <span class="fi-name" title="${f.name}">${name}</span>
-      <span class="fi-size">${size}</span>
-    </div>`;
-  }).join('');
-
-  fileList.querySelectorAll('.file-item').forEach(el => {
-    el.addEventListener('click', () => openFile(parseInt(el.dataset.idx)));
-  });
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }
 
-// ── Open file ────────────────────────────────────────
-async function openFile(idx) {
-  const f = allFiles[idx];
-  if (!f) return;
-  activeIdx = idx;
-
-  // Highlight
-  fileList.querySelectorAll('.file-item').forEach(el =>
-    el.classList.toggle('active', parseInt(el.dataset.idx) === idx)
-  );
-
-  // Show loading in preview
-  preview.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:20px 0;">불러오는 중...</div>`;
-  welcome.style.display = 'none';
-  docBar.style.display = 'flex';
-  contentArea.style.display = 'block';
-
-  try {
-    const res = await fetch(`${RAW}/${f.name}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-
-    editor.value = text;
-    preview.innerHTML = marked.parse(text);
-    docTitle.textContent = f.name;
-    docMeta.textContent = `${formatSize(f.size)} · ${text.replace(/\s+/g,'').length}자`;
-    ghLink.href = `${GH_URL}/${f.name}`;
-  } catch (e) {
-    preview.innerHTML = `<div style="color:#f87171;font-size:13px;">파일을 불러오지 못했습니다: ${e.message}</div>`;
-  }
-}
-
-// ── Helpers ──────────────────────────────────────────
 function formatSize(bytes) {
   if (!bytes) return '-';
   if (bytes < 1024) return bytes + 'B';
-  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + 'KB';
-  return (bytes/1024/1024).toFixed(1) + 'MB';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
+  return (bytes / 1024 / 1024).toFixed(1) + 'MB';
 }
 
-// ── Search ───────────────────────────────────────────
-search.addEventListener('input', () => {
+function fileExtPattern(area) {
+  if (area === 'maps' || area === 'logs') return /\.(json)$/i;
+  return /\.(md|markdown|txt)$/i;
+}
+
+async function fetchFolder(area) {
+  const folder = CONFIG.folders[area];
+  const res = await fetch(apiFor(folder));
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`${folder}: ${err.message || 'HTTP ' + res.status}`);
+  }
+  const data = await res.json();
+  return data
+    .filter((f) => f.type === 'file' && fileExtPattern(area).test(f.name))
+    .map((f) => ({ ...f, area, path: `${folder}/${f.name}` }))
+    .sort((a, b) => b.name.localeCompare(a.name));
+}
+
+async function refreshAll() {
+  fileList.innerHTML = '<div class="empty">Repository 파일을 불러오는 중...</div>';
+  try {
+    const areas = ['req', 'prd', 'maps', 'logs'];
+    const results = await Promise.allSettled(areas.map(fetchFolder));
+    results.forEach((r, idx) => {
+      filesByArea[areas[idx]] = r.status === 'fulfilled' ? r.value : [];
+      if (r.status === 'rejected') console.warn(r.reason);
+    });
+    renderList();
+    showToast('목록을 갱신했습니다.');
+  } catch (e) {
+    fileList.innerHTML = `<div class="error">불러오기 실패<br><br>${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderList() {
   const q = search.value.trim().toLowerCase();
-  renderList(q ? allFiles.filter(f => f.name.toLowerCase().includes(q)) : allFiles);
-});
+  const files = filesByArea[currentArea].filter((f) => f.name.toLowerCase().includes(q));
+  if (!files.length) {
+    fileList.innerHTML = `<div class="empty">/${CONFIG.folders[currentArea]} 폴더에 표시할 파일이 없습니다.</div>`;
+    return;
+  }
 
-// ── Editor live preview ──────────────────────────────
-editor.addEventListener('input', () => {
-  preview.innerHTML = marked.parse(editor.value);
-});
+  fileList.innerHTML = files.map((f, idx) => `
+    <div class="file-item" data-path="${escapeHtml(f.path)}" data-area="${f.area}">
+      <div class="fi-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</div>
+      <div class="fi-meta">${formatSize(f.size)}</div>
+      <div class="fi-path">${escapeHtml(f.path)}</div>
+    </div>
+  `).join('');
 
-// ── Mode ─────────────────────────────────────────────
-function setMode(mode) {
-  currentMode = mode;
-  split.classList.toggle('preview-only', mode === 'preview');
-  btnPreview.classList.toggle('active', mode === 'preview');
-  btnSplit.classList.toggle('active', mode === 'split');
-}
-btnPreview.addEventListener('click', () => setMode('preview'));
-btnSplit.addEventListener('click', () => setMode('split'));
-
-// ── Copy ─────────────────────────────────────────────
-btnCopy.addEventListener('click', () => {
-  if (activeIdx === null) return;
-  navigator.clipboard.writeText(editor.value).then(() => {
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
+  fileList.querySelectorAll('.file-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      fileList.querySelectorAll('.file-item').forEach((n) => n.classList.remove('active'));
+      item.classList.add('active');
+      openRepositoryFile(item.dataset.area, item.dataset.path);
+    });
   });
-});
+}
 
-// ── Refresh ──────────────────────────────────────────
-refreshBtn.addEventListener('click', fetchFileList);
+async function fetchText(path) {
+  const res = await fetch(rawFor(path));
+  if (!res.ok) throw new Error(`${path} 파일을 불러오지 못했습니다. HTTP ${res.status}`);
+  return await res.text();
+}
 
-// ── Sidebar resize ───────────────────────────────────
-const handle  = document.getElementById('resize-handle');
-const sidebar = document.getElementById('sidebar');
-let dragging = false, startX = 0, startW = 0;
-handle.addEventListener('mousedown', e => {
-  dragging = true; startX = e.clientX; startW = sidebar.offsetWidth;
-  handle.classList.add('dragging');
-  document.body.style.cssText += 'cursor:col-resize;user-select:none';
-});
-document.addEventListener('mousemove', e => {
-  if (!dragging) return;
-  sidebar.style.width = Math.min(380, Math.max(160, startW + e.clientX - startX)) + 'px';
-});
-document.addEventListener('mouseup', () => {
-  dragging = false; handle.classList.remove('dragging');
-  document.body.style.cursor = ''; document.body.style.userSelect = '';
-});
+function renderPane(side, path, text, mode = 'markdown') {
+  const preview = el(`${side}-preview`);
+  const raw = el(`${side}-raw`);
+  const source = el(`${side}-source`);
+  const link = el(`${side}-gh`);
 
-// ── Init ─────────────────────────────────────────────
-fetchFileList();
+  source.textContent = `Source: ${path}`;
+  link.href = ghFor(path);
+  raw.value = text;
+
+  if (mode === 'json') {
+    try {
+      const pretty = JSON.stringify(JSON.parse(text), null, 2);
+      raw.value = pretty;
+      preview.innerHTML = marked.parse('```json\n' + pretty + '\n```');
+    } catch {
+      preview.innerHTML = marked.parse('```json\n' + text + '\n```');
+    }
+  } else {
+    preview.innerHTML = marked.parse(text);
+  }
+
+  raw.style.display = rawMode ? 'block' : 'none';
+  preview.style.display = rawMode ? 'none' : 'block';
+}
+
+async function openRepositoryFile(area, path) {
+  try {
+    el('viewer-meta').textContent = `선택 파일: ${path}`;
+
+    if (area === 'req') {
+      const text = await fetchText(path);
+      selectedReq = { path, text };
+      renderPane('req', path, text);
+      await autoFindPrdForReq(path);
+    }
+
+    if (area === 'prd') {
+      const text = await fetchText(path);
+      selectedPrd = { path, text };
+      renderPane('prd', path, text);
+    }
+
+    if (area === 'maps') {
+      await openMap(path);
+    }
+
+    if (area === 'logs') {
+      const text = await fetchText(path);
+      renderPane('prd', path, text, 'json');
+      el('viewer-meta').textContent = `실행 로그 조회: ${path}`;
+    }
+  } catch (e) {
+    showToast(e.message);
+  }
+}
+
+function getRequirementKey(path) {
+  const name = path.split('/').pop() || '';
+  return name
+    .replace(/^REQ_/, '')
+    .replace(/^PRD_REQ_/, '')
+    .replace(/^PRD_/, '')
+    .replace(/\.(md|markdown|txt)$/i, '')
+    .replace(/_\d{8}_\d{6}$/i, '');
+}
+
+async function autoFindPrdForReq(reqPath) {
+  const key = getRequirementKey(reqPath).toLowerCase();
+
+  const mapCandidate = filesByArea.maps.find((m) => m.name.toLowerCase().includes(key));
+  if (mapCandidate) {
+    await openMap(mapCandidate.path);
+    return;
+  }
+
+  const prdCandidate = filesByArea.prd.find((p) => p.name.toLowerCase().includes(key));
+  if (prdCandidate) {
+    const prdText = await fetchText(prdCandidate.path);
+    selectedPrd = { path: prdCandidate.path, text: prdText };
+    renderPane('prd', prdCandidate.path, prdText);
+  } else {
+    el('prd-preview').innerHTML = '<p style="color:var(--muted)">연결된 PRD를 찾지 못했습니다. PRD 생성 버튼을 실행하거나 /PRD 파일을 직접 선택하세요.</p>';
+    el('prd-raw').value = '';
+    el('prd-source').textContent = 'Source: /prd';
+    el('prd-gh').href = '#';
+  }
+}
+
+function normalizeMapPath(map, keyCandidates) {
+  for (const key of keyCandidates) {
+    if (map && typeof map[key] === 'string' && map[key]) return map[key].replace(/^\/+/, '');
+  }
+  return '';
+}
+
+async function openMap(path) {
+  const text = await fetchText(path);
+  let map;
+  try {
+    map = JSON.parse(text);
+  } catch {
+    selectedMap = { path, text, json: null };
+    renderPane('prd', path, text, 'json');
+    return;
+  }
+
+  selectedMap = { path, text, json: map };
+  const reqPath = normalizeMapPath(map, ['requirementFilePath', 'reqFilePath', 'requirement_path', 'reqPath']);
+  const prdPath = normalizeMapPath(map, ['prdFilePath', 'prd_path', 'prdPath', 'outputPrdFile']);
+
+  el('viewer-meta').textContent = `매핑 조회: ${path}`;
+
+  if (reqPath) {
+    const reqText = await fetchText(reqPath);
+    selectedReq = { path: reqPath, text: reqText };
+    renderPane('req', reqPath, reqText);
+  } else {
+    renderPane('req', path, text, 'json');
+  }
+
+  if (prdPath) {
+    const prdText = await fetchText(prdPath);
+    selectedPrd = { path: prdPath, text: prdText };
+    renderPane('prd', prdPath, prdText);
+  } else {
+    renderPane('prd', path, text, 'json');
+  }
+}
+
+async function openLatestMap() {
+  const latest = filesByArea.maps[0];
+  if (!latest) {
+    showToast('/maps 파일이 없습니다.');
+    return;
+  }
+  currentArea = 'maps';
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.area === 'maps'));
+  renderList();
+  await openMap(latest.path);
+}
+
+async function postWebhook(url, payload) {
+  if (!url) {
+    throw new Error('Webhook URL이 비어 있습니다. CONFIG의 requirementSaveWebhook 또는 prdGenerateWebhook 값을 설정하세요.');
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Webhook 호출 실패: HTTP ${res.status} ${text}`);
+  }
+
+  return await res.json().catch(() => ({}));
+}
+
+async function saveRequirement() {
+  const requirementId = el('requirement-id').value.trim();
+  const sourceFilePath = el('source-path').value.trim();
+  const promptFilePath = el('prompt-path').value.trim();
+  const requirementText = el('requirement-text').value.trim();
+
+  if (!requirementId) return showToast('Requirement ID를 입력하세요.');
+  if (!sourceFilePath) return showToast('Source File Path를 입력하세요.');
+  if (!requirementText) return showToast('요구사항 원문을 입력하세요.');
+
+  try {
+    el('btn-save-req').disabled = true;
+    await postWebhook(CONFIG.requirementSaveWebhook, {
+      action: 'requirement_save',
+      requirementId,
+      sourceFilePath,
+      promptFilePath,
+      requirementText,
+      githubOwner: CONFIG.owner,
+      githubRepo: CONFIG.repo,
+      githubBranch: CONFIG.branch,
+      folders: CONFIG.folders
+    });
+    showToast('요구사항 등록 요청을 보냈습니다.');
+    await refreshAll();
+  } catch (e) {
+    showToast(e.message);
+  } finally {
+    el('btn-save-req').disabled = false;
+  }
+}
+
+async function runPrdGenerate() {
+  const requirementId = el('requirement-id').value.trim();
+  const promptFilePath = el('prompt-path').value.trim();
+  const selectedReqPath = selectedReq?.path || '';
+
+  if (!requirementId) return showToast('Requirement ID를 입력하세요.');
+  if (!selectedReqPath) return showToast('/Req 파일을 먼저 선택하세요.');
+
+  try {
+    el('btn-run-prd').disabled = true;
+    await postWebhook(CONFIG.prdGenerateWebhook, {
+      action: 'agent1_prd_generate',
+      requirementId,
+      requirementFilePath: selectedReqPath,
+      promptFilePath,
+      githubOwner: CONFIG.owner,
+      githubRepo: CONFIG.repo,
+      githubBranch: CONFIG.branch,
+      folders: CONFIG.folders
+    });
+    showToast('PRD 생성 요청을 보냈습니다.');
+    await refreshAll();
+  } catch (e) {
+    showToast(e.message);
+  } finally {
+    el('btn-run-prd').disabled = false;
+  }
+}
+
+function copyText(side) {
+  const value = el(`${side}-raw`).value;
+  if (!value) return showToast('복사할 내용이 없습니다.');
+  navigator.clipboard.writeText(value).then(() => showToast('복사 완료'));
+}
+
+function toggleRaw() {
+  rawMode = !rawMode;
+  ['req', 'prd'].forEach((side) => {
+    el(`${side}-raw`).style.display = rawMode ? 'block' : 'none';
+    el(`${side}-preview`).style.display = rawMode ? 'none' : 'block';
+  });
+  el('btn-toggle-raw').textContent = rawMode ? 'Markdown 보기' : 'Raw 보기';
+}
+
+function bindEvents() {
+  document.querySelectorAll('.tab').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentArea = btn.dataset.area;
+      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+      btn.classList.add('active');
+      renderList();
+    });
+  });
+
+  search.addEventListener('input', renderList);
+  el('btn-refresh').addEventListener('click', refreshAll);
+  el('btn-refresh-top').addEventListener('click', refreshAll);
+  el('btn-open-latest').addEventListener('click', openLatestMap);
+  el('btn-open-map').addEventListener('click', () => {
+    if (selectedMap?.path) renderPane('prd', selectedMap.path, selectedMap.text, 'json');
+    else showToast('선택된 매핑 정보가 없습니다.');
+  });
+  el('btn-save-req').addEventListener('click', saveRequirement);
+  el('btn-run-prd').addEventListener('click', runPrdGenerate);
+  el('btn-copy-left').addEventListener('click', () => copyText('req'));
+  el('btn-copy-right').addEventListener('click', () => copyText('prd'));
+  el('btn-toggle-raw').addEventListener('click', toggleRaw);
+  el('btn-clear').addEventListener('click', () => {
+    el('requirement-text').value = '';
+    showToast('입력값을 초기화했습니다.');
+  });
+
+  el('local-file').addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    el('requirement-text').value = text;
+    const safeName = file.name.replace(/\s+/g, '_');
+    if (!el('source-path').value.trim()) el('source-path').value = `${CONFIG.folders.source}/${safeName}`;
+    showToast('파일 내용을 불러왔습니다.');
+  });
+}
+
+initLabels();
+bindEvents();
+refreshAll();
 </script>
 </body>
 </html>
