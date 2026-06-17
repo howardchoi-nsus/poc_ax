@@ -273,11 +273,13 @@
   }
 
   .top-panel {
-    width:100%;
+    flex-shrink: 0;
     border-bottom: 1px solid var(--border);
     background: rgba(21, 31, 46, 0.55);
     padding: 14px 18px;
     display: grid;
+    grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 1.2fr);
+    gap: 14px;
   }
 
   .card {
@@ -556,3 +558,80 @@
     .viewer { grid-template-columns: 1fr; }
     .pane { min-height: 520px; border-right: none; border-bottom: 1px solid var(--border); }
   }
+
+
+/* Requirement source controls */
+.field-help {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+select,
+input[readonly],
+input:disabled,
+textarea:disabled {
+  opacity: 0.72;
+}
+
+select {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.fi-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.badge-file {
+  color: #0f766e;
+  background: rgba(20, 184, 166, 0.12);
+  border-color: rgba(20, 184, 166, 0.25);
+}
+
+.badge-jira {
+  color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.badge-slack {
+  color: #9333ea;
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.25);
+}
+
+.badge-direct {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.badge-unknown {
+  color: var(--muted);
+  background: var(--bg);
+}

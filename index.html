@@ -3,21 +3,23 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Agent1 PRD 생성</title>
+<title>Agent1 PRD Workflow Viewer</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
 <header>
   <div class="logo">
-    <strong>Agent1 PRD 생성_POC</strong>
+    <strong>Agent1 PRD Generation Workflow</strong>
+    <span>요구사항 등록 → Git Repository 저장 → PRD 생성 → 2Column 검토</span>
   </div>
-  <div class="repo-badge" id="repo-badge">Git : howardchoi-nsus/poc_ax · main</div>
-  <button class="hbtn" id="btn-copy-left">요구사항 복사</button>
+  <div class="repo-badge" id="repo-badge">howardchoi-nsus/poc_ax · main</div>
+  <div class="status-pill">Git Repository Source</div>
+  <button class="hbtn" id="btn-copy-left">Req 복사</button>
   <button class="hbtn" id="btn-copy-right">PRD 복사</button>
   <button class="hbtn primary" id="btn-refresh-top">새로고침</button>
 </header>
-<!-- left menu start -->
+
 <div class="layout">
   <aside>
     <div class="side-head">
@@ -26,56 +28,72 @@
         <span class="branch" id="branch-label">main</span>
       </div>
       <div class="tabs">
-        <button class="tab active" data-area="req">REQ</button>
-        <button class="tab" data-area="prd">PRD</button>
-        <button class="tab" data-area="maps">Maps</button>
-        <button class="tab" data-area="logs">Logs</button>
+        <button class="tab active" data-area="req">/Req</button>
+        <button class="tab" data-area="prd">/PRD</button>
+        <button class="tab" data-area="maps">/Maps</button>
+        <button class="tab" data-area="logs">/Logs</button>
       </div>
-      
       <input type="text" id="search" placeholder="파일 검색..." />
-      
       <div class="side-actions">
         <button id="btn-refresh">목록 갱신</button>
         <button id="btn-open-latest">최신 매핑 열기</button>
       </div>
-    
     </div>
     <div id="file-list"><div class="empty">불러오는 중...</div></div>
   </aside>
 
   <main>
-
     <section class="top-panel">
       <div class="card">
-        
         <div class="card-head">
           <strong>Process 1. Requirement Save</strong>
+          <span>Vercel Web → n8n Webhook → Git /source, /req</span>
         </div>
-
         <div class="card-body">
           <div class="form-grid">
-         
             <label>
-              Requirement ID
-              <input id="requirement-id" value="REQ_coupon_admin_20260611" />
+              Requirement Keyword
+              <input id="requirement-id" value="coupon_admin" placeholder="키워드 또는 업무명만 입력 예: coupon_admin" />
+              <small class="field-help">파일명은 REQ_[키워드]_YYMMDD_HHMMSS.txt 형식으로 자동 생성됩니다.</small>
             </label>
-         
+
+            <label>
+              출처 정보
+              <select id="source-type">
+                <option value="">출처 선택</option>
+                <option value="JIRA">JIRA</option>
+                <option value="SLACK">SLACK</option>
+                <option value="FILE">파일업로드</option>
+                <option value="DIRECT">직접등록</option>
+              </select>
+              <small class="field-help">하나의 출처만 선택할 수 있습니다.</small>
+            </label>
+
             <label>
               Prompt Path
               <input id="prompt-path" value="prompts/prd-template-v1.md" />
             </label>
-         
-            <label class="full">
-              Source File Path 22
-              <input id="source-path" value="source/REQ_coupon_admin_20260611.txt" />
+
+            <label>
+              Source File Path
+              <input id="source-path" value="" readonly />
+              <small class="field-help">출처와 키워드를 기준으로 자동 생성됩니다.</small>
             </label>
+
+            <label class="full">
+              출처 상세 정보
+              <input id="source-detail" value="" placeholder="JIRA 이슈 키, Slack 링크, 파일명 등 출처 식별 정보를 입력하세요." disabled />
+            </label>
+
             <label class="full">
               요구사항 원문
-              <textarea id="requirement-text" placeholder="여기에 요구사항을 입력하거나, 아래 파일 선택으로 txt/md 내용을 불러오세요."></textarea>
+              <textarea id="requirement-text" placeholder="출처 정보를 선택하면 입력할 수 있습니다." disabled></textarea>
+              <small class="field-help">파일업로드 또는 직접등록 선택 시에만 직접 입력할 수 있습니다.</small>
             </label>
+
             <label class="full">
               로컬 파일 불러오기
-              <input id="local-file" type="file" accept=".txt,.md,.markdown,.doc,.docx" />
+              <input id="local-file" type="file" accept=".txt,.md,.markdown,.doc,.docx" disabled />
             </label>
           </div>
           <div class="btn-row">
@@ -85,8 +103,42 @@
           </div>
         </div>
       </div>
-    </section>
 
+      <div class="card">
+        <div class="card-head">
+          <strong>Workflow Status</strong>
+          <span>다이어그램 기준 폴더 구조</span>
+        </div>
+        <div class="card-body">
+          <div class="workflow">
+            <div class="step">
+              <b>/source</b>
+              <p>원본 요구사항 저장<br />txt, md, doc/docx, gdoc URL</p>
+            </div>
+            <div class="step req">
+              <b>/req</b>
+              <p>표준 Markdown 요구사항<br />PRD 생성의 기준 입력</p>
+            </div>
+            <div class="step">
+              <b>/prompts</b>
+              <p>PRD Agent 프롬프트<br />템플릿 버전 관리</p>
+            </div>
+            <div class="step prd">
+              <b>/prd</b>
+              <p>LLM이 생성한 PRD<br />오른쪽 패널에서 조회</p>
+            </div>
+            <div class="step map">
+              <b>/maps</b>
+              <p>Req-PRD 매핑 정보<br />2Column 연결 기준</p>
+            </div>
+            <div class="step log">
+              <b>/logs</b>
+              <p>n8n 실행 로그<br />실패/성공 이력 확인</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <div class="viewer-toolbar">
       <strong>2Column Viewer</strong>
@@ -168,6 +220,15 @@ let selectedPrd = null;
 let selectedMap = null;
 let rawMode = false;
 
+const SOURCE_OPTIONS = {
+  JIRA:   { label: 'JIRA', badge: 'JIRA', className: 'badge-jira' },
+  SLACK:  { label: 'SLACK', badge: 'Slack', className: 'badge-slack' },
+  FILE:   { label: '파일업로드', badge: 'File', className: 'badge-file' },
+  DIRECT: { label: '직접등록', badge: '직접등록', className: 'badge-direct' }
+};
+
+let sourceBadgeCache = {};
+
 const el = (id) => document.getElementById(id);
 const fileList = el('file-list');
 const search = el('search');
@@ -201,6 +262,134 @@ function formatSize(bytes) {
   if (bytes < 1024) return bytes + 'B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
   return (bytes / 1024 / 1024).toFixed(1) + 'MB';
+}
+
+
+function makeTimestamp() {
+  const d = new Date();
+  const yy = String(d.getFullYear()).slice(-2);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${yy}${mm}${dd}_${hh}${mi}${ss}`;
+}
+
+function normalizeRequirementKeyword(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^REQ_/i, '')
+    .replace(/\.(txt|md|markdown)$/i, '')
+    .replace(/\s+/g, '_')
+    .replace(/[\\/:*?"<>|#%{}^~[\]`]+/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function buildRequirementId(timestamp = makeTimestamp()) {
+  const keyword = normalizeRequirementKeyword(el('requirement-id').value);
+  if (!keyword) return '';
+  return `REQ_${keyword}_${timestamp}`;
+}
+
+function updateSourcePathPreview() {
+  const keyword = normalizeRequirementKeyword(el('requirement-id').value);
+  if (!keyword) {
+    el('source-path').value = '';
+    return;
+  }
+  el('source-path').value = `${CONFIG.folders.source}/REQ_${keyword}_YYMMDD_HHMMSS.txt`;
+}
+
+function getSourceOption(value) {
+  return SOURCE_OPTIONS[value] || null;
+}
+
+function renderSourceBadge(sourceType) {
+  const option = getSourceOption(sourceType);
+  if (!option) return '<span class="source-badge badge-unknown">-</span>';
+  return `<span class="source-badge ${option.className}">[ ${option.badge} ]</span>`;
+}
+
+function parseSourceTypeFromText(text) {
+  const value = String(text || '');
+  const patterns = [
+    /source_type\s*:\s*["']?(JIRA|SLACK|FILE|DIRECT)["']?/i,
+    /sourceType["']?\s*:\s*["'](JIRA|SLACK|FILE|DIRECT)["']/i,
+    /"sourceType"\s*:\s*"(JIRA|SLACK|FILE|DIRECT)"/i,
+    /출처\s*정보\s*[:：]\s*(JIRA|SLACK|파일업로드|직접등록)/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    if (!match) continue;
+    const raw = match[1].toUpperCase();
+    if (raw === '파일업로드') return 'FILE';
+    if (raw === '직접등록') return 'DIRECT';
+    return raw;
+  }
+  return '';
+}
+
+function sourceTypeFromPath(path) {
+  if (sourceBadgeCache[path]) return sourceBadgeCache[path];
+  const name = (path || '').toUpperCase();
+  if (name.includes('JIRA')) return 'JIRA';
+  if (name.includes('SLACK')) return 'SLACK';
+  if (name.includes('FILE')) return 'FILE';
+  if (name.includes('DIRECT')) return 'DIRECT';
+  return '';
+}
+
+function hydrateSourceBadges() {
+  const items = Array.from(fileList.querySelectorAll('.file-item'));
+  items.slice(0, 30).forEach(async (item) => {
+    const path = item.dataset.path;
+    const badgeEl = item.querySelector('[data-source-badge]');
+    if (!path || !badgeEl) return;
+
+    let sourceType = sourceTypeFromPath(path);
+    if (!sourceType && !sourceBadgeCache[path]) {
+      try {
+        const text = await fetchText(path);
+        sourceType = parseSourceTypeFromText(text);
+        if (sourceType) sourceBadgeCache[path] = sourceType;
+      } catch {
+        sourceType = '';
+      }
+    }
+
+    badgeEl.outerHTML = renderSourceBadge(sourceType);
+  });
+}
+
+function setSourceInputState() {
+  const sourceType = el('source-type').value;
+  const requirementText = el('requirement-text');
+  const localFile = el('local-file');
+  const sourceDetail = el('source-detail');
+
+  const isFile = sourceType === 'FILE';
+  const isDirect = sourceType === 'DIRECT';
+  const isExternal = sourceType === 'JIRA' || sourceType === 'SLACK';
+
+  requirementText.disabled = !(isFile || isDirect);
+  localFile.disabled = !isFile;
+  sourceDetail.disabled = !sourceType;
+
+  if (!sourceType) {
+    requirementText.value = '';
+    sourceDetail.value = '';
+    requirementText.placeholder = '출처 정보를 선택하면 입력할 수 있습니다.';
+  } else if (isFile) {
+    requirementText.placeholder = '로컬 파일을 불러오거나 파일 내용을 직접 붙여넣으세요.';
+  } else if (isDirect) {
+    requirementText.placeholder = '요구사항 원문을 직접 입력하세요.';
+  } else {
+    requirementText.value = '';
+    requirementText.placeholder = 'JIRA/SLACK 선택 시 요구사항 원문은 직접 입력할 수 없습니다.';
+  }
 }
 
 function fileExtPattern(area) {
@@ -246,13 +435,19 @@ function renderList() {
     return;
   }
 
-  fileList.innerHTML = files.map((f, idx) => `
-    <div class="file-item" data-path="${escapeHtml(f.path)}" data-area="${f.area}">
-      <div class="fi-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</div>
-      <div class="fi-meta">${formatSize(f.size)}</div>
-      <div class="fi-path">${escapeHtml(f.path)}</div>
-    </div>
-  `).join('');
+  fileList.innerHTML = files.map((f) => {
+    const badge = renderSourceBadge(sourceTypeFromPath(f.path));
+    return `
+      <div class="file-item" data-path="${escapeHtml(f.path)}" data-area="${f.area}">
+        <div class="fi-top">
+          <span data-source-badge>${badge}</span>
+          <div class="fi-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</div>
+          <div class="fi-meta">${formatSize(f.size)}</div>
+        </div>
+        <div class="fi-path">${escapeHtml(f.path)}</div>
+      </div>
+    `;
+  }).join('');
 
   fileList.querySelectorAll('.file-item').forEach((item) => {
     item.addEventListener('click', () => {
@@ -261,6 +456,8 @@ function renderList() {
       openRepositoryFile(item.dataset.area, item.dataset.path);
     });
   });
+
+  hydrateSourceBadges();
 }
 
 async function fetchText(path) {
@@ -301,6 +498,8 @@ async function openRepositoryFile(area, path) {
 
     if (area === 'req') {
       const text = await fetchText(path);
+      const parsedSourceType = parseSourceTypeFromText(text);
+      if (parsedSourceType) sourceBadgeCache[path] = parsedSourceType;
       selectedReq = { path, text };
       renderPane('req', path, text);
       await autoFindPrdForReq(path);
@@ -431,29 +630,58 @@ async function postWebhook(url, payload) {
 }
 
 async function saveRequirement() {
-  const requirementId = el('requirement-id').value.trim();
-  const sourceFilePath = el('source-path').value.trim();
+  const timestamp = makeTimestamp();
+  const keyword = normalizeRequirementKeyword(el('requirement-id').value);
+  const requirementId = keyword ? `REQ_${keyword}_${timestamp}` : '';
+  const sourceType = el('source-type').value;
+  const sourceOption = getSourceOption(sourceType);
+  const sourceFilePath = requirementId ? `${CONFIG.folders.source}/${requirementId}.txt` : '';
   const promptFilePath = el('prompt-path').value.trim();
+  const sourceDetail = el('source-detail').value.trim();
   const requirementText = el('requirement-text').value.trim();
 
-  if (!requirementId) return showToast('Requirement ID를 입력하세요.');
-  if (!sourceFilePath) return showToast('Source File Path를 입력하세요.');
-  if (!requirementText) return showToast('요구사항 원문을 입력하세요.');
+  if (!keyword) return showToast('Requirement Keyword를 입력하세요.');
+  if (!sourceType) return showToast('출처 정보를 선택하세요.');
+
+  if ((sourceType === 'FILE' || sourceType === 'DIRECT') && !requirementText) {
+    return showToast(sourceType === 'FILE' ? '파일을 불러오거나 요구사항 원문을 입력하세요.' : '요구사항 원문을 입력하세요.');
+  }
+
+  if ((sourceType === 'JIRA' || sourceType === 'SLACK') && !sourceDetail) {
+    return showToast('JIRA 이슈 키 또는 Slack 링크 등 출처 상세 정보를 입력하세요.');
+  }
+
+  const sourceText = requirementText || `[${sourceOption.label}] ${sourceDetail}`;
+  const sourceMetaBlock = [
+    `source_type: ${sourceType}`,
+    `source_label: ${sourceOption.badge}`,
+    sourceDetail ? `source_detail: ${sourceDetail}` : '',
+    ''
+  ].filter(Boolean).join('\n');
 
   try {
     el('btn-save-req').disabled = true;
+    el('source-path').value = sourceFilePath;
+
     await postWebhook(CONFIG.requirementSaveWebhook, {
       action: 'requirement_save',
+      requirementKeyword: keyword,
       requirementId,
+      sourceType,
+      sourceLabel: sourceOption.badge,
+      sourceDetail,
       sourceFilePath,
       promptFilePath,
-      requirementText,
+      requirementText: `${sourceMetaBlock}${sourceText}`,
+      sourceText: `${sourceMetaBlock}${sourceText}`,
       githubOwner: CONFIG.owner,
       githubRepo: CONFIG.repo,
       githubBranch: CONFIG.branch,
       folders: CONFIG.folders
     });
-    showToast('요구사항 등록 요청을 보냈습니다.');
+
+    sourceBadgeCache[sourceFilePath.replace(/^source\//, `${CONFIG.folders.req}/`).replace(/\.txt$/i, '.md')] = sourceType;
+    showToast(`요구사항 등록 요청을 보냈습니다. ${requirementId}`);
     await refreshAll();
   } catch (e) {
     showToast(e.message);
@@ -463,20 +691,25 @@ async function saveRequirement() {
 }
 
 async function runPrdGenerate() {
-  const requirementId = el('requirement-id').value.trim();
+  const keyword = normalizeRequirementKeyword(el('requirement-id').value);
   const promptFilePath = el('prompt-path').value.trim();
   const selectedReqPath = selectedReq?.path || '';
+  const requirementId = selectedReqPath
+    ? selectedReqPath.split('/').pop().replace(/\.(md|markdown|txt)$/i, '')
+    : '';
 
-  if (!requirementId) return showToast('Requirement ID를 입력하세요.');
+  if (!keyword && !requirementId) return showToast('Requirement Keyword를 입력하거나 /Req 파일을 선택하세요.');
   if (!selectedReqPath) return showToast('/Req 파일을 먼저 선택하세요.');
 
   try {
     el('btn-run-prd').disabled = true;
     await postWebhook(CONFIG.prdGenerateWebhook, {
       action: 'agent1_prd_generate',
+      requirementKeyword: keyword,
       requirementId,
       requirementFilePath: selectedReqPath,
       promptFilePath,
+      sourceType: sourceBadgeCache[selectedReqPath] || parseSourceTypeFromText(selectedReq.text) || '',
       githubOwner: CONFIG.owner,
       githubRepo: CONFIG.repo,
       githubBranch: CONFIG.branch,
@@ -530,8 +763,20 @@ function bindEvents() {
   el('btn-copy-right').addEventListener('click', () => copyText('prd'));
   el('btn-toggle-raw').addEventListener('click', toggleRaw);
   el('btn-clear').addEventListener('click', () => {
+    el('requirement-id').value = '';
+    el('source-type').value = '';
+    el('source-detail').value = '';
+    el('source-path').value = '';
     el('requirement-text').value = '';
+    el('local-file').value = '';
+    setSourceInputState();
     showToast('입력값을 초기화했습니다.');
+  });
+
+  el('requirement-id').addEventListener('input', updateSourcePathPreview);
+  el('source-type').addEventListener('change', () => {
+    setSourceInputState();
+    updateSourcePathPreview();
   });
 
   el('local-file').addEventListener('change', async (event) => {
@@ -539,14 +784,16 @@ function bindEvents() {
     if (!file) return;
     const text = await file.text();
     el('requirement-text').value = text;
-    const safeName = file.name.replace(/\s+/g, '_');
-    if (!el('source-path').value.trim()) el('source-path').value = `${CONFIG.folders.source}/${safeName}`;
+    el('source-detail').value = file.name;
+    updateSourcePathPreview();
     showToast('파일 내용을 불러왔습니다.');
   });
 }
 
 initLabels();
 bindEvents();
+setSourceInputState();
+updateSourcePathPreview();
 refreshAll();
 </script>
 </body>
