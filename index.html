@@ -3,311 +3,266 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AGENT1 : PRD 생성 도우미 </title>
+  <title>AGENT1 : PRD 생성 도우미</title>
   <link rel="stylesheet" href="./asset/css/styles.css" />
 </head>
 <body>
-  <div class="app">
-    
-    <!-- 헤더 시작 -->
-    <header class="header">      
-    
-      <section class="header_col header_brand" data-header-col="1">
-        <div class="header_logo"></div>
-        <div>
-          <h1>PRD 생성 도우미 [ AGENT1 ]</h1>
-          <p>Project Requirement Description Assistant</p>
+  <div class="common_app_shell">
+    <header class="header" id="header">
+      <section class="header_brand" id="header_brand">
+        <div class="header_logo" aria-label="NSUSLAB logo"></div>
+        <div class="header_title_area">
+          <h1 class="header_title">PRD 생성 도우미 [ AGENT1 ]</h1>
+          <p class="header_subtitle">Project Requirement Description Assistant</p>
         </div>
       </section>
 
-    
-      <section class="header_col header_actions" data-header-col="3">
+      <section class="header_repo" id="header_repo">
+        <span class="header_repo_label">Git Repository</span>
+        <strong class="header_repo_badge" id="header_repo_badge">loading...</strong>
+        <button class="common_button common_button_secondary" id="header_btn_refresh">Repo 새로고침</button>
+      </section>
+
+      <section class="header_control" id="header_control">
         <div class="header_preset_group" aria-label="grid preset">
-          <span>Grid Preset:</span>
-          <button class="header_preset_btn is_active" data-preset="balanced">균등 [1:1:1]</button>
-          <button class="header_preset_btn" data-preset="focus">포커스 [1:2:1]</button>
-          <button class="header_preset_btn" data-preset="prd">PRD 중심</button>
-          <button class="header_preset_btn" data-preset="spec">Spec 중심</button>
+          <span class="header_preset_label">Grid Preset:</span>
+          <button class="header_preset_button is_active" data-preset="balanced">균등 [1:1:1]</button>
+          <button class="header_preset_button" data-preset="focus">포커스 [1:2:1]</button>
+          <button class="header_preset_button" data-preset="prd">PRD 중심</button>
+          <button class="header_preset_button" data-preset="spec">Spec 중심</button>
         </div>
-        
-        <div class="header_column_toggle_group" aria-label="column toggle">
-          <button class="header_column_toggle_btn is_active" data-toggle-col="1">1</button>
-          <button class="header_column_toggle_btn is_active" data-toggle-col="2">2</button>
-          <button class="header_column_toggle_btn is_active" data-toggle-col="3">3</button>
+        <div class="header_column_switches" aria-label="column toggle">
+          <button class="header_column_switch is_active" data-toggle-col="1">1</button>
+          <button class="header_column_switch is_active" data-toggle-col="2">2</button>
+          <button class="header_column_switch is_active" data-toggle-col="3">3</button>
         </div>
-      
       </section>
     </header>
-    <!-- 헤더 끝 -->
-
 
     <main class="content" id="content">
-      <section class="section section1" data-col="1" aria-label="Requirement Source">
-        
-        <div class="common_panel">  
-          
-          <div class="common_panel_head">  
-            <div><h2>요구사항 등록 관리</h2></div>
-            <button class="common_close_col" data-close-col="1" title="1컬럼 닫기">×</button>
+      <section class="section section1" id="section1" data-col="1" aria-label="Requirement Source">
+        <button class="section1_collapsed_opener common_collapsed_opener" type="button" data-reopen-col="1" aria-label="1컬럼 열기">
+          <span class="common_rail_num">1</span>
+          <span class="common_rail_text">Requirement</span>
+          <span class="common_rail_arrow">›</span>
+        </button>
+
+        <div class="section1_panel common_panel">
+          <div class="section1_panel_head common_panel_head">
+            <div>
+              <h2 class="section1_title">요구사항 등록 관리</h2>
+              <p class="section1_description">Git Repository의 /req 문서를 불러와 PRD 생성 대상으로 선택합니다.</p>
+            </div>
+            <button class="section1_btn_close common_btn_close" data-close-col="1" title="1컬럼 닫기">×</button>
           </div>
 
-          <div class="section1_search_card">
+          <div class="section1_source_actions">
+            <button class="section1_btn_file_source" id="section1_btn_file_source">＋ 파일 등록</button>
+            <button class="section1_btn_direct_source" id="section1_btn_direct_source">＋ 직접 등록</button>
+          </div>
+
+          <div class="section1_search_card common_card">
             <div class="section1_search_input_wrap">
               <span>⌕</span>
-              <input id="section1_search_input" type="search" placeholder="요구 사항 검색..." />
+              <input class="section1_search_input" id="section1_search_input" type="search" placeholder="요구사항 검색..." />
             </div>
             <div class="section1_filter_row">
-              <span>필터:</span>
-              <button class="section1_filter_btn is_active" data-filter="all">모든 채널</button>
-              <button class="section1_filter_btn" data-filter="JIRA">JIRA</button>
-              <button class="section1_filter_btn" data-filter="Slack">Slack</button>
-              <button class="section1_filter_btn" data-filter="File">File</button>
-              <button class="section1_filter_btn" data-filter="Direct">Direct</button>
+              <span class="section1_filter_label">필터:</span>
+              <button class="section1_filter_button is_active" data-filter="all">모두</button>
+              <button class="section1_filter_button" data-filter="JIRA">JIRA</button>
+              <button class="section1_filter_button" data-filter="SLACK">Slack</button>
+              <button class="section1_filter_button" data-filter="FILE">File</button>
+              <button class="section1_filter_button" data-filter="DIRECT">Direct</button>
             </div>
           </div>
-          
-          <div class="section1_list_box">
+
+          <div class="section1_list_card common_card">
             <div class="section1_list_toolbar">
-              <label class="section1_select_all"><input type="checkbox" id="section1_select_all" /> 필터 대상 전체 선택</label>
-              <span>선택됨 : <strong id="section1_selected_count_mini">0</strong> / <strong id="section1_total_count">4</strong></span>
+              <label class="section1_select_all_label">
+                <input type="checkbox" id="section1_select_all" /> 필터 대상 전체 선택
+              </label>
+              <span>선택됨 : <strong id="section1_selected_count_mini">0</strong> / <strong id="section1_total_count">0</strong></span>
             </div>
-            <div class="section1_requirement_list" id="section1_requirement_list"></div>
+            <div class="section1_requirement_list" id="section1_requirement_list">
+              <div class="common_empty">Git Repository에서 요구사항을 불러오는 중입니다.</div>
+            </div>
           </div>
 
-
-          <div class="section1_add_source_box">
-            <button class="section1_add_source_btn" id="section1_btn_file_source">＋ 파일 등록</button>
-            <button class="section1_add_source_btn" id="section1_btn_direct_source">＋ 직접 등록</button>
-          </div>
-
-          
-          <div class="section1_selected_card">
+          <div class="section1_selected_card common_card">
             <div class="section1_selected_head">
               <strong>선택된 요구사항 <span id="section1_selected_count">0</span></strong>
-              <button id="section1_btn_clear_selection">선택 해제</button>
+              <button class="section1_btn_clear_selection" id="section1_btn_clear_selection">선택 해제</button>
             </div>
             <div class="section1_selected_list" id="section1_selected_list">
-              <p class="text_muted">선택된 요구사항이 없습니다.</p>
+              <p class="common_muted">선택된 요구사항이 없습니다.</p>
             </div>
           </div>
 
-          <button class="section1_primary_action" id="section1_btn_confirm_selection" disabled>선택 완료 및 충돌 검토 →</button>
+          <button class="section1_btn_confirm common_primary_action" id="section1_btn_confirm" disabled>선택 완료 및 충돌 검토 →</button>
         </div>
       </section>
 
       <div class="common_resizer" data-resizer="1" role="separator" aria-label="1컬럼 너비 조절"></div>
 
-      
-<!-- 2컬럼 시작
-      <section class="section section2" data-col="2" aria-label="PRD Workspace">
-      
-        <div class="common_panel">
-      
+      <section class="section section2" id="section2" data-col="2" aria-label="PRD Workspace">
+        <button class="section2_collapsed_opener common_collapsed_opener" type="button" data-reopen-col="2" aria-label="2컬럼 열기">
+          <span class="common_rail_num">2</span>
+          <span class="common_rail_text">PRD</span>
+          <span class="common_rail_arrow">›</span>
+        </button>
 
-          <div class="common_panel_head is_compact">
+        <div class="section2_panel common_panel">
+          <div class="section2_panel_head common_panel_head">
             <div>
-              <h2>▣ PRD Workspace</h2>
-              <p>선택된 기획 요구사항들을 병합하여 하나의 완벽하게 정밀화된 PRD 설계 문서로 인계합니다.</p>
+              <h2 class="section2_title">PRD Workspace</h2>
+              <p class="section2_description">선택된 요구사항을 기반으로 PRD 생성 요청을 실행하고, Git Repository의 /prd 문서를 열람합니다.</p>
             </div>
-            <button class="common_close_col" data-close-col="2" title="2컬럼 닫기">×</button>
+            <button class="section2_btn_close common_btn_close" data-close-col="2" title="2컬럼 닫기">×</button>
           </div>
 
-
-
-          <section class="section2_card section2_target_card">
+          <section class="section2_target_card common_card">
             <div class="section2_card_title_row">
               <strong>병합 및 설계 연계 대상</strong>
               <span>체크된 개수 : <b id="section2_target_count">0개</b></span>
             </div>
-            <div class="section2_drop_zone" id="section2_selected_summary">좌측 패널에서 기획 요건을 선택하면 이곳에 로드 및 실시간 상충 분석이 기동됩니다.</div>
+            <div class="section2_selected_summary" id="section2_selected_summary">좌측 패널에서 요구사항을 선택하면 이곳에 표시됩니다.</div>
           </section>
-
-
-
 
           <section class="section2_form">
-            <label>
+            <label class="section2_form_label">
               PRD 템플릿 양식
-              <select id="section2_prompt_template">
-                <option value="prd-template-v1.md">prd-template-v1.md</option>
-                <option value="prd-event-template-v1.md">prd-event-template-v1.md</option>
-                <option value="prd-backoffice-template-v1.md">prd-backoffice-template-v1.md</option>
+              <select class="section2_prompt_template" id="section2_prompt_template">
+                <option value="">Git /prompts 로딩 중...</option>
               </select>
             </label>
-          
-            <label>
+            <label class="section2_form_label">
               인공지능 모델
-              <select id="section2_model_select">
-                <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+              <select class="section2_model_select" id="section2_model_select">
+                <option value="gpt-4o-mini">gpt-4o-mini</option>
                 <option value="gpt-4o">gpt-4o</option>
                 <option value="claude-sonnet">claude-sonnet</option>
+                <option value="gemini-1.5-flash">gemini-1.5-flash</option>
               </select>
             </label>
-          
-            <label class="is_full">
-              문서 제목 지정 (기본값: 자동 가공)
-              <input id="section2_doc_title" type="text" placeholder="예: 수수료 정산 및 알림 옵트인 통합 설계안" />
+            <label class="section2_form_label section2_form_label_full">
+              문서 제목 지정
+              <input class="section2_doc_title" id="section2_doc_title" type="text" placeholder="예: 쿠폰 관리자 기능 개선 PRD" />
             </label>
           </section>
 
-          <button class="section2_generate_btn" id="section2_btn_generate" disabled>▶ 병합 설계안(PRD) 자동 제출 실행</button>
+          <button class="section2_btn_generate" id="section2_btn_generate" disabled>▶ 선택 요구사항으로 PRD 생성 요청</button>
 
-     
-          <section class="section2_progress_card">
-            <div class="section2_progress_head">
-              <strong>생성 진행 상태</strong>
-              <button class="common_small_btn" id="section2_btn_next_step">다음 프로세스</button>
+          <section class="section2_repo_card common_card">
+            <div class="section2_repo_head">
+              <strong>생성된 PRD 문서</strong>
+              <button class="common_link_button" id="section2_btn_refresh_prd">/prd 새로고침</button>
             </div>
-            <div class="section2_steps" id="section2_steps">
-              <div class="section2_step is_done"><span>✓</span><em>요구사항 수집</em></div>
-              <div class="section2_step"><span>2</span><em>정규화</em></div>
-              <div class="section2_step"><span>3</span><em>병합/중복 제거</em></div>
-              <div class="section2_step"><span>4</span><em>충돌 체크</em></div>
-              <div class="section2_step"><span>5</span><em>PRD 생성</em></div>
-              <div class="section2_step"><span>6</span><em>저장</em></div>
+            <div class="section2_prd_file_list" id="section2_prd_file_list">
+              <div class="common_empty">Git Repository에서 PRD 목록을 불러오는 중입니다.</div>
             </div>
           </section>
 
-          <section class="section2_viewer_card">
+          <section class="section2_viewer_card common_card">
             <div class="section2_viewer_tabs">
               <button class="section2_viewer_tab is_active" data-view="preview">PRD Viewer</button>
-              <button class="section2_viewer_tab" data-view="raw">Raw (Markdown)</button>
-              <button class="section2_viewer_tab" data-view="history">버전 히스토리</button>
+              <button class="section2_viewer_tab" data-view="raw">Raw Markdown</button>
               <div class="common_spacer"></div>
-              <button class="common_small_btn" id="section2_btn_copy_prd">복사</button>
-              <button class="common_small_btn" id="section2_btn_download_prd">Markdown 다운로드</button>
+              <button class="common_small_button" id="section2_btn_copy_prd">복사</button>
+              <button class="common_small_button" id="section2_btn_download_prd">Markdown 다운로드</button>
             </div>
             <article class="section2_prd_preview" id="section2_prd_preview">
-              <div class="common_empty_state">
-                <div>?</div>
-                <p>생성된 기안 문서가 존재하지 않습니다.</p>
-              </div>
+              <div class="common_empty_state"><div>?</div><p>PRD 문서를 선택하면 내용이 표시됩니다.</p></div>
             </article>
-            <textarea class="section2_raw_view is_hidden" id="section2_prd_raw" spellcheck="false"></textarea>
+            <textarea class="section2_prd_raw is_hidden" id="section2_prd_raw" spellcheck="false"></textarea>
           </section>
 
-          <section class="section2_feedback_card">
+          <section class="section2_feedback_card common_card">
             <strong>PRD 피드백 / 수정 요청</strong>
             <div class="section2_feedback_row">
-              <input id="section2_feedback_input" type="text" placeholder="피드백을 입력하세요. 예: 예외 케이스 추가, 정책 상세화, KPI 추가 등" />
-              <button id="section2_btn_feedback">피드백 제출</button>
-              <button id="section2_btn_revise_prd">수정 PRD 생성</button>
-              <button id="section2_btn_update_prd">현재 문서 업데이트</button>
+              <input class="section2_feedback_input" id="section2_feedback_input" type="text" placeholder="피드백을 입력하세요. 예: 예외 케이스 추가, 정책 상세화, KPI 추가 등" />
+              <button class="section2_btn_feedback" id="section2_btn_feedback">피드백 제출</button>
+              <button class="section2_btn_revise" id="section2_btn_revise">수정 PRD 생성</button>
             </div>
           </section>
 
-
-          <section class="section2_log_card">
+          <section class="section2_log_card common_card">
             <div class="section2_log_head">
               <strong>생성 로그</strong>
-              <button class="common_link_btn">전체 로그 보기</button>
+              <button class="common_link_button" id="section2_btn_refresh_logs">/logs 새로고침</button>
             </div>
-            <table>
-              <thead>
-                <tr><th>실행 시간</th><th>실행자</th><th>선택 Req 수</th><th>프롬프트</th><th>모델</th><th>상태</th><th>생성 파일</th></tr>
-              </thead>
-              <tbody id="section2_generation_log">
-                <tr><td colspan="7" class="text_muted text_center">아직 생성 로그가 없습니다.</td></tr>
-              </tbody>
-            </table>
+            <div class="section2_log_list" id="section2_log_list">
+              <div class="common_empty">Git Repository에서 로그를 불러오는 중입니다.</div>
+            </div>
           </section>
-
         </div>
       </section>
-2컬럼 끝 -->
-      <div class="common_resizer" data-resizer="2" role="separator" aria-label="2컬럼 너비 조절"></div>
-      
 
-<!-- 3컬럼 시작
-      <section class="section section3" data-col="3" aria-label="Technical Spec Phase 2">
-        <div class="common_panel">
-          <div class="common_panel_head is_compact">
+      <div class="common_resizer" data-resizer="2" role="separator" aria-label="2컬럼 너비 조절"></div>
+
+      <section class="section section3" id="section3" data-col="3" aria-label="Phase Output">
+        <button class="section3_collapsed_opener common_collapsed_opener" type="button" data-reopen-col="3" aria-label="3컬럼 열기">
+          <span class="common_rail_num">3</span>
+          <span class="common_rail_text">Phase</span>
+          <span class="common_rail_arrow">›</span>
+        </button>
+
+        <div class="section3_panel common_panel">
+          <div class="section3_panel_head common_panel_head">
             <div>
-              <h2>◈ Technical Spec (Phase 2)</h2>
-              <p>PRD 명세 내용을 기반으로 구체적인 시스템 Use Case 시나리오, 서비스 플로우차트와 시퀀스 다이어그램을 설계합니다.</p>
+              <h2 class="section3_title">Phase Output</h2>
+              <p class="section3_description">PRD 기반 Phase 2 서비스 시나리오, 플로우, 시퀀스 산출물을 Git Repository에서 열람합니다.</p>
             </div>
-            <button class="common_close_col" data-close-col="3" title="3컬럼 닫기">×</button>
+            <button class="section3_btn_close common_btn_close" data-close-col="3" title="3컬럼 닫기">×</button>
           </div>
 
-          <section class="section3_empty" id="section3_empty">
-            <div>□</div>
-            <p>우선 PRD Workspace에서 병합 PRD를 1종 이상 작성해야 본 단계를 기동할 수 있습니다.</p>
+          <section class="section3_phase_select_card common_card">
+            <label class="section3_phase_label">
+              Phase 선택
+              <select class="section3_phase_select" id="section3_phase_select">
+                <option value="phase2/scenario">Phase 2: 서비스 시나리오</option>
+                <option value="phase2/flow">Phase 2: 서비스 플로우</option>
+                <option value="phase2/sequence">Phase 2: 시퀀스 다이어그램</option>
+              </select>
+            </label>
+            <button class="section3_btn_refresh_artifacts" id="section3_btn_refresh_artifacts">산출물 새로고침</button>
           </section>
 
-          <section class="section3_content is_hidden" id="section3_content">
-            <div class="section3_phase_select_card">
-              <label>
-                Phase 선택
-                <select>
-                  <option>Phase 2: 서비스 시나리오</option>
-                  <option>Phase 2: 서비스 플로우</option>
-                  <option>Phase 2: 시퀀스 다이어그램</option>
-                  <option disabled>Phase 3: Lo-fi Wireframe</option>
-                  <option disabled>Phase 4: GUI/UI</option>
-                </select>
-              </label>
-              <button class="section3_generate_btn" id="section3_btn_generate_phase">Phase 2 산출물 생성</button>
+          <section class="section3_artifact_list_card common_card">
+            <strong>산출물 목록</strong>
+            <div class="section3_artifact_list" id="section3_artifact_list">
+              <div class="common_empty">Git Repository에서 Phase 산출물을 불러오는 중입니다.</div>
             </div>
+          </section>
 
-            <div class="section3_artifact_list">
-              <strong>산출물 목록</strong>
-              <button class="section3_artifact is_active"><span>▣ 서비스 시나리오</span><em>scenario_260618.md</em><b>👁</b></button>
-              <button class="section3_artifact"><span>▣ 서비스 플로우</span><em>service_flow_260618.mmd</em><b>👁</b></button>
-              <button class="section3_artifact"><span>▣ 시퀀스 다이어그램</span><em>sequence_260618.mmd</em><b>👁</b></button>
-              <button class="section3_artifact"><span>▣ 정책 / 예외 케이스</span><em>policy_exception_260618.md</em><b>👁</b></button>
-            </div>
-
-            <div class="section3_artifact_viewer">
+          <section class="section3_artifact_viewer_card common_card">
+            <div class="section3_artifact_viewer_head">
               <strong>산출물 Viewer</strong>
-              <article>
-                <h3># 서비스 시나리오</h3>
-                <h4>## 1. 시나리오 개요</h4>
-                <p>쿠폰 관리자 기능을 사용하는 전체 흐름 시나리오입니다.</p>
-                <h4>## 2. 시나리오 흐름</h4>
-                <div class="section3_mini_flow">
-                  <span>관리자 로그인</span><i>→</i><span>쿠폰 관리 메뉴</span><i>→</i><span>쿠폰 생성/수정</span><i>→</i><span>쿠폰 반영</span>
-                </div>
-              </article>
+              <button class="common_small_button" id="section3_btn_download_artifact">다운로드</button>
             </div>
-
-            <div class="section3_download_card">
-              <strong>다운로드</strong>
-              <div class="section3_download_grid">
-                <button>⇩ Markdown (.md)</button>
-                <button>⇩ Mermaid (.mmd)</button>
-                <button>⇩ JSON (.json)</button>
-                <button>⇩ 전체 ZIP</button>
-              </div>
-            </div>
-
-            <div class="section3_engine_card">
-              <p>SPECIFICATION ENGINE: <b>v1.17.2</b></p>
-              <p>COMPLIANCE POLICY: <b>FULLY COMPLIANT</b></p>
-              <p>INTEGRATION TYPE: <b>GEMINI WORKSPACE</b></p>
-            </div>
+            <article class="section3_artifact_preview" id="section3_artifact_preview">
+              <div class="common_empty_state"><div>□</div><p>산출물을 선택하면 내용이 표시됩니다.</p></div>
+            </article>
+            <textarea class="section3_artifact_raw is_hidden" id="section3_artifact_raw" spellcheck="false"></textarea>
           </section>
         </div>
       </section>
--->
-
-
     </main>
   </div>
 
-  <dialog id="modal_detail" class="modal_detail">
-    <form method="dialog">
+  <dialog class="modal_detail" id="modal_detail">
+    <form method="dialog" class="modal_form">
       <div class="modal_head">
         <div>
-          <span id="modal_badge" class="common_badge">JIRA</span>
-          <h3 id="modal_title">요구사항 상세</h3>
+          <span class="modal_badge" id="modal_badge">REQ</span>
+          <h3 class="modal_title" id="modal_title">요구사항 상세</h3>
         </div>
-        <button aria-label="닫기">×</button>
+        <button class="modal_btn_close" aria-label="닫기">×</button>
       </div>
       <div class="modal_meta" id="modal_meta"></div>
-      <pre id="modal_body"></pre>
+      <pre class="modal_body" id="modal_body"></pre>
       <div class="modal_actions">
-        <button value="cancel">닫기</button>
-        <button id="modal_select" value="default">선택하기</button>
+        <button class="modal_btn_cancel" value="cancel">닫기</button>
+        <button class="modal_btn_select" id="modal_btn_select" value="default">선택하기</button>
       </div>
     </form>
   </dialog>
