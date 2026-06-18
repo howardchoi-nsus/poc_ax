@@ -20,10 +20,13 @@ const APP_CONFIG = {
     }
   },
   webhooks: {
+    // n8n Webhook URL은 query string 또는 localStorage로도 주입할 수 있습니다.
+    // 예: index.html?reqWebhook=https://.../webhook/agent1-requirement-save&prdWebhook=https://.../webhook/agent1-prd-generate
+    requirementSave: '',
     prdGenerate: '',
     prdRevise: '',
-    requirementSave: '',
-    phaseGenerate: ''
+    phaseGenerate: '',
+    secret: ''
   },
   ui: {
     min: { section1: 300, section2: 440, section3: 320 },
@@ -36,6 +39,11 @@ const query = new URLSearchParams(location.search);
 APP_CONFIG.github.owner = query.get('owner') || APP_CONFIG.github.owner;
 APP_CONFIG.github.repo = query.get('repo') || APP_CONFIG.github.repo;
 APP_CONFIG.github.branch = query.get('branch') || APP_CONFIG.github.branch;
+APP_CONFIG.webhooks.requirementSave = query.get('reqWebhook') || localStorage.getItem('agent1_req_webhook') || APP_CONFIG.webhooks.requirementSave;
+APP_CONFIG.webhooks.prdGenerate = query.get('prdWebhook') || localStorage.getItem('agent1_prd_webhook') || APP_CONFIG.webhooks.prdGenerate;
+APP_CONFIG.webhooks.prdRevise = query.get('reviseWebhook') || localStorage.getItem('agent1_revise_webhook') || APP_CONFIG.webhooks.prdRevise;
+APP_CONFIG.webhooks.phaseGenerate = query.get('phaseWebhook') || localStorage.getItem('agent1_phase_webhook') || APP_CONFIG.webhooks.phaseGenerate;
+APP_CONFIG.webhooks.secret = query.get('webhookSecret') || localStorage.getItem('agent1_webhook_secret') || APP_CONFIG.webhooks.secret;
 
 const state = {
   requirements: [],
@@ -178,8 +186,8 @@ function bindEvents() {
   $$('[data-reopen-col]').forEach((button) => button.addEventListener('click', () => openColumn(button.dataset.reopenCol)));
   $$('.common_resizer').forEach((resizer) => resizer.addEventListener('pointerdown', startResize));
 
-  $('section1_btn_file_source').addEventListener('click', () => showToast('파일 등록은 n8n Webhook 또는 서버 API 연결 후 활성화하세요.'));
-  $('section1_btn_direct_source').addEventListener('click', () => showToast('직접 등록은 n8n Webhook 또는 서버 API 연결 후 활성화하세요.'));
+  $('section1_btn_file_source').addEventListener('click', requestFileRequirementSave);
+  $('section1_btn_direct_source').addEventListener('click', requestDirectRequirementSave);
 }
 
 function githubApiUrl(path = '') {
@@ -471,30 +479,162 @@ function updateSelectedView() {
 
 async function requestPrdGenerate() {
   if (!APP_CONFIG.webhooks.prdGenerate) {
-    showToast('PRD 생성 Webhook URL이 비어 있습니다. app.js의 APP_CONFIG.webhooks.prdGenerate 값을 설정하세요.');
+    showToast('PRD 생성 Webhook URL이 비어 있습니다. app.js 또는 URL query의 prdWebhook 값을 설정하세요.');
     return;
   }
+
   const selected = state.requirements.filter((file) => state.selectedReqPaths.has(file.path));
+  if (!selected.length) return showToast('PRD 생성 대상 요구사항을 선택하세요.');
+  if (!elements.promptTemplate.value) return showToast('PRD 프롬프트를 선택하세요.');
+
+  const requirementSetId = buildRequirementSetId(selected);
   const payload = {
     action: 'agent1_prd_generate',
-    requirementFiles: selected.map((file) => file.path),
+    requirementSetId,
+    requirementFilePaths: selected.map((file) => file.path),
     promptFilePath: elements.promptTemplate.value,
     model: elements.modelSelect.value,
     documentTitle: elements.docTitle.value.trim(),
-    github: APP_CONFIG.github
+    githubOwner: APP_CONFIG.github.owner,
+    githubRepo: APP_CONFIG.github.repo,
+    githubBranch: APP_CONFIG.github.branch,
+    githubOutputDir: APP_CONFIG.github.folders.prd,
+    githubMapDir: 'maps',
+    githubLogDir: APP_CONFIG.github.folders.logs,
+    requestedBy: 'web'
   };
+
   try {
-    const response = await fetch(APP_CONFIG.webhooks.prdGenerate, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+    elements.generatePrd.disabled = true;
+    elements.generatePrd.textContent = 'PRD 생성 요청 중...';
+    const result = await postWebhook(APP_CONFIG.webhooks.prdGenerate, payload);
+    showToast(result.message || 'PRD 생성이 완료되었습니다.');
+    await Promise.allSettled([refreshPrdFiles(), refreshLogs()]);
+    if (result.prdFilePath) await openPrdFile(result.prdFilePath);
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    elements.generatePrd.textContent = '▶ 선택 요구사항으로 PRD 생성 요청';
+    updateSelectedView();
+  }
+}
+
+async function requestFileRequirementSave() {
+  if (!APP_CONFIG.webhooks.requirementSave) {
+    showToast('요구사항 저장 Webhook URL이 비어 있습니다. app.js 또는 URL query의 reqWebhook 값을 설정하세요.');
+    return;
+  }
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.txt,.md,.markdown,.doc,.docx';
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const keyword = window.prompt('Requirement Keyword를 입력하세요. 예: coupon_admin', file.name.replace(/\.[^.]+$/, ''));
+    if (!keyword) return;
+    const sourceText = await file.text();
+    await requestRequirementSave({
+      requirementKeyword: keyword,
+      sourceType: 'FILE',
+      sourceLabel: 'File',
+      sourceDetail: file.name,
+      sourceText
     });
-    if (!response.ok) throw new Error(`Webhook 호출 실패 HTTP ${response.status}`);
-    showToast('PRD 생성 요청을 보냈습니다.');
-    await refreshPrdFiles();
+  });
+  input.click();
+}
+
+async function requestDirectRequirementSave() {
+  if (!APP_CONFIG.webhooks.requirementSave) {
+    showToast('요구사항 저장 Webhook URL이 비어 있습니다. app.js 또는 URL query의 reqWebhook 값을 설정하세요.');
+    return;
+  }
+
+  const keyword = window.prompt('Requirement Keyword를 입력하세요. 예: coupon_admin');
+  if (!keyword) return;
+  const sourceText = window.prompt('요구사항 원문을 입력하세요. 긴 문서는 파일 등록을 권장합니다.');
+  if (!sourceText) return;
+
+  await requestRequirementSave({
+    requirementKeyword: keyword,
+    sourceType: 'DIRECT',
+    sourceLabel: '직접등록',
+    sourceDetail: '직접 입력',
+    sourceText
+  });
+}
+
+async function requestRequirementSave({ requirementKeyword, sourceType, sourceLabel, sourceDetail, sourceText }) {
+  const payload = {
+    action: 'requirement_save',
+    requirementKeyword,
+    sourceType,
+    sourceLabel,
+    sourceDetail,
+    sourceText,
+    githubOwner: APP_CONFIG.github.owner,
+    githubRepo: APP_CONFIG.github.repo,
+    githubBranch: APP_CONFIG.github.branch,
+    githubSourceDir: 'source',
+    githubReqDir: APP_CONFIG.github.folders.req,
+    requestedBy: 'web'
+  };
+
+  try {
+    showToast('요구사항을 Git Repository에 저장하는 중입니다.');
+    const result = await postWebhook(APP_CONFIG.webhooks.requirementSave, payload);
+    showToast(result.message || '요구사항 저장 완료');
+    await refreshRequirements();
+    if (result.requirementFilePath) {
+      state.selectedReqPaths.add(result.requirementFilePath);
+      updateSelectedView();
+      renderRequirementList();
+    }
   } catch (error) {
     showToast(error.message);
   }
+}
+
+async function postWebhook(url, payload) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: getWebhookHeaders(),
+    body: JSON.stringify(payload)
+  });
+
+  const text = await response.text();
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text }; }
+
+  if (!response.ok || data.success === false) {
+    throw new Error(data.message || data.error || `Webhook 호출 실패 HTTP ${response.status}`);
+  }
+  return data;
+}
+
+function getWebhookHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  if (APP_CONFIG.webhooks.secret) headers['x-agent1-secret'] = APP_CONFIG.webhooks.secret;
+  return headers;
+}
+
+function buildRequirementSetId(files) {
+  const first = files[0]?.name || 'requirement_set';
+  const key = first
+    .replace(/^REQ_/i, '')
+    .replace(/\.(md|txt|markdown)$/i, '')
+    .replace(/_\d{6,8}_\d{6}$/i, '')
+    .replace(/[^A-Za-z0-9가-힣_-]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mi = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  return `REQ_SET_${key}_${yy}${mm}${dd}_${hh}${mi}${ss}`;
 }
 
 function submitFeedback() {
