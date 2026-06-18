@@ -1,151 +1,304 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Agent1 PRD Workflow Viewer</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js" defer></script>
-<link rel="stylesheet" href="./asset/css/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PRD Automation Workspace</title>
+  <link rel="stylesheet" href="./asset/css/styles.css" />
 </head>
 <body>
-<header>
-  <div class="logo">
-    <strong>Agent1 PRD Generation Workflow</strong>
-    <span>요구사항 등록 → Git Repository 저장 → PRD 생성 → 2Column 검토</span>
+  <div class="app-shell">
+    <div class="top-preview-bar">
+      <div class="preview-tabs" aria-label="view mode">
+        <button class="preview-tab active">● Preview</button>
+        <button class="preview-tab">Code</button>
+      </div>
+      <div class="path-box">▣ / <span>{ }</span> ⛶</div>
+      <button class="icon-only" title="설정">⌘</button>
+    </div>
+
+    <header class="app-header">
+      <section class="header-col header-brand" data-header-col="1">
+        <div class="brand-mark">W</div>
+        <div>
+          <h1>PRD Automation Workspace</h1>
+          <p>CLEAN MINIMALIST PM CONSOLE</p>
+        </div>
+      </section>
+
+      <section class="header-col header-tabs" data-header-col="2">
+        <button class="main-tab active">기획 작업대 (Planner)</button>
+        <button class="main-tab">문서 탐색기 (md.view) <span>MAIN</span></button>
+      </section>
+
+      <section class="header-col header-actions" data-header-col="3">
+        <div class="preset-group" aria-label="grid preset">
+          <span>Grid Preset:</span>
+          <button class="preset active" data-preset="balanced">균등 [1:1:1]</button>
+          <button class="preset" data-preset="focus">포커스 [1:2:1]</button>
+          <button class="preset" data-preset="prd">PRD 중심</button>
+          <button class="preset" data-preset="spec">Spec 중심</button>
+        </div>
+        <div class="column-switches" aria-label="column toggle">
+          <button class="switch active" data-toggle-col="1">1</button>
+          <button class="switch active" data-toggle-col="2">2</button>
+          <button class="switch active" data-toggle-col="3">3</button>
+        </div>
+        <div class="avatar">PM</div>
+      </section>
+    </header>
+
+    <main class="workspace" id="workspace">
+      <section class="column column-1" data-col="1" aria-label="Requirement Source">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>● Requirement Source</h2>
+              <p>PRD로 통합 생성하고 검토할 기획 요구사항을 수급하고 선택합니다.</p>
+            </div>
+            <div class="count-badge" id="source-count">4건</div>
+            <button class="close-col" data-close-col="1" title="1컬럼 닫기">×</button>
+          </div>
+
+          <div class="add-source-box">
+            <button class="add-source" id="btn-file-source">＋ 파일 등록</button>
+            <button class="add-source" id="btn-direct-source">＋ 직접 등록</button>
+          </div>
+
+          <div class="search-card">
+            <div class="search-input-wrap">
+              <span>⌕</span>
+              <input id="source-search" type="search" placeholder="요구 사항 검색..." />
+            </div>
+            <div class="filter-row">
+              <span>필터:</span>
+              <button class="filter active" data-filter="all">모든 채널</button>
+              <button class="filter" data-filter="JIRA">JIRA</button>
+              <button class="filter" data-filter="Slack">Slack</button>
+              <button class="filter" data-filter="File">File</button>
+              <button class="filter" data-filter="Direct">Direct</button>
+            </div>
+          </div>
+
+          <div class="list-toolbar">
+            <label class="select-all"><input type="checkbox" id="select-all" /> 필터 대상 전체 선택</label>
+            <span>수정됨 : <strong id="selected-count-mini">0</strong> / <strong id="total-count">4</strong></span>
+          </div>
+
+          <div class="requirement-list" id="requirement-list"></div>
+
+          <div class="selected-card">
+            <div class="selected-head">
+              <strong>선택된 요구사항 <span id="selected-count">0</span></strong>
+              <button id="clear-selection">선택 해제</button>
+            </div>
+            <div class="selected-list" id="selected-list">
+              <p class="muted">선택된 요구사항이 없습니다.</p>
+            </div>
+          </div>
+
+          <button class="primary-action" id="btn-confirm-selection" disabled>선택 완료 및 충돌 검토 →</button>
+        </div>
+      </section>
+
+      <div class="resizer" data-resizer="1" role="separator" aria-label="1컬럼 너비 조절"></div>
+
+      <section class="column column-2" data-col="2" aria-label="PRD Workspace">
+        <div class="panel">
+          <div class="panel-head compact">
+            <div>
+              <h2>▣ PRD Workspace</h2>
+              <p>선택된 기획 요구사항들을 병합하여 하나의 완벽하게 정밀화된 PRD 설계 문서로 인계합니다.</p>
+            </div>
+            <button class="close-col" data-close-col="2" title="2컬럼 닫기">×</button>
+          </div>
+
+          <section class="card target-card">
+            <div class="card-title-row">
+              <strong>병합 및 설계 연계 대상</strong>
+              <span>체크된 개수 : <b id="target-count">0개</b></span>
+            </div>
+            <div class="drop-zone" id="selected-summary">좌측 패널에서 기획 요건을 선택하면 이곳에 로드 및 실시간 상충 분석이 기동됩니다.</div>
+          </section>
+
+          <section class="form-section">
+            <label>
+              PRD 템플릿 양식
+              <select id="prompt-template">
+                <option value="prd-template-v1.md">prd-template-v1.md</option>
+                <option value="prd-event-template-v1.md">prd-event-template-v1.md</option>
+                <option value="prd-backoffice-template-v1.md">prd-backoffice-template-v1.md</option>
+              </select>
+            </label>
+            <label>
+              인공지능 모델
+              <select id="model-select">
+                <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                <option value="gpt-4o">gpt-4o</option>
+                <option value="claude-sonnet">claude-sonnet</option>
+              </select>
+            </label>
+            <label class="full">
+              문서 제목 지정 (기본값: 자동 가공)
+              <input id="doc-title" type="text" placeholder="예: 수수료 정산 및 알림 옵트인 통합 설계안" />
+            </label>
+          </section>
+
+          <button class="generate-btn" id="btn-generate" disabled>▶ 병합 설계안(PRD) 자동 제출 실행</button>
+
+          <section class="progress-card">
+            <div class="progress-head">
+              <strong>생성 진행 상태</strong>
+              <button class="small-btn" id="btn-next-step">다음 프로세스</button>
+            </div>
+            <div class="steps" id="steps">
+              <div class="step done"><span>✓</span><em>요구사항 수집</em></div>
+              <div class="step"><span>2</span><em>정규화</em></div>
+              <div class="step"><span>3</span><em>병합/중복 제거</em></div>
+              <div class="step"><span>4</span><em>충돌 체크</em></div>
+              <div class="step"><span>5</span><em>PRD 생성</em></div>
+              <div class="step"><span>6</span><em>저장</em></div>
+            </div>
+          </section>
+
+          <section class="viewer-card">
+            <div class="viewer-tabs">
+              <button class="viewer-tab active" data-view="preview">PRD Viewer</button>
+              <button class="viewer-tab" data-view="raw">Raw (Markdown)</button>
+              <button class="viewer-tab" data-view="history">버전 히스토리</button>
+              <div class="spacer"></div>
+              <button class="small-btn" id="btn-copy-prd">복사</button>
+              <button class="small-btn" id="btn-download-prd">Markdown 다운로드</button>
+            </div>
+            <article class="prd-preview" id="prd-preview">
+              <div class="empty-state">
+                <div>?</div>
+                <p>생성된 기안 문서가 존재하지 않습니다.</p>
+              </div>
+            </article>
+            <textarea class="raw-view hidden" id="prd-raw" spellcheck="false"></textarea>
+          </section>
+
+          <section class="feedback-card">
+            <strong>PRD 피드백 / 수정 요청</strong>
+            <div class="feedback-row">
+              <input id="feedback-input" type="text" placeholder="피드백을 입력하세요. 예: 예외 케이스 추가, 정책 상세화, KPI 추가 등" />
+              <button id="btn-feedback">피드백 제출</button>
+              <button id="btn-revise-prd">수정 PRD 생성</button>
+              <button id="btn-update-prd">현재 문서 업데이트</button>
+            </div>
+          </section>
+
+          <section class="log-card">
+            <div class="log-head">
+              <strong>생성 로그</strong>
+              <button class="link-btn">전체 로그 보기</button>
+            </div>
+            <table>
+              <thead>
+                <tr><th>실행 시간</th><th>실행자</th><th>선택 Req 수</th><th>프롬프트</th><th>모델</th><th>상태</th><th>생성 파일</th></tr>
+              </thead>
+              <tbody id="generation-log">
+                <tr><td colspan="7" class="muted center">아직 생성 로그가 없습니다.</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+      </section>
+
+      <div class="resizer" data-resizer="2" role="separator" aria-label="2컬럼 너비 조절"></div>
+
+      <section class="column column-3" data-col="3" aria-label="Technical Spec Phase 2">
+        <div class="panel">
+          <div class="panel-head compact">
+            <div>
+              <h2>◈ Technical Spec (Phase 2)</h2>
+              <p>PRD 명세 내용을 기반으로 구체적인 시스템 Use Case 시나리오, 서비스 플로우차트와 시퀀스 다이어그램을 설계합니다.</p>
+            </div>
+            <button class="close-col" data-close-col="3" title="3컬럼 닫기">×</button>
+          </div>
+
+          <section class="phase-empty" id="phase-empty">
+            <div>□</div>
+            <p>우선 PRD Workspace에서 병합 PRD를 1종 이상 작성해야 본 단계를 기동할 수 있습니다.</p>
+          </section>
+
+          <section class="phase-content hidden" id="phase-content">
+            <div class="phase-select-card">
+              <label>
+                Phase 선택
+                <select>
+                  <option>Phase 2: 서비스 시나리오</option>
+                  <option>Phase 2: 서비스 플로우</option>
+                  <option>Phase 2: 시퀀스 다이어그램</option>
+                  <option disabled>Phase 3: Lo-fi Wireframe</option>
+                  <option disabled>Phase 4: GUI/UI</option>
+                </select>
+              </label>
+              <button class="generate-mini" id="btn-generate-phase">Phase 2 산출물 생성</button>
+            </div>
+
+            <div class="artifact-list">
+              <strong>산출물 목록</strong>
+              <button class="artifact active"><span>▣ 서비스 시나리오</span><em>scenario_260618.md</em><b>👁</b></button>
+              <button class="artifact"><span>▣ 서비스 플로우</span><em>service_flow_260618.mmd</em><b>👁</b></button>
+              <button class="artifact"><span>▣ 시퀀스 다이어그램</span><em>sequence_260618.mmd</em><b>👁</b></button>
+              <button class="artifact"><span>▣ 정책 / 예외 케이스</span><em>policy_exception_260618.md</em><b>👁</b></button>
+            </div>
+
+            <div class="artifact-viewer">
+              <strong>산출물 Viewer</strong>
+              <article>
+                <h3># 서비스 시나리오</h3>
+                <h4>## 1. 시나리오 개요</h4>
+                <p>쿠폰 관리자 기능을 사용하는 전체 흐름 시나리오입니다.</p>
+                <h4>## 2. 시나리오 흐름</h4>
+                <div class="mini-flow">
+                  <span>관리자 로그인</span><i>→</i><span>쿠폰 관리 메뉴</span><i>→</i><span>쿠폰 생성/수정</span><i>→</i><span>쿠폰 반영</span>
+                </div>
+              </article>
+            </div>
+
+            <div class="download-card">
+              <strong>다운로드</strong>
+              <div class="download-grid">
+                <button>⇩ Markdown (.md)</button>
+                <button>⇩ Mermaid (.mmd)</button>
+                <button>⇩ JSON (.json)</button>
+                <button>⇩ 전체 ZIP</button>
+              </div>
+            </div>
+
+            <div class="engine-card">
+              <p>SPECIFICATION ENGINE: <b>v1.17.2</b></p>
+              <p>COMPLIANCE POLICY: <b>FULLY COMPLIANT</b></p>
+              <p>INTEGRATION TYPE: <b>GEMINI WORKSPACE</b></p>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
   </div>
-  <div class="repo-badge" id="repo-badge">howardchoi-nsus/poc_ax · main</div>
-  <div class="status-pill">Git Repository Source</div>
-  <button class="hbtn" id="btn-copy-left">Req 복사</button>
-  <button class="hbtn" id="btn-copy-right">PRD 복사</button>
-  <button class="hbtn primary" id="btn-refresh-top">새로고침</button>
-</header>
 
-<div class="layout">
-  <aside>
-    <div class="side-head">
-      <div class="section-title">
-        Repository Areas
-        <span class="branch" id="branch-label">main</span>
+  <dialog id="detail-modal" class="detail-modal">
+    <form method="dialog">
+      <div class="modal-head">
+        <div>
+          <span id="modal-badge" class="badge">JIRA</span>
+          <h3 id="modal-title">요구사항 상세</h3>
+        </div>
+        <button aria-label="닫기">×</button>
       </div>
-      <div class="tabs">
-        <button class="tab active" data-area="req">/Req</button>
-        <button class="tab" data-area="prd">/PRD</button>
-        <button class="tab" data-area="maps">/Maps</button>
-        <button class="tab" data-area="logs">/Logs</button>
+      <div class="modal-meta" id="modal-meta"></div>
+      <pre id="modal-body"></pre>
+      <div class="modal-actions">
+        <button value="cancel">닫기</button>
+        <button id="modal-select" value="default">선택하기</button>
       </div>
-      <input type="text" id="search" placeholder="파일 검색..." />
-      <div class="side-actions">
-        <button id="btn-refresh">목록 갱신</button>
-        <button id="btn-open-latest">최신 매핑 열기</button>
-      </div>
-    </div>
-    <div id="file-list"><div class="empty">불러오는 중...</div></div>
-  </aside>
+    </form>
+  </dialog>
 
-  <main>
-    <section class="top-panel">
-      <div class="card">
-        <div class="card-head">
-          <strong>Process 1. Requirement Save</strong>
-          <span>Vercel Web → n8n Webhook → Git /source, /req</span>
-        </div>
-        <div class="card-body">
-          <div class="form-grid">
-            <label>
-              Requirement Keyword
-              <input id="requirement-id" value="키워드 또는 구분명 입력" placeholder="키워드 또는 업무명만 입력 예: coupon_admin" />
-              <small class="field-help">파일명은 REQ_[키워드]_YYMMDD_HHMMSS.txt 형식으로 자동 생성됩니다.</small>
-            </label>
-
-            <label>
-              출처 정보
-              <select id="source-type">
-                <option value="">출처 선택</option>
-                <option value="JIRA">JIRA</option>
-                <option value="SLACK">SLACK</option>
-                <option value="FILE">파일업로드</option>
-                <option value="DIRECT">직접등록</option>
-              </select>
-              <small class="field-help">하나의 출처만 선택할 수 있습니다.</small>
-            </label>
-
-            <label>
-              Prompt Path
-              <select id="prompt-path">
-                <option value="prompts/prd-template-v1.md" selected>prompts/prd-template-v1.md</option>
-              </select>
-            </label>
-            <input id="source-path" type="hidden" value="" />
-            <label class="full">
-              출처 상세 정보
-              <input id="source-detail" value="" placeholder="JIRA 이슈 키, Slack 링크, 파일명 등 출처 식별 정보를 입력하세요." disabled />
-            </label>
-
-            <label class="full">
-              요구사항 원문
-              <textarea id="requirement-text" placeholder="출처 정보를 선택하면 입력할 수 있습니다." disabled></textarea>
-              <small class="field-help">파일업로드 또는 직접등록 선택 시에만 직접 입력할 수 있습니다.</small>
-            </label>
-
-            <label class="full">
-              로컬 파일 불러오기
-              <input id="local-file" type="file" accept=".txt,.md,.markdown,.doc,.docx" disabled />
-            </label>
-          </div>
-          <div class="btn-row">
-            <button class="btn primary" id="btn-save-req">요구사항 등록 실행</button>
-            <button class="btn" id="btn-run-prd">선택 Req로 PRD 생성</button>
-            <button class="btn danger" id="btn-clear">입력 초기화</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <div class="viewer-toolbar">
-      <strong>2Column Viewer</strong>
-      <span class="muted" id="viewer-meta">좌측 요구사항, 우측 PRD를 비교합니다.</span>
-      <span class="spacer"></span>
-      <button class="hbtn" id="btn-toggle-raw">Raw 보기</button>
-      <button class="hbtn" id="btn-open-map">매핑 JSON 보기</button>
-    </div>
-
-    <section class="viewer">
-      <article class="pane">
-        <div class="pane-head">
-          <b class="req-title">Left Panel: Requirements</b>
-          <span class="source" id="req-source">Source: /req</span>
-          <span class="spacer"></span>
-          <a class="gh-link" id="req-gh" target="_blank" href="#">GitHub</a>
-        </div>
-        <div class="pane-body">
-          <div class="md-body" id="req-preview">
-            <p class="muted-text">좌측 목록에서 /Req 파일을 선택하거나, /Maps 파일을 선택하면 연결된 요구사항이 표시됩니다.</p>
-          </div>
-          <textarea class="raw-box is-hidden" id="req-raw" spellcheck="false"></textarea>
-        </div>
-      </article>
-
-      <article class="pane">
-        <div class="pane-head">
-          <b class="prd-title">Right Panel: PRD</b>
-          <span class="source" id="prd-source">Source: /prd</span>
-          <span class="spacer"></span>
-          <a class="gh-link" id="prd-gh" target="_blank" href="#">GitHub</a>
-        </div>
-        <div class="pane-body">
-          <div class="md-body" id="prd-preview">
-            <p class="muted-text">매핑된 PRD가 있으면 오른쪽에 표시됩니다. /PRD 파일을 직접 선택해도 볼 수 있습니다.</p>
-          </div>
-          <textarea class="raw-box is-hidden" id="prd-raw" spellcheck="false"></textarea>
-        </div>
-      </article>
-    </section>
-  </main>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script src="./asset/js/app.js" defer></script>
-
+  <div class="toast" id="toast"></div>
+  <script src="./asset/js/app.js"></script>
 </body>
 </html>
