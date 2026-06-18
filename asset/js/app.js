@@ -8,7 +8,7 @@
 const APP_CONFIG = {
   github: {
     owner: 'howardchoi-nsus',
-    repo: 'poc_ax2',
+    repo: 'poc_ax',
     branch: 'main',
     folders: {
       req: 'req',
