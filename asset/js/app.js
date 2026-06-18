@@ -23,8 +23,8 @@ const APP_CONFIG = {
   webhooks: {
     // n8n Webhook URL은 query string 또는 localStorage로도 주입할 수 있습니다.
     // 예: index.html?reqWebhook=https://.../webhook/agent1-requirement-save&prdWebhook=https://.../webhook/agent1-prd-generate
-    requirementSave: '',
-    prdGenerate: '',
+    requirementSave: 'https://kolchohoohu.app.n8n.cloud/webhook-test/agent1-requirement-save',
+    prdGenerate: 'https://kolchohoohu.app.n8n.cloud/webhook-test/agent1-prd-generate',
     // direct git 버전에서는 gitList/gitFile proxy를 기본 사용하지 않습니다.
     gitList: '',
     gitFile: '',
