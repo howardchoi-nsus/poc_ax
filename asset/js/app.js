@@ -1,8 +1,9 @@
 /*
-  AGENT1 PRD Workspace
+  AGENT1 PRD Workspace - POC Direct Git Version
   - 더미데이터 없음
-  - GitHub Repository의 실제 파일 목록/파일 내용을 n8n Git Proxy Webhook으로 조회
-  - GitHub Token은 브라우저에 노출하지 않고 n8n Credential에서만 사용
+  - GitHub Repository의 실제 파일 목록/파일 내용을 Web에서 직접 조회
+  - GitHub PAT는 코드에 하드코딩하지 않고 sessionStorage에만 임시 저장
+  - n8n은 요구사항 저장/PRD 생성 등 쓰기 및 LLM 처리만 담당
 */
 const APP_CONFIG = {
   github: {
@@ -24,6 +25,7 @@ const APP_CONFIG = {
     // 예: index.html?reqWebhook=https://.../webhook/agent1-requirement-save&prdWebhook=https://.../webhook/agent1-prd-generate
     requirementSave: '',
     prdGenerate: '',
+    // direct git 버전에서는 gitList/gitFile proxy를 기본 사용하지 않습니다.
     gitList: '',
     gitFile: '',
     prdRevise: '',
@@ -78,6 +80,10 @@ const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selec
 const elements = {
   repoBadge: $('header_repo_badge'),
   refreshAll: $('header_btn_refresh'),
+  githubTokenInput: $('header_github_token_input'),
+  githubTokenSave: $('header_btn_save_github_token'),
+  githubTokenClear: $('header_btn_clear_github_token'),
+  githubAuthStatus: $('header_github_auth_status'),
   content: $('content'),
   section1: $('section1'),
   section2: $('section2'),
@@ -125,6 +131,7 @@ const elements = {
 
 function init() {
   initRepoLabel();
+  initGithubTokenControls();
   applyInitialWidths();
   bindEvents();
   refreshRepositoryData();
@@ -135,6 +142,45 @@ function initRepoLabel() {
   elements.repoBadge.textContent = `${owner}/${repo} · ${branch}`;
 }
 
+function initGithubTokenControls() {
+  const token = getGithubToken();
+  if (elements.githubTokenInput) {
+    elements.githubTokenInput.value = token ? '********' : '';
+  }
+  updateGithubAuthStatus();
+}
+
+function getGithubToken() {
+  return sessionStorage.getItem('agent1_github_token') || '';
+}
+
+function setGithubToken(token) {
+  const value = String(token || '').trim();
+  if (!value) {
+    sessionStorage.removeItem('agent1_github_token');
+  } else {
+    sessionStorage.setItem('agent1_github_token', value);
+  }
+  initGithubTokenControls();
+}
+
+function updateGithubAuthStatus() {
+  if (!elements.githubAuthStatus) return;
+  const hasToken = Boolean(getGithubToken());
+  elements.githubAuthStatus.textContent = hasToken ? 'GitHub 인증 조회 ON' : 'GitHub 인증 없음';
+  elements.githubAuthStatus.classList.toggle('is_authenticated', hasToken);
+}
+
+function getGithubHeaders(accept = 'application/vnd.github+json') {
+  const headers = {
+    Accept: accept,
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+  const token = getGithubToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
 function applyInitialWidths() {
   document.documentElement.style.setProperty('--section1_width', state.widths.section1);
   document.documentElement.style.setProperty('--section2_width', state.widths.section2);
@@ -143,6 +189,18 @@ function applyInitialWidths() {
 
 function bindEvents() {
   elements.refreshAll.addEventListener('click', refreshRepositoryData);
+  elements.githubTokenSave?.addEventListener('click', () => {
+    const value = window.prompt('GitHub Fine-grained PAT를 입력하세요. 저장은 현재 브라우저 세션에만 유지됩니다.');
+    if (!value) return;
+    setGithubToken(value);
+    showToast('GitHub Token이 현재 세션에 저장되었습니다. Repo를 다시 조회합니다.');
+    refreshRepositoryData();
+  });
+  elements.githubTokenClear?.addEventListener('click', () => {
+    setGithubToken('');
+    showToast('GitHub Token을 현재 세션에서 삭제했습니다.');
+    refreshRepositoryData();
+  });
   elements.search.addEventListener('input', renderRequirementList);
   elements.selectAll.addEventListener('change', onSelectAll);
   elements.clearSelection.addEventListener('click', clearSelection);
@@ -215,39 +273,21 @@ function encodeURIComponentPath(path) {
 
 async function fetchGitHubFolder(folder, options = {}) {
   const { required = false, label = folder } = options;
-
-  if (APP_CONFIG.webhooks.gitList) {
-    const data = await postWebhook(APP_CONFIG.webhooks.gitList, {
-      action: 'git_list',
-      folder,
-      githubOwner: APP_CONFIG.github.owner,
-      githubRepo: APP_CONFIG.github.repo,
-      githubBranch: APP_CONFIG.github.branch,
-      requestedBy: 'web'
-    });
-
-    if (data.success === false) {
-      if (required) throw new Error(data.message || `${label} 목록을 불러오지 못했습니다.`);
-      return [];
-    }
-
-    return normalizeFileList(data.files || data.items || [], folder);
-  }
-
-  // n8n proxy URL이 없을 때만 GitHub API 직접 조회를 fallback으로 사용합니다.
-  // Public repo에서만 권장하며, 인증 없는 GitHub API는 rate limit이 낮습니다.
   const url = githubApiUrl(folder);
-  const response = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
+  const response = await fetch(url, { headers: getGithubHeaders('application/vnd.github+json') });
 
   if (response.status === 403) {
-    throw new Error(`${label} 목록 조회가 GitHub rate limit 또는 권한 문제로 차단되었습니다. gitListWebhook을 설정해 n8n proxy로 조회하세요.`);
+    const tokenMessage = getGithubToken()
+      ? '입력한 GitHub Token의 권한, 만료 여부, rate limit을 확인하세요. Fine-grained PAT는 Contents: Read-only 권한이 필요합니다.'
+      : 'GitHub Token이 없어 인증 없는 요청으로 조회 중입니다. 시간당 60회 제한에 걸릴 수 있으니 상단의 “GitHub Token 입력”을 사용하세요.';
+    throw new Error(`${label} 목록 조회가 403으로 차단되었습니다. ${tokenMessage}`);
   }
 
   if (response.status === 404) {
     const message = [
       `${label} 폴더를 찾지 못했습니다.`,
       `확인값: ${APP_CONFIG.github.owner}/${APP_CONFIG.github.repo} · ${APP_CONFIG.github.branch} · /${folder}`,
-      '가능한 원인: repo/branch/folder 대소문자 불일치, Private repo 인증 미적용, 폴더 경로 오류'
+      '가능한 원인: repo/branch/folder 대소문자 불일치, Private repo 권한 미적용, 폴더 경로 오류'
     ].join('\n');
     if (required) throw new Error(message);
     return [];
@@ -309,21 +349,21 @@ async function fetchGitHubFolderWithFallback(primaryFolder, fallbackFolders = []
 }
 
 async function fetchGitHubText(path) {
-  if (APP_CONFIG.webhooks.gitFile) {
-    const data = await postWebhook(APP_CONFIG.webhooks.gitFile, {
-      action: 'git_file',
-      path,
-      githubOwner: APP_CONFIG.github.owner,
-      githubRepo: APP_CONFIG.github.repo,
-      githubBranch: APP_CONFIG.github.branch,
-      requestedBy: 'web'
-    });
-    if (data.success === false) throw new Error(data.message || `${path} 파일을 불러오지 못했습니다.`);
-    return data.content || data.text || '';
+  const response = await fetch(githubApiUrl(path), {
+    headers: getGithubHeaders('application/vnd.github.v3.raw')
+  });
+
+  if (response.status === 403) {
+    const tokenMessage = getGithubToken()
+      ? '입력한 GitHub Token의 권한, 만료 여부, rate limit을 확인하세요.'
+      : 'GitHub Token이 없어 인증 없는 요청으로 조회 중입니다. 상단의 “GitHub Token 입력”을 사용하세요.';
+    throw new Error(`${path} 파일 조회가 403으로 차단되었습니다. ${tokenMessage}`);
   }
 
-  const response = await fetch(githubRawUrl(path));
-  if (response.status === 403) throw new Error(`${path} 파일 조회가 GitHub rate limit 또는 권한 문제로 차단되었습니다. gitFileWebhook을 설정해 n8n proxy로 조회하세요.`);
+  if (response.status === 404) {
+    throw new Error(`${path} 파일을 찾지 못했습니다. repo/branch/path를 확인하세요.`);
+  }
+
   if (!response.ok) throw new Error(`${path} 파일을 불러오지 못했습니다. HTTP ${response.status}`);
   return await response.text();
 }
@@ -393,7 +433,7 @@ function renderRequirementList() {
   elements.selectAll.checked = files.length > 0 && files.every((file) => state.selectedReqPaths.has(file.path));
 
   if (!files.length) {
-    elements.requirementList.innerHTML = `<div class="common_empty">/${APP_CONFIG.github.folders.req} 폴더에 표시할 요구사항 파일이 없습니다. md 파일이 있다면 repo/branch/folder 대소문자 또는 gitListWebhook 설정을 확인하세요.</div>`;
+    elements.requirementList.innerHTML = `<div class="common_empty">/${APP_CONFIG.github.folders.req} 폴더에 표시할 요구사항 파일이 없습니다. md 파일이 있다면 repo/branch/folder 대소문자 또는 GitHub Token 권한을 확인하세요.</div>`;
     updateSelectedView();
     return;
   }
