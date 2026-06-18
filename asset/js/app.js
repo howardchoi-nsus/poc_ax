@@ -1,13 +1,13 @@
 /*
   AGENT1 PRD Workspace
   - 더미데이터 없음
-  - GitHub Repository의 실제 파일 목록/파일 내용을 읽어서 화면에 표시
-  - GitHub 쓰기 작업은 브라우저에 토큰을 노출하지 않기 위해 n8n Webhook 또는 서버 프록시 사용 권장
+  - GitHub Repository의 실제 파일 목록/파일 내용을 n8n Git Proxy Webhook으로 조회
+  - GitHub Token은 브라우저에 노출하지 않고 n8n Credential에서만 사용
 */
 const APP_CONFIG = {
   github: {
     owner: 'howardchoi-nsus',
-    repo: 'poc_ax',
+    repo: 'poc_ax2',
     branch: 'main',
     folders: {
       req: 'req',
@@ -24,6 +24,8 @@ const APP_CONFIG = {
     // 예: index.html?reqWebhook=https://.../webhook/agent1-requirement-save&prdWebhook=https://.../webhook/agent1-prd-generate
     requirementSave: '',
     prdGenerate: '',
+    gitList: '',
+    gitFile: '',
     prdRevise: '',
     phaseGenerate: '',
     secret: ''
@@ -39,8 +41,14 @@ const query = new URLSearchParams(location.search);
 APP_CONFIG.github.owner = query.get('owner') || APP_CONFIG.github.owner;
 APP_CONFIG.github.repo = query.get('repo') || APP_CONFIG.github.repo;
 APP_CONFIG.github.branch = query.get('branch') || APP_CONFIG.github.branch;
+APP_CONFIG.github.folders.req = query.get('reqFolder') || localStorage.getItem('agent1_req_folder') || APP_CONFIG.github.folders.req;
+APP_CONFIG.github.folders.prompts = query.get('promptFolder') || localStorage.getItem('agent1_prompt_folder') || APP_CONFIG.github.folders.prompts;
+APP_CONFIG.github.folders.prd = query.get('prdFolder') || localStorage.getItem('agent1_prd_folder') || APP_CONFIG.github.folders.prd;
+APP_CONFIG.github.folders.logs = query.get('logFolder') || localStorage.getItem('agent1_log_folder') || APP_CONFIG.github.folders.logs;
 APP_CONFIG.webhooks.requirementSave = query.get('reqWebhook') || localStorage.getItem('agent1_req_webhook') || APP_CONFIG.webhooks.requirementSave;
 APP_CONFIG.webhooks.prdGenerate = query.get('prdWebhook') || localStorage.getItem('agent1_prd_webhook') || APP_CONFIG.webhooks.prdGenerate;
+APP_CONFIG.webhooks.gitList = query.get('gitListWebhook') || localStorage.getItem('agent1_git_list_webhook') || APP_CONFIG.webhooks.gitList;
+APP_CONFIG.webhooks.gitFile = query.get('gitFileWebhook') || localStorage.getItem('agent1_git_file_webhook') || APP_CONFIG.webhooks.gitFile;
 APP_CONFIG.webhooks.prdRevise = query.get('reviseWebhook') || localStorage.getItem('agent1_revise_webhook') || APP_CONFIG.webhooks.prdRevise;
 APP_CONFIG.webhooks.phaseGenerate = query.get('phaseWebhook') || localStorage.getItem('agent1_phase_webhook') || APP_CONFIG.webhooks.phaseGenerate;
 APP_CONFIG.webhooks.secret = query.get('webhookSecret') || localStorage.getItem('agent1_webhook_secret') || APP_CONFIG.webhooks.secret;
@@ -205,26 +213,117 @@ function encodeURIComponentPath(path) {
   return path.split('/').map(encodeURIComponent).join('/');
 }
 
-async function fetchGitHubFolder(folder) {
-  const response = await fetch(githubApiUrl(folder), { headers: { Accept: 'application/vnd.github+json' } });
-  if (response.status === 404) return [];
-  if (!response.ok) throw new Error(`${folder} 목록을 불러오지 못했습니다. HTTP ${response.status}`);
+async function fetchGitHubFolder(folder, options = {}) {
+  const { required = false, label = folder } = options;
+
+  if (APP_CONFIG.webhooks.gitList) {
+    const data = await postWebhook(APP_CONFIG.webhooks.gitList, {
+      action: 'git_list',
+      folder,
+      githubOwner: APP_CONFIG.github.owner,
+      githubRepo: APP_CONFIG.github.repo,
+      githubBranch: APP_CONFIG.github.branch,
+      requestedBy: 'web'
+    });
+
+    if (data.success === false) {
+      if (required) throw new Error(data.message || `${label} 목록을 불러오지 못했습니다.`);
+      return [];
+    }
+
+    return normalizeFileList(data.files || data.items || [], folder);
+  }
+
+  // n8n proxy URL이 없을 때만 GitHub API 직접 조회를 fallback으로 사용합니다.
+  // Public repo에서만 권장하며, 인증 없는 GitHub API는 rate limit이 낮습니다.
+  const url = githubApiUrl(folder);
+  const response = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
+
+  if (response.status === 403) {
+    throw new Error(`${label} 목록 조회가 GitHub rate limit 또는 권한 문제로 차단되었습니다. gitListWebhook을 설정해 n8n proxy로 조회하세요.`);
+  }
+
+  if (response.status === 404) {
+    const message = [
+      `${label} 폴더를 찾지 못했습니다.`,
+      `확인값: ${APP_CONFIG.github.owner}/${APP_CONFIG.github.repo} · ${APP_CONFIG.github.branch} · /${folder}`,
+      '가능한 원인: repo/branch/folder 대소문자 불일치, Private repo 인증 미적용, 폴더 경로 오류'
+    ].join('\n');
+    if (required) throw new Error(message);
+    return [];
+  }
+
+  if (!response.ok) {
+    throw new Error(`${label} 목록을 불러오지 못했습니다. HTTP ${response.status}`);
+  }
+
   const data = await response.json();
-  if (!Array.isArray(data)) return [];
-  return data
-    .filter((item) => item.type === 'file')
+  if (!Array.isArray(data)) {
+    if (required) throw new Error(`${label} 경로가 폴더가 아닙니다. 확인값: /${folder}`);
+    return [];
+  }
+
+  return normalizeFileList(data, folder);
+}
+
+function normalizeFileList(items, folder = '') {
+  return (Array.isArray(items) ? items : [])
+    .filter((item) => (item.type || 'file') === 'file')
     .map((item) => ({
-      name: item.name,
-      path: item.path,
-      size: item.size,
-      downloadUrl: item.download_url,
-      htmlUrl: item.html_url
+      name: item.name || String(item.path || '').split('/').pop(),
+      path: item.path || `${folder}/${item.name}`.replace(/^\/+/, ''),
+      size: item.size || 0,
+      downloadUrl: item.downloadUrl || item.download_url || '',
+      htmlUrl: item.htmlUrl || item.html_url || ''
     }))
+    .filter((item) => item.name && item.path)
     .sort((a, b) => b.name.localeCompare(a.name));
 }
 
+async function fetchGitHubFolderWithFallback(primaryFolder, fallbackFolders = [], options = {}) {
+  const tried = [];
+  const candidates = [primaryFolder, ...fallbackFolders].filter(Boolean);
+
+  for (const folder of candidates) {
+    try {
+      tried.push(folder);
+      const files = await fetchGitHubFolder(folder, { ...options, required: true });
+      if (folder !== primaryFolder) {
+        APP_CONFIG.github.folders.req = folder;
+        localStorage.setItem('agent1_req_folder', folder);
+        showToast(`요구사항 폴더를 /${folder}로 자동 보정했습니다.`);
+      }
+      return files;
+    } catch (error) {
+      if (!String(error.message).includes('폴더를 찾지 못했습니다')) throw error;
+    }
+  }
+
+  throw new Error([
+    `${options.label || primaryFolder} 폴더를 찾지 못했습니다.`,
+    `시도한 경로: ${tried.map((item) => '/' + item).join(', ')}`,
+    `확인값: ${APP_CONFIG.github.owner}/${APP_CONFIG.github.repo} · ${APP_CONFIG.github.branch}`,
+    'GitHub는 폴더 대소문자를 구분합니다. /Req에 있으면 reqFolder=Req로 접속하세요.',
+    'Private repo라면 브라우저 직접 조회가 404로 보일 수 있으므로 Vercel API proxy 또는 n8n proxy 조회가 필요합니다.'
+  ].join('\n'));
+}
+
 async function fetchGitHubText(path) {
+  if (APP_CONFIG.webhooks.gitFile) {
+    const data = await postWebhook(APP_CONFIG.webhooks.gitFile, {
+      action: 'git_file',
+      path,
+      githubOwner: APP_CONFIG.github.owner,
+      githubRepo: APP_CONFIG.github.repo,
+      githubBranch: APP_CONFIG.github.branch,
+      requestedBy: 'web'
+    });
+    if (data.success === false) throw new Error(data.message || `${path} 파일을 불러오지 못했습니다.`);
+    return data.content || data.text || '';
+  }
+
   const response = await fetch(githubRawUrl(path));
+  if (response.status === 403) throw new Error(`${path} 파일 조회가 GitHub rate limit 또는 권한 문제로 차단되었습니다. gitFileWebhook을 설정해 n8n proxy로 조회하세요.`);
   if (!response.ok) throw new Error(`${path} 파일을 불러오지 못했습니다. HTTP ${response.status}`);
   return await response.text();
 }
@@ -237,7 +336,7 @@ async function refreshRepositoryData() {
 
 async function refreshRequirements() {
   try {
-    state.requirements = await fetchGitHubFolder(APP_CONFIG.github.folders.req);
+    state.requirements = await fetchGitHubFolderWithFallback(APP_CONFIG.github.folders.req, ['Req', 'REQ', 'requirements', 'Requirements'], { label: '요구사항' });
     renderRequirementList();
   } catch (error) {
     elements.requirementList.innerHTML = renderError(error.message);
@@ -294,7 +393,7 @@ function renderRequirementList() {
   elements.selectAll.checked = files.length > 0 && files.every((file) => state.selectedReqPaths.has(file.path));
 
   if (!files.length) {
-    elements.requirementList.innerHTML = `<div class="common_empty">/req 폴더에 표시할 요구사항 파일이 없습니다.</div>`;
+    elements.requirementList.innerHTML = `<div class="common_empty">/${APP_CONFIG.github.folders.req} 폴더에 표시할 요구사항 파일이 없습니다. md 파일이 있다면 repo/branch/folder 대소문자 또는 gitListWebhook 설정을 확인하세요.</div>`;
     updateSelectedView();
     return;
   }
