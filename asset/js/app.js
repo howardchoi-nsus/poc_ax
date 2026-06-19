@@ -26,8 +26,8 @@ const APP_CONFIG = {
     baseUrl: location.origin
   },
   webhooks: {
-    requirementSave: '/api/requirement-save',
-    prdGenerate: '/api/prd-generate',
+    requirementSave: '',
+    prdGenerate: '',
     gitList: '',
     gitFile: '',
     prdRevise: '',
@@ -191,6 +191,14 @@ const elements = {
   modalBody: $('modal_body'),
   modalSelect: $('modal_btn_select'),
 
+  directModal: $('modal_direct_register'),
+  directModalClose: $('modal_direct_btn_close'),
+  directSourceType: $('direct_source_type'),
+  directSourceDetail: $('direct_source_detail'),
+  directRequirementText: $('direct_requirement_text'),
+  directReset: $('direct_btn_reset'),
+  directSubmit: $('direct_btn_submit'),
+
   toast: $('toast_message')
 };
 
@@ -346,7 +354,12 @@ function bindEvents() {
   );
 
   $('section1_btn_file_source').addEventListener('click', requestFileRequirementSave);
-  $('section1_btn_direct_source').addEventListener('click', requestDirectRequirementSave);
+  $('section1_btn_direct_source').addEventListener('click', openDirectRequirementModal);
+
+  elements.directModalClose?.addEventListener('click', () => elements.directModal.close());
+  elements.directSourceType?.addEventListener('change', updateDirectSourceDetailState);
+  elements.directReset?.addEventListener('click', resetDirectRequirementForm);
+  elements.directSubmit?.addEventListener('click', submitDirectRequirementSave);
 }
 
 async function fetchGitHubFolder(folder, options = {}) {
@@ -1024,14 +1037,10 @@ async function requestPrdGenerate() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        requirementFilePaths: paths,
-        promptFilePath: elements.promptTemplate.value || 'prompts/prd-template-v1.md',
+        requirements: paths,
+        promptTemplate: elements.promptTemplate.value,
         model: elements.modelSelect.value,
-        documentTitle: elements.docTitle.value,
-        outputDir: APP_CONFIG.github.folders.prd,
-        logDir: APP_CONFIG.github.folders.logs,
-        vercelBaseUrl: APP_CONFIG.storage.baseUrl,
-        requestedBy: 'web',
+        docTitle: elements.docTitle.value,
         secret: APP_CONFIG.webhooks.secret
       })
     });
@@ -1077,88 +1086,118 @@ async function requestPrdRevise() {
 function requestFileRequirementSave() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.md,.txt';
-
+  input.accept = '.md,.txt,.pdf,.docx';
   input.onchange = async () => {
     const file = input.files[0];
     if (!file) return;
 
     const webhook = APP_CONFIG.webhooks.requirementSave;
-    if (!webhook) {
-      showToast('저장 API URL이 설정되지 않았습니다.');
-      return;
-    }
+    if (!webhook) { showToast('저장 웹훅 URL이 설정되지 않았습니다.'); return; }
 
-    const ext = file.name.split('.').pop().toLowerCase();
-    if (!['md', 'txt'].includes(ext)) {
-      showToast('현재 파일등록은 md, txt 파일만 바로 등록 가능합니다.');
-      return;
-    }
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('secret', APP_CONFIG.webhooks.secret);
 
-    showToast(`${file.name} 읽는 중...`);
-
+    showToast(`${file.name} 업로드 중...`);
     try {
-      const text = await file.text();
-      if (!text.trim()) {
-        showToast('파일 내용이 비어 있습니다.');
-        return;
-      }
-
-      const keyword = file.name
-        .replace(/\.[^.]+$/, '')
-        .replace(/^REQ_/i, '')
-        .replace(/\s+/g, '_');
-
-      const payload = {
-        requirementKeyword: keyword,
-        title: keyword,
-        sourceType: 'FILE',
-        sourceLabel: '파일업로드',
-        sourceDetail: file.name,
-        sourceText: text,
-        reqDir: APP_CONFIG.github.folders.req,
-        sourceDir: 'source',
-        vercelBaseUrl: APP_CONFIG.storage.baseUrl,
-        requestedBy: 'web',
-        secret: APP_CONFIG.webhooks.secret
-      };
-
-      showToast(`${file.name} 등록 요청 중...`);
-
-      const response = await fetch(webhook, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result.success === false) {
-        throw new Error(result.message || `HTTP ${response.status}`);
-      }
-
+      await fetch(webhook, { method: 'POST', body: formData });
       showToast(`${file.name} 등록 완료`);
       await refreshRequirements();
     } catch (error) {
       showToast(`업로드 실패: ${error.message}`);
     }
   };
-
   input.click();
 }
 
-/* 직접 요구사항 등록 */
-async function requestDirectRequirementSave() {
-  const title = window.prompt('요구사항 제목을 입력하세요:');
-  if (!title) return;
+/* 직접 요구사항 등록 모달 열기 */
+function openDirectRequirementModal() {
+  resetDirectRequirementForm();
+  elements.directModal.showModal();
+}
 
-  const content = window.prompt('요구사항 내용을 입력하세요:');
-  if (!content) return;
+/* 직접 요구사항 등록 폼 초기화 */
+function resetDirectRequirementForm() {
+  if (!elements.directSourceType) return;
 
+  elements.directSourceType.value = 'DIRECT';
+  elements.directSourceDetail.value = '';
+  elements.directRequirementText.value = '';
+
+  updateDirectSourceDetailState();
+  elements.directRequirementText.focus();
+}
+
+/* 요구사항 속성에 따른 추가 정보 입력 제어 */
+function updateDirectSourceDetailState() {
+  const sourceType = elements.directSourceType.value;
+
+  if (sourceType === 'JIRA') {
+    elements.directSourceDetail.disabled = false;
+    elements.directSourceDetail.placeholder = 'JIRA 티켓번호 또는 URL을 입력하세요. 예: JIRA-1234';
+  } else {
+    elements.directSourceDetail.disabled = true;
+    elements.directSourceDetail.value = '';
+    elements.directSourceDetail.placeholder = 'JIRA 선택 시 티켓번호 또는 URL을 입력하세요.';
+  }
+}
+
+/* 직접 요구사항 등록 저장 */
+async function submitDirectRequirementSave() {
   const webhook = APP_CONFIG.webhooks.requirementSave;
+
   if (!webhook) {
-    showToast('저장 API URL이 설정되지 않았습니다.');
+    showToast('저장 웹훅 URL이 설정되지 않았습니다.');
     return;
   }
+
+  const sourceType = elements.directSourceType.value;
+  const sourceDetail = elements.directSourceDetail.value.trim();
+  const sourceText = elements.directRequirementText.value.trim();
+
+  if (!sourceText) {
+    showToast('요구사항 내용을 입력해주세요.');
+    elements.directRequirementText.focus();
+    return;
+  }
+
+  if (sourceType === 'JIRA' && !sourceDetail) {
+    showToast('JIRA 티켓번호 또는 URL을 입력해주세요.');
+    elements.directSourceDetail.focus();
+    return;
+  }
+
+  const sourceLabelMap = {
+    DIRECT: '직접등록',
+    JIRA: 'JIRA',
+    SLACK: 'Slack'
+  };
+
+  const keywordSeed =
+    sourceType === 'JIRA' && sourceDetail
+      ? sourceDetail
+      : sourceText.slice(0, 24);
+
+  const requirementKeyword = String(keywordSeed || 'direct')
+    .replace(/^REQ_/i, '')
+    .replace(/\s+/g, '_')
+    .replace(/[^A-Za-z0-9가-힣_-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'direct';
+
+  const payload = {
+    requirementKeyword,
+    title: requirementKeyword,
+    sourceType,
+    sourceLabel: sourceLabelMap[sourceType] || sourceType,
+    sourceDetail,
+    sourceText,
+    reqDir: APP_CONFIG.github.folders.req,
+    sourceDir: 'source',
+    vercelBaseUrl: APP_CONFIG.storage.baseUrl,
+    requestedBy: 'web',
+    secret: APP_CONFIG.webhooks.secret
+  };
 
   showToast('요구사항 등록 중...');
 
@@ -1166,27 +1205,17 @@ async function requestDirectRequirementSave() {
     const response = await fetch(webhook, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requirementKeyword: title,
-        title,
-        sourceType: 'DIRECT',
-        sourceLabel: '직접등록',
-        sourceDetail: '',
-        sourceText: content,
-        reqDir: APP_CONFIG.github.folders.req,
-        sourceDir: 'source',
-        vercelBaseUrl: APP_CONFIG.storage.baseUrl,
-        requestedBy: 'web',
-        secret: APP_CONFIG.webhooks.secret
-      })
+      body: JSON.stringify(payload)
     });
 
     const result = await response.json().catch(() => ({}));
+
     if (!response.ok || result.success === false) {
       throw new Error(result.message || `HTTP ${response.status}`);
     }
 
     showToast('요구사항 등록 완료');
+    elements.directModal.close();
     await refreshRequirements();
   } catch (error) {
     showToast(`등록 실패: ${error.message}`);
