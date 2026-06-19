@@ -1,8 +1,19 @@
-import { getDownloadUrl } from '@vercel/blob';
+import { list, get } from '@vercel/blob';
 
 export default async function handler(req, res) {
   try {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    const path = String(req.query.path || '').replace(/^\/+/, '');
+
+    if (!path) {
+      return res.status(400).json({
+        success: false,
+        message: 'path 값이 없습니다.'
+      });
+    }
+
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+
+    if (!token) {
       return res.status(500).json({
         success: false,
         step: 'env_check',
@@ -10,19 +21,36 @@ export default async function handler(req, res) {
       });
     }
 
-    const path = String(req.query.path || '').replace(/^\/+/, '');
-    if (!path) {
-      return res.status(400).json({ success: false, message: 'path 값이 필요합니다.' });
+    const result = await list({
+      prefix: path,
+      limit: 10,
+      token
+    });
+
+    const blob = result.blobs.find((item) => item.pathname === path);
+
+    if (!blob) {
+      return res.status(404).json({
+        success: false,
+        message: `${path} 파일을 찾지 못했습니다.`
+      });
     }
 
-    const downloadUrl = await getDownloadUrl(path);
-    const response = await fetch(downloadUrl);
+    const file = await get(blob.pathname, {
+      token
+    });
+
+    const response = await fetch(file.url, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
 
     if (!response.ok) {
       return res.status(response.status).json({
         success: false,
-        message: `${path} 파일을 읽지 못했습니다.`,
-        status: response.status
+        step: 'blob_fetch',
+        message: `Blob 파일을 읽지 못했습니다. HTTP ${response.status}`
       });
     }
 
@@ -31,7 +59,12 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       path,
-      content
+      name: path.split('/').pop(),
+      content,
+      text: content,
+      size: blob.size,
+      uploadedAt: blob.uploadedAt,
+      contentType: blob.contentType || 'text/plain'
     });
   } catch (error) {
     return res.status(500).json({
