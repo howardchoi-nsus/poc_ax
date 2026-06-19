@@ -26,8 +26,8 @@ const APP_CONFIG = {
     baseUrl: location.origin
   },
   webhooks: {
-    requirementSave: '',
-    prdGenerate: '',
+    requirementSave: 'https://kolchohoohu.app.n8n.cloud/webhook/agent1-requirement-save',
+    prdGenerate: 'https://kolchohoohu.app.n8n.cloud/webhook/agent1-prd-generate',
     gitList: '',
     gitFile: '',
     prdRevise: '',
