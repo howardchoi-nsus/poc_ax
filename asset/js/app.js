@@ -1024,16 +1024,13 @@ async function openRequirementModal(path) {
 
 /* PRD 생성 요청 */
 async function requestPrdGenerate() {
-  const webhook = APP_CONFIG.webhooks.prdGenerate;
-  if (!webhook) { showToast('PRD 생성 웹훅 URL이 설정되지 않았습니다.'); return; }
-
   const paths = Array.from(state.selectedReqPaths);
   if (!paths.length) { showToast('요구사항을 선택해주세요.'); return; }
 
   showToast('PRD 생성 요청 중...');
 
   try {
-    await fetch(webhook, {
+    const res = await fetch('/api/prd-generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1044,6 +1041,12 @@ async function requestPrdGenerate() {
         secret: APP_CONFIG.webhooks.secret
       })
     });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || `HTTP ${res.status}`);
+    }
+
     showToast('PRD 생성 요청이 전송되었습니다.');
   } catch (error) {
     showToast(`요청 실패: ${error.message}`);
