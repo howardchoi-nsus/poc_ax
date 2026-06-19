@@ -18,13 +18,10 @@
       </section>
 
       <section class="header_repo" id="header_repo">
-        <span class="header_repo_label">Git Repository</span>
+        <span class="header_repo_label">Vercel Blob</span>
         <strong class="header_repo_badge" id="header_repo_badge">loading...</strong>
-        <span class="header_github_auth_status" id="header_github_auth_status">GitHub 인증 없음</span>
-        <input class="header_github_token_input" id="header_github_token_input" type="password" placeholder="PAT session" readonly />
-        <button class="common_button common_button_secondary" id="header_btn_save_github_token">GitHub Token 입력</button>
-        <button class="common_button common_button_secondary" id="header_btn_clear_github_token">삭제</button>
-        <button class="common_button common_button_secondary" id="header_btn_refresh">Repo 새로고침</button>
+        <span class="header_github_auth_status" id="header_github_auth_status">Blob Storage</span>
+        <button class="common_button common_button_secondary" id="header_btn_refresh">Blob 새로고침</button>
       </section>
 
       <section class="header_control" id="header_control">
@@ -55,7 +52,7 @@
           <div class="section1_panel_head common_panel_head">
             <div>
               <h2 class="section1_title">요구사항 등록 관리</h2>
-              <p class="section1_description">Git Repository의 /req 문서를 불러와 PRD 생성 대상으로 선택합니다.</p>
+              <p class="section1_description">Vercel Blob의 /req 문서를 불러와 PRD 생성 대상으로 선택합니다.</p>
             </div>
             <button class="section1_btn_close common_btn_close" data-close-col="1" title="1컬럼 닫기">×</button>
           </div>
@@ -88,7 +85,7 @@
               <span>선택됨 : <strong id="section1_selected_count_mini">0</strong> / <strong id="section1_total_count">0</strong></span>
             </div>
             <div class="section1_requirement_list" id="section1_requirement_list">
-              <div class="common_empty">Git Repository에서 요구사항을 불러오는 중입니다.</div>
+              <div class="common_empty">Vercel Blob에서 요구사항을 불러오는 중입니다.</div>
             </div>
           </div>
 
@@ -119,7 +116,7 @@
           <div class="section2_panel_head common_panel_head">
             <div>
               <h2 class="section2_title">PRD Workspace</h2>
-              <p class="section2_description">선택된 요구사항을 기반으로 PRD 생성 요청을 실행하고, Git Repository의 /prd 문서를 열람합니다.</p>
+              <p class="section2_description">선택된 요구사항을 기반으로 PRD 생성 요청을 실행하고, Vercel Blob의 /prd 문서를 열람합니다.</p>
             </div>
             <button class="section2_btn_close common_btn_close" data-close-col="2" title="2컬럼 닫기">×</button>
           </div>
@@ -136,7 +133,7 @@
             <label class="section2_form_label">
               PRD 템플릿 양식
               <select class="section2_prompt_template" id="section2_prompt_template">
-                <option value="">Git /prompts 로딩 중...</option>
+                <option value="">Blob /prompts 로딩 중...</option>
               </select>
             </label>
             <label class="section2_form_label">
@@ -162,7 +159,7 @@
               <button class="common_link_button" id="section2_btn_refresh_prd">/prd 새로고침</button>
             </div>
             <div class="section2_prd_file_list" id="section2_prd_file_list">
-              <div class="common_empty">Git Repository에서 PRD 목록을 불러오는 중입니다.</div>
+              <div class="common_empty">Vercel Blob에서 PRD 목록을 불러오는 중입니다.</div>
             </div>
           </section>
 
@@ -195,7 +192,7 @@
               <button class="common_link_button" id="section2_btn_refresh_logs">/logs 새로고침</button>
             </div>
             <div class="section2_log_list" id="section2_log_list">
-              <div class="common_empty">Git Repository에서 로그를 불러오는 중입니다.</div>
+              <div class="common_empty">Vercel Blob에서 로그를 불러오는 중입니다.</div>
             </div>
           </section>
         </div>
@@ -214,7 +211,7 @@
           <div class="section3_panel_head common_panel_head">
             <div>
               <h2 class="section3_title">Phase Output</h2>
-              <p class="section3_description">PRD 기반 Phase 2 서비스 시나리오, 플로우, 시퀀스 산출물을 Git Repository에서 열람합니다.</p>
+              <p class="section3_description">PRD 기반 Phase 2 서비스 시나리오, 플로우, 시퀀스 산출물을 Vercel Blob에서 열람합니다.</p>
             </div>
             <button class="section3_btn_close common_btn_close" data-close-col="3" title="3컬럼 닫기">×</button>
           </div>
@@ -234,7 +231,7 @@
           <section class="section3_artifact_list_card common_card">
             <strong>산출물 목록</strong>
             <div class="section3_artifact_list" id="section3_artifact_list">
-              <div class="common_empty">Git Repository에서 Phase 산출물을 불러오는 중입니다.</div>
+              <div class="common_empty">Vercel Blob에서 Phase 산출물을 불러오는 중입니다.</div>
             </div>
           </section>
 
