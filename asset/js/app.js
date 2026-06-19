@@ -26,8 +26,9 @@ const APP_CONFIG = {
     baseUrl: location.origin
   },
   webhooks: {
-    requirementSave: 'https://kolchohoohu.app.n8n.cloud/webhook/agent1-requirement-save',
-    prdGenerate: 'https://kolchohoohu.app.n8n.cloud/webhook/agent1-prd-generate',
+    // 브라우저에서 n8n을 직접 호출하지 않고 Vercel API 프록시를 사용합니다.
+    requirementSave: '/api/requirement-save',
+    prdGenerate: '/api/prd-generate',
     gitList: '',
     gitFile: '',
     prdRevise: '',
@@ -72,15 +73,13 @@ APP_CONFIG.github.folders.logs =
   localStorage.getItem('agent1_log_folder') ||
   APP_CONFIG.github.folders.logs;
 
-APP_CONFIG.webhooks.requirementSave =
-  query.get('reqWebhook') ||
-  localStorage.getItem('agent1_req_webhook') ||
-  APP_CONFIG.webhooks.requirementSave;
+// CORS 방지를 위해 요구사항 저장은 항상 Vercel API 프록시를 사용합니다.
+localStorage.removeItem('agent1_req_webhook');
+APP_CONFIG.webhooks.requirementSave = '/api/requirement-save';
 
-APP_CONFIG.webhooks.prdGenerate =
-  query.get('prdWebhook') ||
-  localStorage.getItem('agent1_prd_webhook') ||
-  APP_CONFIG.webhooks.prdGenerate;
+// CORS 방지를 위해 PRD 생성도 항상 Vercel API 프록시를 사용합니다.
+localStorage.removeItem('agent1_prd_webhook');
+APP_CONFIG.webhooks.prdGenerate = '/api/prd-generate';
 
 APP_CONFIG.webhooks.gitList =
   query.get('gitListWebhook') ||
@@ -356,7 +355,7 @@ function bindEvents() {
   $('section1_btn_file_source').addEventListener('click', requestFileRequirementSave);
   $('section1_btn_direct_source').addEventListener('click', openDirectRequirementModal);
 
-  elements.directModalClose?.addEventListener('click', () => elements.directModal.close());
+  elements.directModalClose?.addEventListener('click', () => elements.directModal?.close());
   elements.directSourceType?.addEventListener('change', updateDirectSourceDetailState);
   elements.directReset?.addEventListener('click', resetDirectRequirementForm);
   elements.directSubmit?.addEventListener('click', submitDirectRequirementSave);
@@ -551,10 +550,17 @@ async function refreshRequirements() {
 
 async function refreshPrompts() {
   try {
-    state.prompts = await fetchGitHubFolder(APP_CONFIG.github.folders.prompts);
+    state.prompts = await fetchGitHubFolderWithFallback(
+      APP_CONFIG.github.folders.prompts,
+      ['prompt', 'Prompt', 'PROMPTS', 'Prompts'],
+      { label: '프롬프트' }
+    );
+
+    state.prompts = state.prompts.filter((file) => /\.(md|txt)$/i.test(file.name));
     renderPromptOptions();
   } catch (error) {
     elements.promptTemplate.innerHTML = `<option value="">프롬프트 로딩 실패</option>`;
+    showToast(error.message);
   }
 }
 
@@ -899,12 +905,19 @@ function updateSelectedView() {
 
 /* 프롬프트 옵션 렌더 */
 function renderPromptOptions() {
-  if (!state.prompts.length) {
+  const promptFiles = state.prompts.filter((file) => /\.(md|txt)$/i.test(file.name));
+
+  if (!promptFiles.length) {
     elements.promptTemplate.innerHTML = '<option value="">프롬프트 없음</option>';
     return;
   }
-  elements.promptTemplate.innerHTML = state.prompts
-    .map((f) => `<option value="${escapeHtml(f.path)}">${escapeHtml(f.name)}</option>`)
+
+  elements.promptTemplate.innerHTML = promptFiles
+    .map((file, index) => `
+      <option value="${escapeHtml(file.path)}" ${index === 0 ? 'selected' : ''}>
+        ${escapeHtml(file.name)}
+      </option>
+    `)
     .join('');
 }
 
@@ -1025,29 +1038,71 @@ async function openRequirementModal(path) {
 /* PRD 생성 요청 */
 async function requestPrdGenerate() {
   const webhook = APP_CONFIG.webhooks.prdGenerate;
-  if (!webhook) { showToast('PRD 생성 웹훅 URL이 설정되지 않았습니다.'); return; }
+
+  if (!webhook) {
+    showToast('PRD 생성 웹훅 URL이 설정되지 않았습니다.');
+    return;
+  }
 
   const paths = Array.from(state.selectedReqPaths);
-  if (!paths.length) { showToast('요구사항을 선택해주세요.'); return; }
+
+  if (!paths.length) {
+    showToast('요구사항을 선택해주세요.');
+    return;
+  }
+
+  const promptFilePath = elements.promptTemplate.value;
+
+  if (!promptFilePath) {
+    showToast('PRD 생성 프롬프트를 선택해주세요.');
+    return;
+  }
+
+  const documentTitle = createAutoPrdTitle(paths);
 
   showToast('PRD 생성 요청 중...');
 
   try {
-    await fetch(webhook, {
+    const response = await fetch(webhook, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        requirements: paths,
-        promptTemplate: elements.promptTemplate.value,
-        model: elements.modelSelect.value,
-        docTitle: elements.docTitle.value,
+        requirementFilePaths: paths,
+        promptFilePath,
+        model: elements.modelSelect?.value || 'gpt-4o-mini',
+        documentTitle,
+        outputDir: APP_CONFIG.github.folders.prd,
+        logDir: APP_CONFIG.github.folders.logs,
+        vercelBaseUrl: APP_CONFIG.storage.baseUrl,
+        requestedBy: 'web',
         secret: APP_CONFIG.webhooks.secret
       })
     });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || result.success === false) {
+      throw new Error(result.message || `HTTP ${response.status}`);
+    }
+
     showToast('PRD 생성 요청이 전송되었습니다.');
+    await Promise.allSettled([refreshPrdFiles(), refreshLogs()]);
   } catch (error) {
     showToast(`요청 실패: ${error.message}`);
   }
+}
+
+function createAutoPrdTitle(paths) {
+  const first = String(paths[0] || 'requirements')
+    .split('/')
+    .pop()
+    .replace(/\.[^.]+$/, '')
+    .replace(/^REQ_/i, '');
+
+  const suffix = paths.length > 1 ? `_외_${paths.length - 1}건` : '';
+  return `PRD_${first}${suffix}`;
 }
 
 /* PRD 피드백 제출 */
@@ -1086,37 +1141,90 @@ async function requestPrdRevise() {
 function requestFileRequirementSave() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.md,.txt,.pdf,.docx';
+  input.accept = '.md,.txt';
+
   input.onchange = async () => {
     const file = input.files[0];
     if (!file) return;
 
     const webhook = APP_CONFIG.webhooks.requirementSave;
-    if (!webhook) { showToast('저장 웹훅 URL이 설정되지 않았습니다.'); return; }
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('secret', APP_CONFIG.webhooks.secret);
+    if (!webhook) {
+      showToast('저장 웹훅 URL이 설정되지 않았습니다.');
+      return;
+    }
 
-    showToast(`${file.name} 업로드 중...`);
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (!['md', 'txt'].includes(ext)) {
+      showToast('현재 파일등록은 md, txt 파일만 바로 등록 가능합니다.');
+      return;
+    }
+
+    showToast(`${file.name} 읽는 중...`);
+
     try {
-      await fetch(webhook, { method: 'POST', body: formData });
+      const text = await file.text();
+
+      if (!text.trim()) {
+        showToast('파일 내용이 비어 있습니다.');
+        return;
+      }
+
+      const keyword = file.name
+        .replace(/\.[^.]+$/, '')
+        .replace(/^REQ_/i, '')
+        .replace(/\s+/g, '_')
+        .replace(/[^A-Za-z0-9가-힣_-]+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'file';
+
+      const payload = {
+        requirementKeyword: keyword,
+        title: keyword,
+        sourceType: 'FILE',
+        sourceLabel: '파일업로드',
+        sourceDetail: file.name,
+        sourceText: text,
+        reqDir: APP_CONFIG.github.folders.req,
+        sourceDir: 'source',
+        vercelBaseUrl: APP_CONFIG.storage.baseUrl,
+        requestedBy: 'web',
+        secret: APP_CONFIG.webhooks.secret
+      };
+
+      showToast(`${file.name} 업로드 중...`);
+
+      const response = await fetch(webhook, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || result.success === false) {
+        throw new Error(result.message || `HTTP ${response.status}`);
+      }
+
       showToast(`${file.name} 등록 완료`);
       await refreshRequirements();
     } catch (error) {
       showToast(`업로드 실패: ${error.message}`);
     }
   };
+
   input.click();
 }
 
-/* 직접 요구사항 등록 모달 열기 */
-function openDirectRequirementModal() {
+/* 직접 요구사항 등록 */
+async function openDirectRequirementModal() {
   resetDirectRequirementForm();
-  elements.directModal.showModal();
+  elements.directModal?.showModal();
 }
 
-/* 직접 요구사항 등록 폼 초기화 */
 function resetDirectRequirementForm() {
   if (!elements.directSourceType) return;
 
@@ -1125,12 +1233,11 @@ function resetDirectRequirementForm() {
   elements.directRequirementText.value = '';
 
   updateDirectSourceDetailState();
-  elements.directRequirementText.focus();
+  window.setTimeout(() => elements.directRequirementText?.focus(), 0);
 }
 
-/* 요구사항 속성에 따른 추가 정보 입력 제어 */
 function updateDirectSourceDetailState() {
-  const sourceType = elements.directSourceType.value;
+  const sourceType = elements.directSourceType?.value || 'DIRECT';
 
   if (sourceType === 'JIRA') {
     elements.directSourceDetail.disabled = false;
@@ -1142,7 +1249,6 @@ function updateDirectSourceDetailState() {
   }
 }
 
-/* 직접 요구사항 등록 저장 */
 async function submitDirectRequirementSave() {
   const webhook = APP_CONFIG.webhooks.requirementSave;
 
