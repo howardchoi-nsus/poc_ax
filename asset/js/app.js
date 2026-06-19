@@ -652,3 +652,543 @@ function renderRequirementList() {
 
   updateSelectedView();
 }
+/* ============================================================
+   누락된 UI 함수 추가 (CSS/HTML 클래스명 기준)
+   ============================================================ */
+
+/* 토스트 */
+let _toastTimer = null;
+function showToast(msg) {
+  const el = elements.toast;
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('is_show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('is_show'), 3000);
+}
+
+/* 컬럼 닫기 */
+function closeColumn(col) {
+  const section = $(`section${col}`);
+  if (!section) return;
+  section.classList.add('is_closed');
+  state.closedCols.add(String(col));
+  updateResizers();
+  updateColumnSwitches();
+}
+
+/* 컬럼 열기 */
+function openColumn(col) {
+  const section = $(`section${col}`);
+  if (!section) return;
+  section.classList.remove('is_closed');
+  state.closedCols.delete(String(col));
+  updateResizers();
+  updateColumnSwitches();
+}
+
+/* 컬럼 토글 */
+function toggleColumn(col) {
+  if (state.closedCols.has(String(col))) {
+    openColumn(col);
+  } else {
+    closeColumn(col);
+  }
+}
+
+/* 리사이저 표시/숨김 */
+function updateResizers() {
+  const resizers = $$('.common_resizer');
+  resizers.forEach((r, i) => {
+    const leftCol = String(i + 1);
+    const rightCol = String(i + 2);
+    const hidden = state.closedCols.has(leftCol) || state.closedCols.has(rightCol);
+    r.style.display = hidden ? 'none' : '';
+  });
+}
+
+/* 컬럼 스위치 버튼 상태 동기화 */
+function updateColumnSwitches() {
+  $$('.header_column_switch').forEach((btn) => {
+    const col = btn.dataset.toggleCol;
+    if (state.closedCols.has(col)) {
+      btn.classList.remove('is_active');
+    } else {
+      btn.classList.add('is_active');
+    }
+  });
+}
+
+/* 레이아웃 프리셋 */
+const PRESETS = {
+  balanced: { section1: '32%', section2: '34%', section3: '34%' },
+  focus:    { section1: '22%', section2: '50%', section3: '28%' },
+  prd:      { section1: '20%', section2: '56%', section3: '24%' },
+  spec:     { section1: '20%', section2: '30%', section3: '50%' }
+};
+
+function applyPreset(name) {
+  const preset = PRESETS[name];
+  if (!preset) return;
+
+  document.documentElement.style.setProperty('--section1_width', preset.section1);
+  document.documentElement.style.setProperty('--section2_width', preset.section2);
+  document.documentElement.style.setProperty('--section3_width', preset.section3);
+
+  state.widths = { ...preset };
+
+  $$('.header_preset_button').forEach((btn) => {
+    btn.classList.toggle('is_active', btn.dataset.preset === name);
+  });
+}
+
+/* 드래그 리사이즈 */
+let _resizeState = null;
+
+function startResize(event) {
+  event.preventDefault();
+  const resizer = event.currentTarget;
+  const resizerIndex = Number(resizer.dataset.resizer); // 1 or 2
+
+  const leftSection  = $(`section${resizerIndex}`);
+  const rightSection = $(`section${resizerIndex + 1}`);
+  const content      = elements.content;
+
+  if (!leftSection || !rightSection || !content) return;
+
+  const totalWidth   = content.getBoundingClientRect().width;
+  const startX       = event.clientX;
+  const startLeftW   = leftSection.getBoundingClientRect().width;
+  const startRightW  = rightSection.getBoundingClientRect().width;
+
+  _resizeState = { resizerIndex, startX, startLeftW, startRightW, totalWidth };
+  document.body.classList.add('is_resizing');
+
+  document.addEventListener('pointermove', onResizeMove);
+  document.addEventListener('pointerup', stopResize, { once: true });
+}
+
+function onResizeMove(event) {
+  if (!_resizeState) return;
+  const { resizerIndex, startX, startLeftW, startRightW, totalWidth } = _resizeState;
+
+  const delta    = event.clientX - startX;
+  const minLeft  = APP_CONFIG.ui.min[`section${resizerIndex}`]  || 260;
+  const minRight = APP_CONFIG.ui.min[`section${resizerIndex + 1}`] || 260;
+
+  const newLeft  = Math.max(minLeft,  Math.min(startLeftW  + delta, startLeftW + startRightW - minRight));
+  const newRight = startLeftW + startRightW - newLeft;
+
+  const leftPct  = ((newLeft  / totalWidth) * 100).toFixed(2) + '%';
+  const rightPct = ((newRight / totalWidth) * 100).toFixed(2) + '%';
+
+  const propLeft  = `--section${resizerIndex}_width`;
+  const propRight = `--section${resizerIndex + 1}_width`;
+
+  document.documentElement.style.setProperty(propLeft,  leftPct);
+  document.documentElement.style.setProperty(propRight, rightPct);
+
+  state.widths[`section${resizerIndex}`]     = leftPct;
+  state.widths[`section${resizerIndex + 1}`] = rightPct;
+}
+
+function stopResize() {
+  document.body.classList.remove('is_resizing');
+  document.removeEventListener('pointermove', onResizeMove);
+
+  if (_resizeState) {
+    const { resizerIndex } = _resizeState;
+    localStorage.setItem(`agent1_section${resizerIndex}_width`,     state.widths[`section${resizerIndex}`]);
+    localStorage.setItem(`agent1_section${resizerIndex + 1}_width`, state.widths[`section${resizerIndex + 1}`]);
+  }
+
+  _resizeState = null;
+}
+
+/* 요구사항 선택 토글 */
+function toggleRequirementSelection(path, selected) {
+  if (selected) {
+    state.selectedReqPaths.add(path);
+  } else {
+    state.selectedReqPaths.delete(path);
+  }
+  updateSelectedView();
+  renderRequirementList();
+}
+
+/* 전체 선택 */
+function onSelectAll(event) {
+  const keyword = elements.search.value.trim().toLowerCase();
+  const filtered = state.requirements.filter((file) => {
+    const source = inferSourceType(file.name);
+    const matchFilter = state.activeFilter === 'all' || source === state.activeFilter;
+    const matchKeyword = !keyword || file.name.toLowerCase().includes(keyword) || file.path.toLowerCase().includes(keyword);
+    return matchFilter && matchKeyword;
+  });
+
+  if (event.target.checked) {
+    filtered.forEach((f) => state.selectedReqPaths.add(f.path));
+  } else {
+    filtered.forEach((f) => state.selectedReqPaths.delete(f.path));
+  }
+
+  updateSelectedView();
+  renderRequirementList();
+}
+
+/* 선택 해제 */
+function clearSelection() {
+  state.selectedReqPaths.clear();
+  updateSelectedView();
+  renderRequirementList();
+}
+
+/* 선택 뷰 업데이트 */
+function updateSelectedView() {
+  const count = state.selectedReqPaths.size;
+  elements.selectedCount.textContent = String(count);
+  elements.selectedCountMini.textContent = String(count);
+  elements.confirmSelection.disabled = count === 0;
+
+  // Section2 요약
+  elements.targetCount.textContent = `${count}개`;
+
+  if (!count) {
+    elements.selectedSummary.innerHTML = '좌측 패널에서 요구사항을 선택하면 이곳에 표시됩니다.';
+    elements.selectedList.innerHTML = '<p class="common_muted">선택된 요구사항이 없습니다.</p>';
+    elements.generatePrd.disabled = true;
+    return;
+  }
+
+  elements.generatePrd.disabled = false;
+
+  const paths = Array.from(state.selectedReqPaths);
+
+  elements.selectedSummary.innerHTML = paths
+    .map((p) => {
+      const name = p.split('/').pop();
+      return `<span class="section2_summary_tag">${escapeHtml(name)}</span>`;
+    })
+    .join('');
+
+  elements.selectedList.innerHTML = paths
+    .map((p) => {
+      const name = p.split('/').pop();
+      return `
+        <div class="section1_selected_pill">
+          <span>${escapeHtml(name)}</span>
+          <button type="button" onclick="toggleRequirementSelection('${escapeHtml(p)}', false)" title="제거">×</button>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+/* 프롬프트 옵션 렌더 */
+function renderPromptOptions() {
+  if (!state.prompts.length) {
+    elements.promptTemplate.innerHTML = '<option value="">프롬프트 없음</option>';
+    return;
+  }
+  elements.promptTemplate.innerHTML = state.prompts
+    .map((f) => `<option value="${escapeHtml(f.path)}">${escapeHtml(f.name)}</option>`)
+    .join('');
+}
+
+/* PRD 파일 목록 렌더 */
+function renderPrdFiles() {
+  if (!state.prds.length) {
+    elements.prdFileList.innerHTML = '<div class="common_empty">생성된 PRD 문서가 없습니다.</div>';
+    return;
+  }
+  elements.prdFileList.innerHTML = state.prds
+    .map((f) => `
+      <div class="section2_prd_file_item ${state.activePrd?.path === f.path ? 'is_active' : ''}" data-path="${escapeHtml(f.path)}">
+        <span>${escapeHtml(f.name)}</span>
+        <span style="color:var(--muted);font-size:11px">${f.registeredAtLabel}</span>
+      </div>
+    `)
+    .join('');
+
+  $$('.section2_prd_file_item', elements.prdFileList).forEach((item) => {
+    item.addEventListener('click', () => openPrd(item.dataset.path));
+  });
+}
+
+/* PRD 열기 */
+async function openPrd(path) {
+  state.activePrd = state.prds.find((f) => f.path === path) || { name: path, path };
+  renderPrdFiles();
+
+  try {
+    const text = await fetchGitHubText(path);
+    elements.prdRaw.value = text;
+    elements.prdPreview.innerHTML = simpleMarkdown(text);
+  } catch (error) {
+    elements.prdPreview.innerHTML = renderError(error.message);
+  }
+}
+
+/* 로그 렌더 */
+function renderLogs() {
+  if (!state.logs.length) {
+    elements.logList.innerHTML = '<div class="common_empty">로그가 없습니다.</div>';
+    return;
+  }
+  elements.logList.innerHTML = `
+    <table>
+      <thead><tr><th>파일명</th><th>등록일</th><th>크기</th></tr></thead>
+      <tbody>
+        ${state.logs.map((f) => `
+          <tr>
+            <td>${escapeHtml(f.name)}</td>
+            <td>${escapeHtml(f.registeredAtLabel)}</td>
+            <td>${formatSize(f.size)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+/* 산출물 렌더 */
+function renderArtifacts() {
+  if (!state.artifacts.length) {
+    elements.artifactList.innerHTML = '<div class="common_empty">산출물이 없습니다.</div>';
+    return;
+  }
+  elements.artifactList.innerHTML = state.artifacts
+    .map((f) => `
+      <div class="section3_artifact_item ${state.activeArtifact?.path === f.path ? 'is_active' : ''}" data-path="${escapeHtml(f.path)}">
+        <span>${escapeHtml(f.name)}</span>
+        <em>${escapeHtml(f.registeredAtLabel)}</em>
+        <b>›</b>
+      </div>
+    `)
+    .join('');
+
+  $$('.section3_artifact_item', elements.artifactList).forEach((item) => {
+    item.addEventListener('click', () => openArtifact(item.dataset.path));
+  });
+}
+
+/* 산출물 열기 */
+async function openArtifact(path) {
+  state.activeArtifact = state.artifacts.find((f) => f.path === path) || { name: path, path };
+  renderArtifacts();
+
+  try {
+    const text = await fetchGitHubText(path);
+    elements.artifactRaw.value = text;
+    elements.artifactPreview.innerHTML = simpleMarkdown(text);
+  } catch (error) {
+    elements.artifactPreview.innerHTML = renderError(error.message);
+  }
+}
+
+/* 요구사항 모달 열기 */
+async function openRequirementModal(path) {
+  const file = state.requirements.find((f) => f.path === path);
+  if (!file) return;
+
+  elements.modalBadge.textContent = inferSourceType(file.name);
+  elements.modalTitle.textContent = file.name;
+  elements.modalMeta.innerHTML = `
+    <div>경로: <b>${escapeHtml(file.path)}</b></div>
+    <div>등록일: ${escapeHtml(file.registeredAtLabel)} · 크기: ${formatSize(file.size)}</div>
+  `;
+  elements.modalBody.textContent = '불러오는 중...';
+  elements.modalSelect.dataset.path = path;
+  elements.modal.showModal();
+
+  try {
+    const text = await fetchGitHubText(path);
+    elements.modalBody.textContent = text;
+  } catch (error) {
+    elements.modalBody.textContent = `오류: ${error.message}`;
+  }
+}
+
+/* PRD 생성 요청 */
+async function requestPrdGenerate() {
+  const webhook = APP_CONFIG.webhooks.prdGenerate;
+  if (!webhook) { showToast('PRD 생성 웹훅 URL이 설정되지 않았습니다.'); return; }
+
+  const paths = Array.from(state.selectedReqPaths);
+  if (!paths.length) { showToast('요구사항을 선택해주세요.'); return; }
+
+  showToast('PRD 생성 요청 중...');
+
+  try {
+    await fetch(webhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requirements: paths,
+        promptTemplate: elements.promptTemplate.value,
+        model: elements.modelSelect.value,
+        docTitle: elements.docTitle.value,
+        secret: APP_CONFIG.webhooks.secret
+      })
+    });
+    showToast('PRD 생성 요청이 전송되었습니다.');
+  } catch (error) {
+    showToast(`요청 실패: ${error.message}`);
+  }
+}
+
+/* PRD 피드백 제출 */
+async function submitFeedback() {
+  const feedback = elements.feedbackInput.value.trim();
+  if (!feedback) { showToast('피드백을 입력해주세요.'); return; }
+  showToast(`피드백 저장됨: ${feedback}`);
+  elements.feedbackInput.value = '';
+}
+
+/* PRD 수정 요청 */
+async function requestPrdRevise() {
+  const webhook = APP_CONFIG.webhooks.prdRevise;
+  if (!webhook) { showToast('수정 웹훅 URL이 설정되지 않았습니다.'); return; }
+  if (!state.activePrd) { showToast('수정할 PRD를 선택해주세요.'); return; }
+
+  showToast('PRD 수정 요청 중...');
+
+  try {
+    await fetch(webhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prdPath: state.activePrd.path,
+        feedback: elements.feedbackInput.value.trim(),
+        secret: APP_CONFIG.webhooks.secret
+      })
+    });
+    showToast('수정 요청이 전송되었습니다.');
+  } catch (error) {
+    showToast(`요청 실패: ${error.message}`);
+  }
+}
+
+/* 파일 요구사항 등록 */
+function requestFileRequirementSave() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.md,.txt,.pdf,.docx';
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    const webhook = APP_CONFIG.webhooks.requirementSave;
+    if (!webhook) { showToast('저장 웹훅 URL이 설정되지 않았습니다.'); return; }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('secret', APP_CONFIG.webhooks.secret);
+
+    showToast(`${file.name} 업로드 중...`);
+    try {
+      await fetch(webhook, { method: 'POST', body: formData });
+      showToast(`${file.name} 등록 완료`);
+      await refreshRequirements();
+    } catch (error) {
+      showToast(`업로드 실패: ${error.message}`);
+    }
+  };
+  input.click();
+}
+
+/* 직접 요구사항 등록 */
+async function requestDirectRequirementSave() {
+  const title = window.prompt('요구사항 제목을 입력하세요:');
+  if (!title) return;
+
+  const content = window.prompt('요구사항 내용을 입력하세요:');
+  if (!content) return;
+
+  const webhook = APP_CONFIG.webhooks.requirementSave;
+  if (!webhook) { showToast('저장 웹훅 URL이 설정되지 않았습니다.'); return; }
+
+  showToast('요구사항 등록 중...');
+  try {
+    await fetch(webhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content, type: 'DIRECT', secret: APP_CONFIG.webhooks.secret })
+    });
+    showToast('요구사항 등록 완료');
+    await refreshRequirements();
+  } catch (error) {
+    showToast(`등록 실패: ${error.message}`);
+  }
+}
+
+/* 클립보드 복사 */
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('클립보드에 복사되었습니다.');
+  } catch {
+    showToast('복사에 실패했습니다.');
+  }
+}
+
+/* 파일 다운로드 */
+function downloadText(filename, text) {
+  const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* 소스 유형 추론 */
+function inferSourceType(name) {
+  const n = String(name || '').toUpperCase();
+  if (n.includes('JIRA')) return 'JIRA';
+  if (n.includes('SLACK')) return 'SLACK';
+  if (n.includes('DIRECT')) return 'DIRECT';
+  return 'FILE';
+}
+
+/* 파일 크기 포맷 */
+function formatSize(bytes) {
+  if (!bytes) return '0B';
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+/* HTML 이스케이프 */
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/* 에러 렌더 */
+function renderError(msg) {
+  return `<div class="common_empty" style="color:var(--red)">${escapeHtml(msg)}</div>`;
+}
+
+/* 간단 마크다운 → HTML */
+function simpleMarkdown(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/^(?!<[h|u|l])(.+)$/gm, (m) => m ? `<p>${m}</p>` : '');
+}
+
+/* ── 앱 시작 ── */
+document.addEventListener('DOMContentLoaded', init);
