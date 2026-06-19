@@ -1,3 +1,5 @@
+import { put } from '@vercel/blob';
+
 export default async function handler(req, res) {
   try {
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
@@ -8,13 +10,11 @@ export default async function handler(req, res) {
       });
     }
 
-    const { put } = await import('@vercel/blob');
-
     const blob = await put(
       'test/hello.md',
       '# Hello Vercel Blob\n\nBlob 저장 테스트입니다.',
       {
-        access: 'public',
+        access: 'private',
         contentType: 'text/markdown'
       }
     );
