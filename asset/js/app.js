@@ -28,8 +28,8 @@ const APP_CONFIG = {
   webhooks: {
     // n8n Production Webhook URL 기준
     // 실제 도메인만 본인 n8n 주소로 교체하세요.
-    requirementSave: 'https://YOUR-N8N-DOMAIN/webhook/agent1-requirement-save',
-    prdGenerate: 'https://YOUR-N8N-DOMAIN/webhook/agent1-prd-generate',
+    requirementSave: 'https://kolchohoohu.app.n8n.cloud/webhook/agent1-requirement-save',
+    prdGenerate: 'https://kolchohoohu.app.n8n.cloud/webhook/agent1-prd-generate',
     gitList: '',
     gitFile: '',
     prdRevise: '',
