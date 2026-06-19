@@ -1,4 +1,4 @@
-import { list, get } from '@vercel/blob';
+import { list } from '@vercel/blob';
 
 export default async function handler(req, res) {
   try {
@@ -36,11 +36,17 @@ export default async function handler(req, res) {
       });
     }
 
-    const file = await get(blob.pathname, {
-      token
-    });
+    const readUrl = blob.downloadUrl || blob.url;
 
-    const response = await fetch(file.url, {
+    if (!readUrl || !/^https?:\/\//.test(readUrl)) {
+      return res.status(500).json({
+        success: false,
+        step: 'blob_url_check',
+        message: `Invalid URL: ${readUrl || 'empty'}`
+      });
+    }
+
+    const response = await fetch(readUrl, {
       headers: {
         Authorization: `Bearer ${token}`
       }
