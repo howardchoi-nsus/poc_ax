@@ -26,10 +26,8 @@ const APP_CONFIG = {
     baseUrl: location.origin
   },
   webhooks: {
-    // n8n Production Webhook URL 기준
-    // 실제 도메인만 본인 n8n 주소로 교체하세요.
-    requirementSave: 'https://kolchohoohu.app.n8n.cloud/webhook/agent1-requirement-save',
-    prdGenerate: 'https://kolchohoohu.app.n8n.cloud/webhook/agent1-prd-generate',
+    requirementSave: '/api/requirement-save',
+    prdGenerate: '/api/prd-generate',
     gitList: '',
     gitFile: '',
     prdRevise: '',
@@ -79,18 +77,10 @@ APP_CONFIG.webhooks.requirementSave =
   localStorage.getItem('agent1_req_webhook') ||
   APP_CONFIG.webhooks.requirementSave;
 
-if (query.get('reqWebhook')) {
-  localStorage.setItem('agent1_req_webhook', query.get('reqWebhook'));
-}
-
 APP_CONFIG.webhooks.prdGenerate =
   query.get('prdWebhook') ||
   localStorage.getItem('agent1_prd_webhook') ||
   APP_CONFIG.webhooks.prdGenerate;
-
-if (query.get('prdWebhook')) {
-  localStorage.setItem('agent1_prd_webhook', query.get('prdWebhook'));
-}
 
 APP_CONFIG.webhooks.gitList =
   query.get('gitListWebhook') ||
@@ -1022,34 +1012,20 @@ async function openRequirementModal(path) {
 /* PRD 생성 요청 */
 async function requestPrdGenerate() {
   const webhook = APP_CONFIG.webhooks.prdGenerate;
-
-  if (!webhook) {
-    showToast('PRD 생성 웹훅 URL이 설정되지 않았습니다.');
-    return;
-  }
+  if (!webhook) { showToast('PRD 생성 웹훅 URL이 설정되지 않았습니다.'); return; }
 
   const paths = Array.from(state.selectedReqPaths);
-
-  if (!paths.length) {
-    showToast('요구사항을 선택해주세요.');
-    return;
-  }
-
-  const promptFilePath =
-    elements.promptTemplate.value ||
-    `${APP_CONFIG.github.folders.prompts}/prd-template-v1.md`;
+  if (!paths.length) { showToast('요구사항을 선택해주세요.'); return; }
 
   showToast('PRD 생성 요청 중...');
 
   try {
-    const response = await fetch(webhook, {
+    await fetch(webhook, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         requirementFilePaths: paths,
-        promptFilePath,
+        promptFilePath: elements.promptTemplate.value || 'prompts/prd-template-v1.md',
         model: elements.modelSelect.value,
         documentTitle: elements.docTitle.value,
         outputDir: APP_CONFIG.github.folders.prd,
@@ -1059,15 +1035,7 @@ async function requestPrdGenerate() {
         secret: APP_CONFIG.webhooks.secret
       })
     });
-
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok || result.success === false) {
-      throw new Error(result.message || `HTTP ${response.status}`);
-    }
-
     showToast('PRD 생성 요청이 전송되었습니다.');
-    await Promise.allSettled([refreshPrdFiles(), refreshLogs()]);
   } catch (error) {
     showToast(`요청 실패: ${error.message}`);
   }
@@ -1109,25 +1077,21 @@ async function requestPrdRevise() {
 function requestFileRequirementSave() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.md,.txt,.pdf,.docx';
+  input.accept = '.md,.txt';
 
   input.onchange = async () => {
     const file = input.files[0];
     if (!file) return;
 
     const webhook = APP_CONFIG.webhooks.requirementSave;
-
     if (!webhook) {
-      showToast('저장 웹훅 URL이 설정되지 않았습니다.');
+      showToast('저장 API URL이 설정되지 않았습니다.');
       return;
     }
 
     const ext = file.name.split('.').pop().toLowerCase();
-
-    // 현재 n8n v0.8 Requirement Save 노드는 JSON body의 sourceText를 기준으로 저장합니다.
-    // 브라우저에서 바로 텍스트로 읽을 수 있는 md/txt를 우선 지원합니다.
     if (!['md', 'txt'].includes(ext)) {
-      showToast('현재 파일등록은 md, txt 파일만 바로 등록 가능합니다. pdf/docx는 텍스트 추출 노드 추가 후 지원하세요.');
+      showToast('현재 파일등록은 md, txt 파일만 바로 등록 가능합니다.');
       return;
     }
 
@@ -1135,7 +1099,6 @@ function requestFileRequirementSave() {
 
     try {
       const text = await file.text();
-
       if (!text.trim()) {
         showToast('파일 내용이 비어 있습니다.');
         return;
@@ -1144,10 +1107,7 @@ function requestFileRequirementSave() {
       const keyword = file.name
         .replace(/\.[^.]+$/, '')
         .replace(/^REQ_/i, '')
-        .replace(/\s+/g, '_')
-        .replace(/[^A-Za-z0-9가-힣_-]+/g, '_')
-        .replace(/_+/g, '_')
-        .replace(/^_+|_+$/g, '');
+        .replace(/\s+/g, '_');
 
       const payload = {
         requirementKeyword: keyword,
@@ -1163,18 +1123,15 @@ function requestFileRequirementSave() {
         secret: APP_CONFIG.webhooks.secret
       };
 
-      showToast(`${file.name} 업로드 중...`);
+      showToast(`${file.name} 등록 요청 중...`);
 
       const response = await fetch(webhook, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
       const result = await response.json().catch(() => ({}));
-
       if (!response.ok || result.success === false) {
         throw new Error(result.message || `HTTP ${response.status}`);
       }
@@ -1198,11 +1155,15 @@ async function requestDirectRequirementSave() {
   if (!content) return;
 
   const webhook = APP_CONFIG.webhooks.requirementSave;
-  if (!webhook) { showToast('저장 웹훅 URL이 설정되지 않았습니다.'); return; }
+  if (!webhook) {
+    showToast('저장 API URL이 설정되지 않았습니다.');
+    return;
+  }
 
   showToast('요구사항 등록 중...');
+
   try {
-    await fetch(webhook, {
+    const response = await fetch(webhook, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1219,6 +1180,12 @@ async function requestDirectRequirementSave() {
         secret: APP_CONFIG.webhooks.secret
       })
     });
+
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.success === false) {
+      throw new Error(result.message || `HTTP ${response.status}`);
+    }
+
     showToast('요구사항 등록 완료');
     await refreshRequirements();
   } catch (error) {
