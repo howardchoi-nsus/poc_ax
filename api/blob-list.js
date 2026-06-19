@@ -2,9 +2,7 @@ import { list } from '@vercel/blob';
 
 export default async function handler(req, res) {
   try {
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-
-    if (!token) {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
       return res.status(500).json({
         success: false,
         step: 'env_check',
@@ -13,12 +11,9 @@ export default async function handler(req, res) {
     }
 
     const prefix = String(req.query.prefix || req.query.folder || '').replace(/^\/+/, '');
-    const normalizedPrefix = prefix ? `${prefix.replace(/\/+$/, '')}/` : undefined;
-
     const result = await list({
-      prefix: normalizedPrefix,
-      limit: Number(req.query.limit || 1000),
-      token
+      prefix: prefix ? `${prefix.replace(/\/+$/, '')}/` : undefined,
+      limit: Number(req.query.limit || 1000)
     });
 
     return res.status(200).json({
@@ -29,10 +24,8 @@ export default async function handler(req, res) {
         path: blob.pathname,
         pathname: blob.pathname,
         url: blob.url,
-        downloadUrl: blob.downloadUrl || blob.url,
         size: blob.size,
-        uploadedAt: blob.uploadedAt,
-        contentType: blob.contentType || null
+        uploadedAt: blob.uploadedAt
       }))
     });
   } catch (error) {
