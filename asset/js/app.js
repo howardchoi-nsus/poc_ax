@@ -3,35 +3,24 @@
   - 더미데이터 없음
   - Vercel Blob의 실제 파일 목록/파일 내용을 Web에서 조회
   - 생성 문서 저장은 n8n → Vercel API → Blob으로 처리
-  - GitHub 인증/Rate Limit 이슈를 줄이기 위한 Blob 전환 버전
+  - 저장소 접근을 Blob 기준으로 정리한 버전
 
 */
 const APP_CONFIG = {
-  github: {
-    owner: 'Vercel',
-    repo: 'Blob',
-    branch: 'private',
+  storage: {
+    type: 'vercel_blob',
+    baseUrl: location.origin,
     folders: {
       req: 'req',
       prompts: 'prompts',
       prd: 'prd',
-      logs: 'logs',
-      phaseScenario: 'phase2/scenario',
-      phaseFlow: 'phase2/flow',
-      phaseSequence: 'phase2/sequence'
+      logs: 'logs'
     }
-  },
-  storage: {
-    type: 'vercel_blob',
-    baseUrl: location.origin
   },
   webhooks: {
     requirementSave: 'https://kolchohoohu.app.n8n.cloud/webhook/agent1-requirement-save',
     prdGenerate: 'https://kolchohoohu.app.n8n.cloud/webhook/agent1-prd-generate',
-    gitList: '',
-    gitFile: '',
     prdRevise: '',
-    phaseGenerate: '',
     secret: ''
   },
   ui: {
@@ -43,34 +32,25 @@ const APP_CONFIG = {
 
 const query = new URLSearchParams(location.search);
 
-APP_CONFIG.github.owner =
-  query.get('owner') || APP_CONFIG.github.owner;
-
-APP_CONFIG.github.repo =
-  query.get('repo') || APP_CONFIG.github.repo;
-
-APP_CONFIG.github.branch =
-  query.get('branch') || APP_CONFIG.github.branch;
-
-APP_CONFIG.github.folders.req =
+APP_CONFIG.storage.folders.req =
   query.get('reqFolder') ||
   localStorage.getItem('agent1_req_folder') ||
-  APP_CONFIG.github.folders.req;
+  APP_CONFIG.storage.folders.req;
 
-APP_CONFIG.github.folders.prompts =
+APP_CONFIG.storage.folders.prompts =
   query.get('promptFolder') ||
   localStorage.getItem('agent1_prompt_folder') ||
-  APP_CONFIG.github.folders.prompts;
+  APP_CONFIG.storage.folders.prompts;
 
-APP_CONFIG.github.folders.prd =
+APP_CONFIG.storage.folders.prd =
   query.get('prdFolder') ||
   localStorage.getItem('agent1_prd_folder') ||
-  APP_CONFIG.github.folders.prd;
+  APP_CONFIG.storage.folders.prd;
 
-APP_CONFIG.github.folders.logs =
+APP_CONFIG.storage.folders.logs =
   query.get('logFolder') ||
   localStorage.getItem('agent1_log_folder') ||
-  APP_CONFIG.github.folders.logs;
+  APP_CONFIG.storage.folders.logs;
 
 APP_CONFIG.webhooks.requirementSave =
   query.get('reqWebhook') ||
@@ -82,25 +62,10 @@ APP_CONFIG.webhooks.prdGenerate =
   localStorage.getItem('agent1_prd_webhook') ||
   APP_CONFIG.webhooks.prdGenerate;
 
-APP_CONFIG.webhooks.gitList =
-  query.get('gitListWebhook') ||
-  localStorage.getItem('agent1_git_list_webhook') ||
-  APP_CONFIG.webhooks.gitList;
-
-APP_CONFIG.webhooks.gitFile =
-  query.get('gitFileWebhook') ||
-  localStorage.getItem('agent1_git_file_webhook') ||
-  APP_CONFIG.webhooks.gitFile;
-
 APP_CONFIG.webhooks.prdRevise =
   query.get('reviseWebhook') ||
   localStorage.getItem('agent1_revise_webhook') ||
   APP_CONFIG.webhooks.prdRevise;
-
-APP_CONFIG.webhooks.phaseGenerate =
-  query.get('phaseWebhook') ||
-  localStorage.getItem('agent1_phase_webhook') ||
-  APP_CONFIG.webhooks.phaseGenerate;
 
 APP_CONFIG.webhooks.secret =
   query.get('webhookSecret') ||
@@ -112,23 +77,26 @@ const state = {
   prompts: [],
   prds: [],
   logs: [],
-  artifacts: [],
+  requirementMetaLoadId: 0,
   selectedReqPaths: new Set(),
   activeFilter: 'all',
   activePrd: null,
-  activeArtifact: null,
   rawMode: false,
+  generation: {
+    active: false,
+    startedAt: null,
+    knownPaths: new Set(),
+    timer: null,
+    elapsedTimer: null,
+    lastCheckedAt: null,
+    attempts: 0,
+    maxAttempts: 60
+  },
   closedCols: new Set(),
   widths: {
-    section1:
-      localStorage.getItem('agent1_section1_width') ||
-      getComputedStyle(document.documentElement).getPropertyValue('--section1_width').trim(),
-    section2:
-      localStorage.getItem('agent1_section2_width') ||
-      getComputedStyle(document.documentElement).getPropertyValue('--section2_width').trim(),
-    section3:
-      localStorage.getItem('agent1_section3_width') ||
-      getComputedStyle(document.documentElement).getPropertyValue('--section3_width').trim()
+    section1: getComputedStyle(document.documentElement).getPropertyValue('--section1_width').trim(),
+    section2: getComputedStyle(document.documentElement).getPropertyValue('--section2_width').trim(),
+    section3: getComputedStyle(document.documentElement).getPropertyValue('--section3_width').trim()
   }
 };
 
@@ -138,10 +106,7 @@ const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selec
 const elements = {
   repoBadge: $('header_repo_badge'),
   refreshAll: $('header_btn_refresh'),
-  githubTokenInput: $('header_github_token_input'),
-  githubTokenSave: $('header_btn_save_github_token'),
-  githubTokenClear: $('header_btn_clear_github_token'),
-  githubAuthStatus: $('header_github_auth_status'),
+  blobStatus: $('header_blob_status'),
 
   content: $('content'),
 
@@ -160,29 +125,35 @@ const elements = {
   confirmSelection: $('section1_btn_confirm'),
 
   targetCount: $('section2_target_count'),
+  targetStatus: $('section2_target_status'),
   selectedSummary: $('section2_selected_summary'),
   promptTemplate: $('section2_prompt_template'),
   modelSelect: $('section2_model_select'),
   docTitle: $('section2_doc_title'),
   generatePrd: $('section2_btn_generate'),
+  generationStatus: $('section2_generation_status'),
+  generationTitle: $('section2_generation_title'),
+  generationElapsed: $('section2_generation_elapsed'),
+  generationMessage: $('section2_generation_message'),
+  generationBar: $('section2_generation_bar'),
+  generationMeta: $('section2_generation_meta'),
   prdFileList: $('section2_prd_file_list'),
   refreshPrd: $('section2_btn_refresh_prd'),
   prdPreview: $('section2_prd_preview'),
   prdRaw: $('section2_prd_raw'),
   copyPrd: $('section2_btn_copy_prd'),
   downloadPrd: $('section2_btn_download_prd'),
+  feedbackToggle: $('section2_btn_feedback_toggle'),
+  feedbackPanel: $('section2_feedback_panel'),
+  feedbackClose: $('section2_btn_feedback_close'),
   feedbackInput: $('section2_feedback_input'),
   feedback: $('section2_btn_feedback'),
   revise: $('section2_btn_revise'),
   logList: $('section2_log_list'),
   refreshLogs: $('section2_btn_refresh_logs'),
-
-  phaseSelect: $('section3_phase_select'),
-  refreshArtifacts: $('section3_btn_refresh_artifacts'),
-  artifactList: $('section3_artifact_list'),
-  artifactPreview: $('section3_artifact_preview'),
-  artifactRaw: $('section3_artifact_raw'),
-  downloadArtifact: $('section3_btn_download_artifact'),
+  logsModal: $('modal_logs'),
+  logsModalClose: $('modal_logs_btn_close'),
+  logsModalRefresh: $('modal_logs_btn_refresh'),
 
   modal: $('modal_detail'),
   modalBadge: $('modal_badge'),
@@ -204,47 +175,24 @@ const elements = {
 
 function init() {
   initBlobLabel();
-  initGithubTokenControls();
+  initBlobControls();
   applyInitialWidths();
   bindEvents();
   refreshBlobData();
 }
 
 function initBlobLabel() {
-  const { owner, repo, branch } = APP_CONFIG.github;
   elements.repoBadge.textContent = `${APP_CONFIG.storage.type} · ${APP_CONFIG.storage.baseUrl}`;
 }
 
-function initGithubTokenControls() {
-  const token = getGithubToken();
-
-  if (elements.githubTokenInput) {
-    elements.githubTokenInput.value = token ? '********' : '';
-  }
-
-  updateGithubAuthStatus();
+function initBlobControls() {
+  updateBlobStatus();
 }
 
-function getGithubToken() {
-  return sessionStorage.getItem('agent1_github_token') || '';
-}
-
-function setGithubToken(token) {
-  const value = String(token || '').trim();
-
-  if (!value) {
-    sessionStorage.removeItem('agent1_github_token');
-  } else {
-    sessionStorage.setItem('agent1_github_token', value);
-  }
-
-  initGithubTokenControls();
-}
-
-function updateGithubAuthStatus() {
-  if (!elements.githubAuthStatus) return;
-  elements.githubAuthStatus.textContent = 'Blob Storage ON';
-  elements.githubAuthStatus.classList.add('is_authenticated');
+function updateBlobStatus() {
+  if (!elements.blobStatus) return;
+  elements.blobStatus.textContent = 'Blob Storage ON';
+  elements.blobStatus.classList.add('is_connected');
 }
 
 function applyInitialWidths() {
@@ -255,24 +203,6 @@ function applyInitialWidths() {
 
 function bindEvents() {
   elements.refreshAll.addEventListener('click', refreshBlobData);
-
-  elements.githubTokenSave?.addEventListener('click', () => {
-    const value = window.prompt(
-      '현재 버전은 Vercel Blob을 사용합니다. GitHub Token 입력은 사용하지 않습니다.'
-    );
-
-    if (!value) return;
-
-    setGithubToken(value);
-    showToast('Blob 데이터를 다시 조회합니다.');
-    refreshBlobData();
-  });
-
-  elements.githubTokenClear?.addEventListener('click', () => {
-    setGithubToken('');
-    showToast('Blob 조회 세션 정보를 초기화했습니다.');
-    refreshBlobData();
-  });
 
   elements.search.addEventListener('input', renderRequirementList);
   elements.selectAll.addEventListener('change', onSelectAll);
@@ -290,13 +220,12 @@ function bindEvents() {
 
   elements.feedback.addEventListener('click', submitFeedback);
   elements.revise.addEventListener('click', requestPrdRevise);
+  elements.feedbackToggle.addEventListener('click', toggleFeedbackPanel);
+  elements.feedbackClose.addEventListener('click', closeFeedbackPanel);
 
-  elements.refreshLogs.addEventListener('click', refreshLogs);
-  elements.phaseSelect.addEventListener('change', refreshArtifacts);
-  elements.refreshArtifacts.addEventListener('click', refreshArtifacts);
-  elements.downloadArtifact.addEventListener('click', () =>
-    downloadText(state.activeArtifact?.name || 'artifact.md', elements.artifactRaw.value)
-  );
+  elements.refreshLogs.addEventListener('click', openLogsModal);
+  elements.logsModalClose?.addEventListener('click', () => elements.logsModal.close());
+  elements.logsModalRefresh?.addEventListener('click', refreshLogs);
 
   elements.modalSelect.addEventListener('click', (event) => {
     event.preventDefault();
@@ -333,10 +262,6 @@ function bindEvents() {
     });
   });
 
-  $$('.header_preset_button').forEach((button) => {
-    button.addEventListener('click', () => applyPreset(button.dataset.preset));
-  });
-
   $$('.header_column_switch').forEach((button) => {
     button.addEventListener('click', () => toggleColumn(button.dataset.toggleCol));
   });
@@ -362,7 +287,7 @@ function bindEvents() {
   elements.directSubmit?.addEventListener('click', submitDirectRequirementSave);
 }
 
-async function fetchGitHubFolder(folder, options = {}) {
+async function fetchBlobFolder(folder, options = {}) {
   const { required = false, label = folder } = options;
   const cleanFolder = String(folder || '').replace(/^\/+|\/+$/g, '');
   const response = await fetch(`/api/blob-list?folder=${encodeURIComponent(cleanFolder)}&limit=1000`, {
@@ -412,11 +337,147 @@ function normalizeFileList(items, folder = '') {
         htmlUrl: item.htmlUrl || item.url || '',
         uploadedAt: item.uploadedAt || '',
         registeredAt,
-        registeredAtLabel: formatRegisteredDate(registeredAt)
+        registeredAtLabel: formatRegisteredDate(registeredAt),
+        ...getCachedRequirementMeta(path, item.uploadedAt, item.size || 0)
       };
     })
     .filter((item) => item.name && item.path)
     .sort(sortByRegisteredDateDesc);
+}
+
+function getRequirementMetaCacheKey(path) {
+  return `agent1_req_meta:${path}`;
+}
+
+function getRequirementMetaSignature(uploadedAt, size) {
+  return `${uploadedAt || ''}:${size || 0}`;
+}
+
+function normalizeSourceType(value) {
+  const source = String(value || '').trim().toUpperCase();
+  if (source === 'JIRA') return 'JIRA';
+  if (source === 'SLACK') return 'SLACK';
+  if (source === 'DIRECT') return 'DIRECT';
+  if (source === 'FILE') return 'FILE';
+  return 'FILE';
+}
+
+function getCachedRequirementMeta(path, uploadedAt, size) {
+  try {
+    const cached = sessionStorage.getItem(getRequirementMetaCacheKey(path));
+    if (!cached) return getDefaultRequirementMeta();
+
+    const meta = JSON.parse(cached);
+    if (meta.signature !== getRequirementMetaSignature(uploadedAt, size)) {
+      return getDefaultRequirementMeta();
+    }
+
+    return {
+      sourceType: normalizeSourceType(meta.sourceType),
+      sourceLabel: meta.sourceLabel || '',
+      sourceDetail: meta.sourceDetail || '',
+      metaLoaded: true
+    };
+  } catch {
+    return getDefaultRequirementMeta();
+  }
+}
+
+function setCachedRequirementMeta(file, meta) {
+  try {
+    sessionStorage.setItem(
+      getRequirementMetaCacheKey(file.path),
+      JSON.stringify({
+        signature: getRequirementMetaSignature(file.uploadedAt, file.size),
+        sourceType: meta.sourceType,
+        sourceLabel: meta.sourceLabel || '',
+        sourceDetail: meta.sourceDetail || ''
+      })
+    );
+  } catch {
+    // Cache failure should not block requirement rendering.
+  }
+}
+
+function getDefaultRequirementMeta() {
+  return {
+    sourceType: 'FILE',
+    sourceLabel: '',
+    sourceDetail: '',
+    metaLoaded: false
+  };
+}
+
+function parseFrontMatter(text) {
+  const value = String(text || '');
+  const match = value.match(/^---\s*\n([\s\S]*?)\n---/);
+  if (!match) return {};
+
+  return match[1]
+    .split('\n')
+    .reduce((acc, line) => {
+      const item = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+      if (!item) return acc;
+      acc[item[1]] = item[2].trim();
+      return acc;
+    }, {});
+}
+
+function parseRequirementMeta(text) {
+  const meta = parseFrontMatter(text);
+  return {
+    sourceType: normalizeSourceType(meta.source_type),
+    sourceLabel: meta.source_label || '',
+    sourceDetail: meta.source_detail || '',
+    metaLoaded: true
+  };
+}
+
+function getRequirementSource(file) {
+  return normalizeSourceType(file?.sourceType);
+}
+
+function getRequirementSourceLabel(file) {
+  const source = getRequirementSource(file);
+  const detail = [file?.sourceLabel, file?.sourceDetail].filter(Boolean).join(' · ');
+  return detail || source;
+}
+
+async function enrichRequirementMetadata(files, loadId) {
+  const targets = files.filter((file) =>
+    file.path &&
+    file.name.toLowerCase().endsWith('.md') &&
+    !file.metaLoaded
+  );
+
+  const chunkSize = 5;
+
+  for (let index = 0; index < targets.length; index += chunkSize) {
+    if (loadId !== state.requirementMetaLoadId) return;
+
+    const chunk = targets.slice(index, index + chunkSize);
+
+    await Promise.all(
+      chunk.map(async (file) => {
+        try {
+          const text = await fetchBlobText(file.path);
+          const meta = parseRequirementMeta(text);
+          Object.assign(file, meta);
+          setCachedRequirementMeta(file, meta);
+        } catch {
+          Object.assign(file, {
+            sourceType: 'FILE',
+            sourceLabel: '',
+            sourceDetail: '',
+            metaLoaded: true
+          });
+        }
+      })
+    );
+
+    if (loadId !== state.requirementMetaLoadId) return;
+    renderRequirementList();
+  }
 }
 
 function extractRegisteredDateFromFile(...values) {
@@ -466,7 +527,7 @@ function formatRegisteredDate(date) {
   return `${yy}.${mm}.${dd} ${hh}:${mi}`;
 }
 
-async function fetchGitHubFolderWithFallback(primaryFolder, fallbackFolders = [], options = {}) {
+async function fetchBlobFolderWithFallback(primaryFolder, fallbackFolders = [], options = {}) {
   const tried = [];
   const candidates = [primaryFolder, ...fallbackFolders].filter(Boolean);
 
@@ -474,13 +535,13 @@ async function fetchGitHubFolderWithFallback(primaryFolder, fallbackFolders = []
     try {
       tried.push(folder);
 
-      const files = await fetchGitHubFolder(folder, {
+      const files = await fetchBlobFolder(folder, {
         ...options,
         required: true
       });
 
       if (folder !== primaryFolder) {
-        APP_CONFIG.github.folders.req = folder;
+        APP_CONFIG.storage.folders.req = folder;
         localStorage.setItem('agent1_req_folder', folder);
         showToast(`요구사항 폴더를 /${folder}로 자동 보정했습니다.`);
       }
@@ -496,13 +557,13 @@ async function fetchGitHubFolderWithFallback(primaryFolder, fallbackFolders = []
   throw new Error([
     `${options.label || primaryFolder} 폴더를 찾지 못했습니다.`,
     `시도한 경로: ${tried.map((item) => '/' + item).join(', ')}`,
-    `확인값: ${APP_CONFIG.github.owner}/${APP_CONFIG.github.repo} · ${APP_CONFIG.github.branch}`,
+    `확인값: Vercel Blob · ${APP_CONFIG.storage.baseUrl}`,
     'Vercel Blob은 prefix를 기준으로 조회합니다. /req 파일이 있는지 확인하세요.',
     'Blob이 private이면 api/blob-list.js와 BLOB_READ_WRITE_TOKEN 적용 여부를 확인하세요.'
   ].join('\n'));
 }
 
-async function fetchGitHubText(path) {
+async function fetchBlobText(path) {
   const cleanPath = String(path || '').replace(/^\/+/, '');
   const response = await fetch(`/api/blob-file?path=${encodeURIComponent(cleanPath)}`, {
     headers: { Accept: 'application/json' }
@@ -528,8 +589,7 @@ async function refreshBlobData() {
     refreshRequirements(),
     refreshPrompts(),
     refreshPrdFiles(),
-    refreshLogs(),
-    refreshArtifacts()
+    refreshLogs()
   ]);
 
   showToast('Vercel Blob 데이터 갱신 완료');
@@ -537,13 +597,16 @@ async function refreshBlobData() {
 
 async function refreshRequirements() {
   try {
-    state.requirements = await fetchGitHubFolderWithFallback(
-      APP_CONFIG.github.folders.req,
+    const loadId = state.requirementMetaLoadId + 1;
+    state.requirementMetaLoadId = loadId;
+    state.requirements = await fetchBlobFolderWithFallback(
+      APP_CONFIG.storage.folders.req,
       ['Req', 'REQ', 'requirements', 'Requirements'],
       { label: '요구사항' }
     );
 
     renderRequirementList();
+    enrichRequirementMetadata(state.requirements, loadId);
   } catch (error) {
     elements.requirementList.innerHTML = renderError(error.message);
   }
@@ -551,7 +614,7 @@ async function refreshRequirements() {
 
 async function refreshPrompts() {
   try {
-    state.prompts = await fetchGitHubFolder(APP_CONFIG.github.folders.prompts);
+    state.prompts = await fetchBlobFolder(APP_CONFIG.storage.folders.prompts);
     renderPromptOptions();
   } catch (error) {
     elements.promptTemplate.innerHTML = `<option value="">프롬프트 로딩 실패</option>`;
@@ -560,7 +623,7 @@ async function refreshPrompts() {
 
 async function refreshPrdFiles() {
   try {
-    state.prds = await fetchGitHubFolder(APP_CONFIG.github.folders.prd);
+    state.prds = await fetchBlobFolder(APP_CONFIG.storage.folders.prd);
     renderPrdFiles();
   } catch (error) {
     elements.prdFileList.innerHTML = renderError(error.message);
@@ -569,34 +632,31 @@ async function refreshPrdFiles() {
 
 async function refreshLogs() {
   try {
-    state.logs = await fetchGitHubFolder(APP_CONFIG.github.folders.logs);
+    state.logs = await fetchBlobFolder(APP_CONFIG.storage.folders.logs);
     renderLogs();
   } catch (error) {
     elements.logList.innerHTML = renderError(error.message);
   }
 }
 
-async function refreshArtifacts() {
-  const selectedFolder = elements.phaseSelect.value;
-
-  try {
-    state.artifacts = await fetchGitHubFolder(selectedFolder);
-    renderArtifacts();
-  } catch (error) {
-    elements.artifactList.innerHTML = renderError(error.message);
-  }
+async function openLogsModal() {
+  elements.logList.innerHTML = '<div class="common_empty">Vercel Blob에서 로그를 불러오는 중입니다.</div>';
+  elements.logsModal.showModal();
+  await refreshLogs();
 }
 
 function renderRequirementList() {
   const keyword = elements.search.value.trim().toLowerCase();
 
   const files = state.requirements.filter((file) => {
-    const source = inferSourceType(file.name);
+    const source = getRequirementSource(file);
     const matchFilter = state.activeFilter === 'all' || source === state.activeFilter;
     const matchKeyword =
       !keyword ||
       file.name.toLowerCase().includes(keyword) ||
-      file.path.toLowerCase().includes(keyword);
+      file.path.toLowerCase().includes(keyword) ||
+      getRequirementSource(file).toLowerCase().includes(keyword) ||
+      getRequirementSourceLabel(file).toLowerCase().includes(keyword);
 
     return matchFilter && matchKeyword;
   });
@@ -609,7 +669,7 @@ function renderRequirementList() {
   if (!files.length) {
     elements.requirementList.innerHTML = `
       <div class="common_empty">
-        /${APP_CONFIG.github.folders.req} 폴더에 표시할 요구사항 파일이 없습니다.
+        /${APP_CONFIG.storage.folders.req} 폴더에 표시할 요구사항 파일이 없습니다.
         md 파일이 있다면 Blob prefix, api/blob-list.js 배포, BLOB_READ_WRITE_TOKEN 적용 여부를 확인하세요.
       </div>
     `;
@@ -620,7 +680,8 @@ function renderRequirementList() {
 
   elements.requirementList.innerHTML = files
     .map((file) => {
-      const source = inferSourceType(file.name);
+      const source = getRequirementSource(file);
+      const sourceLabel = getRequirementSourceLabel(file);
       const selected = state.selectedReqPaths.has(file.path);
 
       return `
@@ -637,6 +698,7 @@ function renderRequirementList() {
             </button>
             <div class="section1_req_meta">
               <span class="common_badge ${source}">${source}</span>
+              <span>${escapeHtml(sourceLabel)}</span>
               <span>등록일 ${escapeHtml(file.registeredAtLabel)}</span>
               <span>${formatSize(file.size)}</span>
               <span>${escapeHtml(file.path)}</span>
@@ -678,6 +740,151 @@ function showToast(msg) {
   el.classList.add('is_show');
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => el.classList.remove('is_show'), 3000);
+}
+
+function formatDuration(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+  const seconds = String(totalSeconds % 60).padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
+
+function setGenerationStatus(status, options = {}) {
+  if (!elements.generationStatus) return;
+
+  const {
+    title,
+    message,
+    meta,
+    progress
+  } = options;
+
+  elements.generationStatus.dataset.status = status;
+  if (title) elements.generationTitle.textContent = title;
+  if (message) elements.generationMessage.textContent = message;
+  if (meta) elements.generationMeta.textContent = meta;
+  if (typeof progress === 'number') {
+    elements.generationBar.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+  }
+}
+
+function updateGenerationElapsed() {
+  if (!state.generation.startedAt) {
+    elements.generationElapsed.textContent = '00:00';
+    return;
+  }
+
+  const elapsed = Date.now() - state.generation.startedAt;
+  const progress = Math.min(92, (elapsed / (state.generation.maxAttempts * 5000)) * 100);
+
+  elements.generationElapsed.textContent = formatDuration(elapsed);
+  elements.generationBar.style.width = `${progress}%`;
+}
+
+function startPrdGenerationWatch(knownPaths) {
+  stopPrdGenerationWatch(false);
+
+  state.generation.active = true;
+  state.generation.startedAt = Date.now();
+  state.generation.knownPaths = new Set(knownPaths);
+  state.generation.lastCheckedAt = null;
+  state.generation.attempts = 0;
+
+  elements.generatePrd.disabled = true;
+  elements.generatePrd.textContent = 'PRD 생성 중...';
+  setGenerationStatus('running', {
+    title: 'PRD 생성 중',
+    message: 'n8n에서 문서를 작성하고 있습니다. 완료되면 목록이 자동 갱신됩니다.',
+    meta: '자동 확인 준비 중',
+    progress: 8
+  });
+  updateGenerationElapsed();
+
+  state.generation.elapsedTimer = window.setInterval(updateGenerationElapsed, 1000);
+  state.generation.timer = window.setInterval(pollGeneratedPrdFiles, 5000);
+  window.setTimeout(pollGeneratedPrdFiles, 1200);
+}
+
+function stopPrdGenerationWatch(resetButton = true) {
+  if (state.generation.timer) {
+    clearInterval(state.generation.timer);
+    state.generation.timer = null;
+  }
+
+  if (state.generation.elapsedTimer) {
+    clearInterval(state.generation.elapsedTimer);
+    state.generation.elapsedTimer = null;
+  }
+
+  state.generation.active = false;
+  if (resetButton) {
+    elements.generatePrd.textContent = '▶ 선택 요구사항으로 PRD 생성 요청';
+    updateSelectedView();
+  }
+}
+
+async function pollGeneratedPrdFiles() {
+  if (!state.generation.active) return;
+
+  state.generation.attempts += 1;
+  state.generation.lastCheckedAt = new Date();
+  setGenerationStatus('running', {
+    meta: `자동 확인 중 · ${state.generation.lastCheckedAt.toLocaleTimeString()}`
+  });
+
+  try {
+    const files = await fetchBlobFolder(APP_CONFIG.storage.folders.prd);
+    const newFiles = files.filter((file) => !state.generation.knownPaths.has(file.path));
+
+    if (newFiles.length) {
+      state.prds = files;
+      renderPrdFiles();
+      completePrdGeneration(newFiles[0]);
+      return;
+    }
+
+    if (state.generation.attempts >= state.generation.maxAttempts) {
+      stopPrdGenerationWatch();
+      setGenerationStatus('unknown', {
+        title: '생성 상태 확인 필요',
+        message: '요청은 전송되었지만 제한 시간 안에 새 PRD 문서를 찾지 못했습니다. 생성 로그 또는 n8n 실행 상태를 확인하세요.',
+        meta: '자동 확인 종료',
+        progress: 100
+      });
+    }
+  } catch (error) {
+    setGenerationStatus('running', {
+      meta: `자동 확인 재시도 예정 · ${error.message}`
+    });
+  }
+}
+
+function completePrdGeneration(file) {
+  stopPrdGenerationWatch();
+  setGenerationStatus('complete', {
+    title: 'PRD 생성 완료',
+    message: `${file.name} 문서가 생성되었습니다. 3번 섹션에서 내용을 확인할 수 있습니다.`,
+    meta: `완료 시각 ${new Date().toLocaleTimeString()}`,
+    progress: 100
+  });
+  showToast('새 PRD 문서가 생성되었습니다.');
+  openPrd(file.path);
+}
+
+async function completePrdGenerationFromResponse(data) {
+  if (!data?.prdFilePath) return false;
+
+  const files = await fetchBlobFolder(APP_CONFIG.storage.folders.prd);
+  state.prds = files;
+  renderPrdFiles();
+
+  const file = files.find((item) => item.path === data.prdFilePath) || {
+    name: data.prdFilePath.split('/').pop(),
+    path: data.prdFilePath
+  };
+
+  completePrdGeneration(file);
+  return true;
 }
 
 /* 컬럼 닫기 */
@@ -729,29 +936,6 @@ function updateColumnSwitches() {
     } else {
       btn.classList.add('is_active');
     }
-  });
-}
-
-/* 레이아웃 프리셋 */
-const PRESETS = {
-  balanced: { section1: '32%', section2: '34%', section3: '34%' },
-  focus:    { section1: '22%', section2: '50%', section3: '28%' },
-  prd:      { section1: '20%', section2: '56%', section3: '24%' },
-  spec:     { section1: '20%', section2: '30%', section3: '50%' }
-};
-
-function applyPreset(name) {
-  const preset = PRESETS[name];
-  if (!preset) return;
-
-  document.documentElement.style.setProperty('--section1_width', preset.section1);
-  document.documentElement.style.setProperty('--section2_width', preset.section2);
-  document.documentElement.style.setProperty('--section3_width', preset.section3);
-
-  state.widths = { ...preset };
-
-  $$('.header_preset_button').forEach((btn) => {
-    btn.classList.toggle('is_active', btn.dataset.preset === name);
   });
 }
 
@@ -833,9 +1017,14 @@ function toggleRequirementSelection(path, selected) {
 function onSelectAll(event) {
   const keyword = elements.search.value.trim().toLowerCase();
   const filtered = state.requirements.filter((file) => {
-    const source = inferSourceType(file.name);
+    const source = getRequirementSource(file);
     const matchFilter = state.activeFilter === 'all' || source === state.activeFilter;
-    const matchKeyword = !keyword || file.name.toLowerCase().includes(keyword) || file.path.toLowerCase().includes(keyword);
+    const matchKeyword =
+      !keyword ||
+      file.name.toLowerCase().includes(keyword) ||
+      file.path.toLowerCase().includes(keyword) ||
+      getRequirementSource(file).toLowerCase().includes(keyword) ||
+      getRequirementSourceLabel(file).toLowerCase().includes(keyword);
     return matchFilter && matchKeyword;
   });
 
@@ -867,22 +1056,43 @@ function updateSelectedView() {
   elements.targetCount.textContent = `${count}개`;
 
   if (!count) {
-    elements.selectedSummary.innerHTML = '좌측 패널에서 요구사항을 선택하면 이곳에 표시됩니다.';
+    elements.targetStatus.textContent = '대상 선택 필요';
+    elements.targetStatus.className = '';
+    elements.selectedSummary.innerHTML = '<div class="section2_empty_target">좌측 패널에서 요구사항을 선택하면 이곳에 표시됩니다.</div>';
     elements.selectedList.innerHTML = '<p class="common_muted">선택된 요구사항이 없습니다.</p>';
     elements.generatePrd.disabled = true;
     return;
   }
 
-  elements.generatePrd.disabled = false;
+  elements.targetStatus.textContent = '생성 준비 완료';
+  elements.targetStatus.className = 'is_ready';
+  elements.generatePrd.disabled = state.generation.active;
 
   const paths = Array.from(state.selectedReqPaths);
 
   elements.selectedSummary.innerHTML = paths
     .map((p) => {
       const name = p.split('/').pop();
-      return `<span class="section2_summary_tag">${escapeHtml(name)}</span>`;
+      const file = state.requirements.find((item) => item.path === p);
+      const source = getRequirementSource(file);
+      const date = file?.registeredAtLabel || '등록일 확인 필요';
+      return `
+        <article class="section2_summary_item">
+          <div>
+            <strong>${escapeHtml(name)}</strong>
+            <span>${escapeHtml(p)}</span>
+          </div>
+          <em class="common_badge ${source}">${source}</em>
+          <small>${escapeHtml(date)}</small>
+          <button type="button" class="section2_selected_remove" data-remove-path="${escapeHtml(p)}" title="선택 해제">×</button>
+        </article>
+      `;
     })
     .join('');
+
+  $$('.section2_selected_remove', elements.selectedSummary).forEach((button) => {
+    button.addEventListener('click', () => toggleRequirementSelection(button.dataset.removePath, false));
+  });
 
   elements.selectedList.innerHTML = paths
     .map((p) => {
@@ -890,11 +1100,15 @@ function updateSelectedView() {
       return `
         <div class="section1_selected_pill">
           <span>${escapeHtml(name)}</span>
-          <button type="button" onclick="toggleRequirementSelection('${escapeHtml(p)}', false)" title="제거">×</button>
+          <button type="button" class="section1_selected_remove" data-remove-path="${escapeHtml(p)}" title="제거">×</button>
         </div>
       `;
     })
     .join('');
+
+  $$('.section1_selected_remove', elements.selectedList).forEach((button) => {
+    button.addEventListener('click', () => toggleRequirementSelection(button.dataset.removePath, false));
+  });
 }
 
 /* 프롬프트 옵션 렌더 */
@@ -932,13 +1146,39 @@ function renderPrdFiles() {
 async function openPrd(path) {
   state.activePrd = state.prds.find((f) => f.path === path) || { name: path, path };
   renderPrdFiles();
+  openColumn('3');
+  elements.feedbackToggle.textContent = `PRD 피드백 / 수정 요청`;
 
   try {
-    const text = await fetchGitHubText(path);
+    const text = await fetchBlobText(path);
     elements.prdRaw.value = text;
     elements.prdPreview.innerHTML = simpleMarkdown(text);
   } catch (error) {
     elements.prdPreview.innerHTML = renderError(error.message);
+  }
+}
+
+function openFeedbackPanel() {
+  if (!state.activePrd) {
+    showToast('피드백을 남길 PRD 문서를 먼저 선택해주세요.');
+    return;
+  }
+
+  elements.feedbackPanel.classList.add('is_open');
+  elements.feedbackPanel.setAttribute('aria-hidden', 'false');
+  elements.feedbackInput.focus();
+}
+
+function closeFeedbackPanel() {
+  elements.feedbackPanel.classList.remove('is_open');
+  elements.feedbackPanel.setAttribute('aria-hidden', 'true');
+}
+
+function toggleFeedbackPanel() {
+  if (elements.feedbackPanel.classList.contains('is_open')) {
+    closeFeedbackPanel();
+  } else {
+    openFeedbackPanel();
   }
 }
 
@@ -964,50 +1204,17 @@ function renderLogs() {
   `;
 }
 
-/* 산출물 렌더 */
-function renderArtifacts() {
-  if (!state.artifacts.length) {
-    elements.artifactList.innerHTML = '<div class="common_empty">산출물이 없습니다.</div>';
-    return;
-  }
-  elements.artifactList.innerHTML = state.artifacts
-    .map((f) => `
-      <div class="section3_artifact_item ${state.activeArtifact?.path === f.path ? 'is_active' : ''}" data-path="${escapeHtml(f.path)}">
-        <span>${escapeHtml(f.name)}</span>
-        <em>${escapeHtml(f.registeredAtLabel)}</em>
-        <b>›</b>
-      </div>
-    `)
-    .join('');
-
-  $$('.section3_artifact_item', elements.artifactList).forEach((item) => {
-    item.addEventListener('click', () => openArtifact(item.dataset.path));
-  });
-}
-
-/* 산출물 열기 */
-async function openArtifact(path) {
-  state.activeArtifact = state.artifacts.find((f) => f.path === path) || { name: path, path };
-  renderArtifacts();
-
-  try {
-    const text = await fetchGitHubText(path);
-    elements.artifactRaw.value = text;
-    elements.artifactPreview.innerHTML = simpleMarkdown(text);
-  } catch (error) {
-    elements.artifactPreview.innerHTML = renderError(error.message);
-  }
-}
-
 /* 요구사항 모달 열기 */
 async function openRequirementModal(path) {
   const file = state.requirements.find((f) => f.path === path);
   if (!file) return;
 
-  elements.modalBadge.textContent = inferSourceType(file.name);
+  elements.modalBadge.className = `modal_badge ${getRequirementSource(file)}`;
+  elements.modalBadge.textContent = getRequirementSource(file);
   elements.modalTitle.textContent = file.name;
   elements.modalMeta.innerHTML = `
     <div>경로: <b>${escapeHtml(file.path)}</b></div>
+    <div>출처: ${escapeHtml(getRequirementSourceLabel(file))}</div>
     <div>등록일: ${escapeHtml(file.registeredAtLabel)} · 크기: ${formatSize(file.size)}</div>
   `;
   elements.modalBody.textContent = '불러오는 중...';
@@ -1015,7 +1222,7 @@ async function openRequirementModal(path) {
   elements.modal.showModal();
 
   try {
-    const text = await fetchGitHubText(path);
+    const text = await fetchBlobText(path);
     elements.modalBody.textContent = text;
   } catch (error) {
     elements.modalBody.textContent = `오류: ${error.message}`;
@@ -1026,8 +1233,11 @@ async function openRequirementModal(path) {
 async function requestPrdGenerate() {
   const paths = Array.from(state.selectedReqPaths);
   if (!paths.length) { showToast('요구사항을 선택해주세요.'); return; }
+  if (state.generation.active) { showToast('이미 PRD 생성이 진행 중입니다.'); return; }
 
-  showToast('PRD 생성 요청 중...');
+  const knownPaths = new Set(state.prds.map((file) => file.path));
+  startPrdGenerationWatch(knownPaths);
+  showToast('PRD 생성 요청을 전송했습니다.');
 
   try {
     const res = await fetch('/api/prd-generate', {
@@ -1042,13 +1252,29 @@ async function requestPrdGenerate() {
       })
     });
 
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
       throw new Error(data.message || `HTTP ${res.status}`);
     }
 
-    showToast('PRD 생성 요청이 전송되었습니다.');
+    const openedFromResponse = await completePrdGenerationFromResponse(data);
+
+    if (!openedFromResponse && state.generation.active) {
+      setGenerationStatus('running', {
+        title: 'PRD 생성 요청 접수',
+        message: 'n8n 응답은 도착했습니다. 새 PRD 문서가 Blob에 반영되는지 계속 확인합니다.',
+        meta: '목록 자동 확인 중'
+      });
+    }
   } catch (error) {
+    stopPrdGenerationWatch();
+    setGenerationStatus('error', {
+      title: 'PRD 생성 요청 실패',
+      message: error.message,
+      meta: '요청 실패',
+      progress: 100
+    });
     showToast(`요청 실패: ${error.message}`);
   }
 }
@@ -1195,7 +1421,7 @@ async function submitDirectRequirementSave() {
     sourceLabel: sourceLabelMap[sourceType] || sourceType,
     sourceDetail,
     sourceText,
-    reqDir: APP_CONFIG.github.folders.req,
+    reqDir: APP_CONFIG.storage.folders.req,
     sourceDir: 'source',
     vercelBaseUrl: APP_CONFIG.storage.baseUrl,
     requestedBy: 'web',
@@ -1244,15 +1470,6 @@ function downloadText(filename, text) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
-}
-
-/* 소스 유형 추론 */
-function inferSourceType(name) {
-  const n = String(name || '').toUpperCase();
-  if (n.includes('JIRA')) return 'JIRA';
-  if (n.includes('SLACK')) return 'SLACK';
-  if (n.includes('DIRECT')) return 'DIRECT';
-  return 'FILE';
 }
 
 /* 파일 크기 포맷 */
