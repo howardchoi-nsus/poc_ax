@@ -20,18 +20,11 @@
       <section class="header_repo" id="header_repo">
         <span class="header_repo_label">Vercel Blob</span>
         <strong class="header_repo_badge" id="header_repo_badge">loading...</strong>
-        <span class="header_github_auth_status" id="header_github_auth_status">Blob Storage</span>
+        <span class="header_blob_status" id="header_blob_status">Blob Storage</span>
         <button class="common_button common_button_secondary" id="header_btn_refresh">Blob 새로고침</button>
       </section>
 
       <section class="header_control" id="header_control">
-        <div class="header_preset_group" aria-label="grid preset">
-          <span class="header_preset_label">Grid Preset:</span>
-          <button class="header_preset_button is_active" data-preset="balanced">균등 [1:1:1]</button>
-          <button class="header_preset_button" data-preset="focus">포커스 [1:2:1]</button>
-          <button class="header_preset_button" data-preset="prd">PRD 중심</button>
-          <button class="header_preset_button" data-preset="spec">Spec 중심</button>
-        </div>
         <div class="header_column_switches" aria-label="column toggle">
           <button class="header_column_switch is_active" data-toggle-col="1">1</button>
           <button class="header_column_switch is_active" data-toggle-col="2">2</button>
@@ -116,21 +109,25 @@
           <div class="section2_panel_head common_panel_head">
             <div>
               <h2 class="section2_title">PRD 생성하기</h2>
-              <p class="section2_description">선택된 요구사항을 기반으로 PRD 생성 요청을 실행하고 생서된 문서를 열람할수 있습니다.</p>
+              <p class="section2_description">선택된 요구사항을 기반으로 PRD 생성 요청을 실행하고 생성된 문서 목록을 관리합니다.</p>
             </div>
             <button class="section2_btn_close common_btn_close" data-close-col="2" title="2컬럼 닫기">×</button>
           </div>
 
           <section class="section2_target_card common_card">
             <div class="section2_card_title_row">
-              <strong>요구사항 병합 및 연계 대상</strong>
-              <span>체크된 개수 : <b id="section2_target_count">0개</b></span>
+              <div>
+                <strong>요구사항 병합 및 연계 대상</strong>
+                <p>PRD 생성에 사용할 요구사항과 템플릿을 확인합니다.</p>
+              </div>
+              <div class="section2_target_badges">
+                <span>선택됨 <b id="section2_target_count">0개</b></span>
+                <span id="section2_target_status">대상 선택 필요</span>
+              </div>
             </div>
-            <div
-              class="section2_selected_summary"
-              id="section2_selected_summary"
-              style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;"
-            >좌측 패널에서 요구사항을 선택하면 이곳에 표시됩니다.</div>
+            <div class="section2_selected_summary" id="section2_selected_summary">
+              <div class="section2_empty_target">좌측 패널에서 요구사항을 선택하면 이곳에 표시됩니다.</div>
+            </div>
 
             <section class="section2_form">
               <label class="section2_form_label">
@@ -148,19 +145,51 @@
             </section>
 
             <button class="section2_btn_generate" id="section2_btn_generate" disabled>▶ 선택 요구사항으로 PRD 생성 요청</button>
+
+            <section class="section2_generation_status" id="section2_generation_status" data-status="idle">
+              <div class="section2_generation_head">
+                <strong id="section2_generation_title">PRD 생성 대기</strong>
+                <span id="section2_generation_elapsed">00:00</span>
+              </div>
+              <p id="section2_generation_message">요구사항을 선택하고 생성 요청을 실행하면 n8n 처리 상태가 이곳에 표시됩니다.</p>
+              <div class="section2_generation_bar"><span id="section2_generation_bar"></span></div>
+              <div class="section2_generation_meta" id="section2_generation_meta">자동 확인 대기 중</div>
+            </section>
           </section>
 
           <section class="section2_repo_card common_card">
             <div class="section2_repo_head">
               <strong>생성된 PRD 문서</strong>
-              <button class="common_link_button" id="section2_btn_refresh_prd">/prd 새로고침</button>
+              <button class="common_small_button" id="section2_btn_refresh_prd" type="button">/prd 새로고침</button>
             </div>
             <div class="section2_prd_file_list" id="section2_prd_file_list">
               <div class="common_empty">Vercel Blob에서 PRD 목록을 불러오는 중입니다.</div>
             </div>
           </section>
 
-          <section class="section2_viewer_card common_card">
+          <button class="section2_btn_open_logs common_small_button" id="section2_btn_refresh_logs" type="button">생성 로그 보기</button>
+        </div>
+      </section>
+
+      <div class="common_resizer" data-resizer="2" role="separator" aria-label="2컬럼 너비 조절"></div>
+
+      <section class="section section3" id="section3" data-col="3" aria-label="PRD Viewer">
+        <button class="section3_collapsed_opener common_collapsed_opener" type="button" data-reopen-col="3" aria-label="3컬럼 열기">
+          <span class="common_rail_num">3</span>
+          <span class="common_rail_text">Viewer</span>
+          <span class="common_rail_arrow">›</span>
+        </button>
+
+        <div class="section3_panel common_panel">
+          <div class="section3_panel_head common_panel_head">
+            <div>
+              <h2 class="section3_title">PRD Viewer</h2>
+              <p class="section3_description">2번 섹션에서 생성된 PRD 문서를 선택하면 이곳에서 내용을 확인하고 수정 요청을 남길 수 있습니다.</p>
+            </div>
+            <button class="section3_btn_close common_btn_close" data-close-col="3" title="3컬럼 닫기">×</button>
+          </div>
+
+          <section class="section3_prd_viewer_card common_card">
             <div class="section2_viewer_tabs">
               <button class="section2_viewer_tab is_active" data-view="preview">PRD Viewer</button>
               <button class="section2_viewer_tab" data-view="raw">Raw Markdown</button>
@@ -169,78 +198,23 @@
               <button class="common_small_button" id="section2_btn_download_prd">Markdown 다운로드</button>
             </div>
             <article class="section2_prd_preview" id="section2_prd_preview">
-              <div class="common_empty_state"><div>?</div><p>PRD 문서를 선택하면 내용이 표시됩니다.</p></div>
+              <div class="common_empty_state"><div>?</div><p>2번 섹션의 PRD 문서를 선택하면 내용이 표시됩니다.</p></div>
             </article>
             <textarea class="section2_prd_raw is_hidden" id="section2_prd_raw" spellcheck="false"></textarea>
           </section>
 
-          <section class="section2_feedback_card common_card">
-            <strong>PRD 피드백 / 수정 요청</strong>
+          <button class="section2_feedback_toggle common_small_button" id="section2_btn_feedback_toggle" type="button">PRD 피드백 / 수정 요청</button>
+
+          <section class="section2_feedback_card common_card" id="section2_feedback_panel" aria-hidden="true">
+            <div class="section2_feedback_head">
+              <strong>PRD 피드백 / 수정 요청</strong>
+              <button class="section2_feedback_close" id="section2_btn_feedback_close" type="button" aria-label="피드백 입력 닫기">×</button>
+            </div>
             <div class="section2_feedback_row">
               <input class="section2_feedback_input" id="section2_feedback_input" type="text" placeholder="피드백을 입력하세요. 예: 예외 케이스 추가, 정책 상세화, KPI 추가 등" />
               <button class="section2_btn_feedback" id="section2_btn_feedback">피드백 제출</button>
               <button class="section2_btn_revise" id="section2_btn_revise">수정 PRD 생성</button>
             </div>
-          </section>
-
-          <section class="section2_log_card common_card">
-            <div class="section2_log_head">
-              <strong>생성 로그</strong>
-              <button class="common_link_button" id="section2_btn_refresh_logs">/logs 새로고침</button>
-            </div>
-            <div class="section2_log_list" id="section2_log_list">
-              <div class="common_empty">Vercel Blob에서 로그를 불러오는 중입니다.</div>
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <div class="common_resizer" data-resizer="2" role="separator" aria-label="2컬럼 너비 조절"></div>
-
-      <section class="section section3" id="section3" data-col="3" aria-label="Phase Output">
-        <button class="section3_collapsed_opener common_collapsed_opener" type="button" data-reopen-col="3" aria-label="3컬럼 열기">
-          <span class="common_rail_num">3</span>
-          <span class="common_rail_text">Phase</span>
-          <span class="common_rail_arrow">›</span>
-        </button>
-
-        <div class="section3_panel common_panel">
-          <div class="section3_panel_head common_panel_head">
-            <div>
-              <h2 class="section3_title">Phase Output</h2>
-              <p class="section3_description">PRD 기반 Phase 2 서비스 시나리오, 플로우, 시퀀스 산출물을 Vercel Blob에서 열람합니다.</p>
-            </div>
-            <button class="section3_btn_close common_btn_close" data-close-col="3" title="3컬럼 닫기">×</button>
-          </div>
-
-          <section class="section3_phase_select_card common_card">
-            <label class="section3_phase_label">
-              Phase 선택
-              <select class="section3_phase_select" id="section3_phase_select">
-                <option value="phase2/scenario">Phase 2: 서비스 시나리오</option>
-                <option value="phase2/flow">Phase 2: 서비스 플로우</option>
-                <option value="phase2/sequence">Phase 2: 시퀀스 다이어그램</option>
-              </select>
-            </label>
-            <button class="section3_btn_refresh_artifacts" id="section3_btn_refresh_artifacts">산출물 새로고침</button>
-          </section>
-
-          <section class="section3_artifact_list_card common_card">
-            <strong>산출물 목록</strong>
-            <div class="section3_artifact_list" id="section3_artifact_list">
-              <div class="common_empty">Vercel Blob에서 Phase 산출물을 불러오는 중입니다.</div>
-            </div>
-          </section>
-
-          <section class="section3_artifact_viewer_card common_card">
-            <div class="section3_artifact_viewer_head">
-              <strong>산출물 Viewer</strong>
-              <button class="common_small_button" id="section3_btn_download_artifact">다운로드</button>
-            </div>
-            <article class="section3_artifact_preview" id="section3_artifact_preview">
-              <div class="common_empty_state"><div>□</div><p>산출물을 선택하면 내용이 표시됩니다.</p></div>
-            </article>
-            <textarea class="section3_artifact_raw is_hidden" id="section3_artifact_raw" spellcheck="false"></textarea>
           </section>
         </div>
       </section>
@@ -314,6 +288,31 @@
       <div class="modal_actions">
         <button class="modal_btn_cancel" id="direct_btn_reset" type="button">재입력</button>
         <button class="modal_btn_select" id="direct_btn_submit" type="button">등록 하기</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal_detail modal_log" id="modal_logs">
+    <form method="dialog" class="modal_form">
+      <div class="modal_head">
+        <div>
+          <span class="modal_badge">LOGS</span>
+          <h3 class="modal_title">생성 로그</h3>
+        </div>
+        <button class="modal_btn_close" id="modal_logs_btn_close" type="button" aria-label="닫기">×</button>
+      </div>
+
+      <div class="modal_meta">
+        Vercel Blob의 /logs 문서를 기준으로 최근 생성 기록을 확인합니다.
+      </div>
+
+      <div class="section2_log_list" id="section2_log_list">
+        <div class="common_empty">Vercel Blob에서 로그를 불러오는 중입니다.</div>
+      </div>
+
+      <div class="modal_actions">
+        <button class="modal_btn_cancel" id="modal_logs_btn_refresh" type="button">새로고침</button>
+        <button class="modal_btn_select" value="cancel">닫기</button>
       </div>
     </form>
   </dialog>
