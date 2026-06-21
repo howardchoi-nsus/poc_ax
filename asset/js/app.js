@@ -692,28 +692,28 @@ function renderRequirementList() {
   elements.requirementList.innerHTML = files
     .map((file) => {
       const source = getRequirementSource(file);
-      const displayName = cleanRequirementListText(file.name);
       const displayTitle = getRequirementDisplayTitle(file);
       const selected = state.selectedReqPaths.has(file.path);
 
       return `
         <article class="section1_req_item ${selected ? 'is_selected' : ''}" data-path="${escapeHtml(file.path)}">
           <div class="section1_req_main">
-            <div class="section1_req_meta">
+            <div class="section1_req_title_row">
               <input
                 type="checkbox"
                 class="section1_req_checkbox"
                 ${selected ? 'checked' : ''}
-                aria-label="${escapeHtml(displayName)} 선택"
+                aria-label="${escapeHtml(displayTitle)} 선택"
               />
-              <span class="section1_req_filename">${escapeHtml(displayName)}</span>
+              <button class="section1_req_title_button" type="button">
+                ${escapeHtml(displayTitle)}
+              </button>
+            </div>
+            <div class="section1_req_meta">
               <span class="common_badge ${source}">${source}</span>
               <span>등록일 ${escapeHtml(file.registeredAtLabel)}</span>
               <span>${formatSize(file.size)}</span>
             </div>
-            <button class="section1_req_title_button" type="button">
-              ${escapeHtml(displayTitle)}
-            </button>
           </div>
         </article>
       `;
