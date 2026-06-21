@@ -106,6 +106,7 @@ const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selec
 const elements = {
   repoBadge: $('header_repo_badge'),
   refreshAll: $('header_btn_refresh'),
+  serviceMenu: $('header_btn_services'),
   blobStatus: $('header_blob_status'),
 
   content: $('content'),
@@ -203,6 +204,9 @@ function applyInitialWidths() {
 
 function bindEvents() {
   elements.refreshAll.addEventListener('click', refreshBlobData);
+  elements.serviceMenu?.addEventListener('click', () => {
+    window.location.href = './index.html';
+  });
 
   elements.search.addEventListener('input', renderRequirementList);
   elements.selectAll.addEventListener('change', onSelectAll);
