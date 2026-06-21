@@ -689,9 +689,7 @@ function renderRequirementList() {
   elements.requirementList.innerHTML = files
     .map((file) => {
       const source = getRequirementSource(file);
-      const sourceLabel = cleanRequirementListText(getRequirementSourceLabel(file));
       const displayName = cleanRequirementListText(file.name);
-      const displayPath = cleanRequirementListText(file.path);
       const selected = state.selectedReqPaths.has(file.path);
 
       return `
@@ -708,14 +706,9 @@ function renderRequirementList() {
             </button>
             <div class="section1_req_meta">
               <span class="common_badge ${source}">${source}</span>
-              <span>${escapeHtml(sourceLabel)}</span>
               <span>등록일 ${escapeHtml(file.registeredAtLabel)}</span>
               <span>${formatSize(file.size)}</span>
-              <span>${escapeHtml(displayPath)}</span>
             </div>
-            <p class="section1_req_snippet">
-              Vercel Blob의 ${escapeHtml(displayPath)} 파일입니다. 제목을 클릭하면 원문을 불러옵니다.
-            </p>
           </div>
           <span class="common_status_badge success">Blob</span>
         </article>
