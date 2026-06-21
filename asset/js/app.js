@@ -18,9 +18,9 @@ const APP_CONFIG = {
     }
   },
   webhooks: {
-    requirementSave: 'https://kolchohoohu.app.n8n.cloud/webhook/agent1-requirement-save',
+    requirementSave: '/api/requirement-save',
     prdGenerate: 'https://kolchohoohu.app.n8n.cloud/webhook/agent1-prd-generate',
-    prdRevise: '',
+    prdRevise: '/api/prd-revise',
     secret: ''
   },
   ui: {
@@ -54,7 +54,6 @@ APP_CONFIG.storage.folders.logs =
 
 APP_CONFIG.webhooks.requirementSave =
   query.get('reqWebhook') ||
-  localStorage.getItem('agent1_req_webhook') ||
   APP_CONFIG.webhooks.requirementSave;
 
 APP_CONFIG.webhooks.prdGenerate =
@@ -64,7 +63,6 @@ APP_CONFIG.webhooks.prdGenerate =
 
 APP_CONFIG.webhooks.prdRevise =
   query.get('reviseWebhook') ||
-  localStorage.getItem('agent1_revise_webhook') ||
   APP_CONFIG.webhooks.prdRevise;
 
 APP_CONFIG.webhooks.secret =
@@ -1271,14 +1269,14 @@ async function submitFeedback() {
 
 /* PRD 수정 요청 */
 async function requestPrdRevise() {
-  const webhook = APP_CONFIG.webhooks.prdRevise;
-  if (!webhook) { showToast('수정 웹훅 URL이 설정되지 않았습니다.'); return; }
+  const endpoint = APP_CONFIG.webhooks.prdRevise;
+  if (!endpoint) { showToast('수정 요청 API가 설정되지 않았습니다.'); return; }
   if (!state.activePrd) { showToast('수정할 PRD를 선택해주세요.'); return; }
 
   showToast('PRD 수정 요청 중...');
 
   try {
-    await fetch(webhook, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1287,6 +1285,13 @@ async function requestPrdRevise() {
         secret: APP_CONFIG.webhooks.secret
       })
     });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || result.success === false) {
+      throw new Error(result.message || `HTTP ${response.status}`);
+    }
+
     showToast('수정 요청이 전송되었습니다.');
   } catch (error) {
     showToast(`요청 실패: ${error.message}`);
@@ -1302,16 +1307,30 @@ function requestFileRequirementSave() {
     const file = input.files[0];
     if (!file) return;
 
-    const webhook = APP_CONFIG.webhooks.requirementSave;
-    if (!webhook) { showToast('저장 웹훅 URL이 설정되지 않았습니다.'); return; }
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('secret', APP_CONFIG.webhooks.secret);
+    const endpoint = APP_CONFIG.webhooks.requirementSave;
+    if (!endpoint) { showToast('저장 API가 설정되지 않았습니다.'); return; }
 
     showToast(`${file.name} 업로드 중...`);
     try {
-      await fetch(webhook, { method: 'POST', body: formData });
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('reqDir', APP_CONFIG.storage.folders.req);
+      formData.append('sourceDir', 'source');
+      formData.append('vercelBaseUrl', APP_CONFIG.storage.baseUrl);
+      formData.append('requestedBy', 'web');
+      formData.append('secret', APP_CONFIG.webhooks.secret);
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || result.success === false) {
+        throw new Error(result.message || `HTTP ${response.status}`);
+      }
+
       showToast(`${file.name} 등록 완료`);
       await refreshRequirements();
     } catch (error) {
@@ -1355,10 +1374,10 @@ function updateDirectSourceDetailState() {
 
 /* 직접 요구사항 등록 저장 */
 async function submitDirectRequirementSave() {
-  const webhook = APP_CONFIG.webhooks.requirementSave;
+  const endpoint = APP_CONFIG.webhooks.requirementSave;
 
-  if (!webhook) {
-    showToast('저장 웹훅 URL이 설정되지 않았습니다.');
+  if (!endpoint) {
+    showToast('저장 API가 설정되지 않았습니다.');
     return;
   }
 
@@ -1389,12 +1408,7 @@ async function submitDirectRequirementSave() {
       ? sourceDetail
       : sourceText.slice(0, 24);
 
-  const requirementKeyword = String(keywordSeed || 'direct')
-    .replace(/^REQ_/i, '')
-    .replace(/\s+/g, '_')
-    .replace(/[^A-Za-z0-9가-힣_-]+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_+|_+$/g, '') || 'direct';
+  const requirementKeyword = createRequirementKeyword(keywordSeed || 'direct');
 
   const payload = {
     requirementKeyword,
@@ -1413,7 +1427,7 @@ async function submitDirectRequirementSave() {
   showToast('요구사항 등록 중...');
 
   try {
-    const response = await fetch(webhook, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -1431,6 +1445,16 @@ async function submitDirectRequirementSave() {
   } catch (error) {
     showToast(`등록 실패: ${error.message}`);
   }
+}
+
+function createRequirementKeyword(value) {
+  return String(value || 'requirement')
+    .replace(/\.[^.]+$/, '')
+    .replace(/^REQ_/i, '')
+    .replace(/\s+/g, '_')
+    .replace(/[^A-Za-z0-9가-힣_-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'requirement';
 }
 
 /* 클립보드 복사 */

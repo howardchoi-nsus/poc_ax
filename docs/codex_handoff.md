@@ -17,6 +17,7 @@
 | `asset/css/styles.css` | PRD 화면 스타일 |
 | `api/prd-generate.js` | PRD 생성 요청을 n8n Webhook으로 전달하는 API |
 | `api/requirement-save.js` | 요구사항 저장 요청을 n8n Webhook으로 전달하는 API |
+| `api/prd-revise.js` | PRD 수정 요청을 n8n Webhook으로 전달하는 API |
 | `api/blob-list.js` | Vercel Blob 파일 목록 조회 |
 | `api/blob-file.js` | Vercel Blob 파일 본문 조회 |
 | `api/blob-save.js` | Vercel Blob 파일 저장 |
@@ -71,15 +72,17 @@
 ## 4. n8n 연동 검토 내용
 
 - PRD 생성은 웹에서 `/api/prd-generate`로 요청하고, 해당 API가 n8n Webhook으로 전달하는 구조입니다.
-- 요구사항 직접 등록은 현재 웹에서 n8n Webhook을 직접 호출하는 흐름이 남아 있어, 추후 `/api/requirement-save` 프록시를 사용하는 구조로 정리할 수 있습니다.
-- 파일 요구사항 등록은 `FormData`로 n8n에 직접 업로드하는 방식이라, n8n의 JSON 기반 입력 구조와 정합성 확인이 필요합니다.
+- 요구사항 직접 등록은 웹에서 `/api/requirement-save`로 요청하고, 해당 API가 n8n Webhook으로 전달하는 구조로 정리했습니다.
+- 파일 요구사항 등록도 n8n Webhook 직접 호출 대신 `/api/requirement-save` 프록시를 경유합니다. 단, n8n의 기존 파일 입력 계약을 깨지 않도록 파일 본문은 `FormData`로 유지합니다.
+- PRD 수정 요청은 `/api/prd-revise` 프록시를 통해 전달하도록 추가했습니다. 배포 환경에서는 `N8N_PRD_REVISE_WEBHOOK` 환경변수 설정이 필요합니다.
+- `/api/env-check`에서 Blob 토큰과 n8n Webhook 환경 설정 상태를 확인할 수 있습니다. `n8n.hasPrdReviseWebhook` 값이 `true`여야 PRD 수정 요청이 정상 동작합니다.
 - n8n JSON 일부 노드에는 예전 GitHub 기준 필드명(`githubOutputDir`, `githubReqDir`, `githubSourceDir`)이 남아 있어 추후 정리가 필요합니다.
 - 로컬 정적 서버에서는 `/api/...` 연동 확인이 제한되므로 Vercel dev 또는 배포 환경에서 end-to-end 검증이 필요합니다.
 
 ## 5. 보고 문서
 
 - 1W 진행상황 보고 문서:
-  - `docs/weekly_progress_report_1w.md`
+  - `docs/progress_report_20260622.md`
 
 보고 문서 작성 기준:
 
@@ -109,8 +112,8 @@ docs/codex_handoff.md를 읽고, 이어서 작업해줘.
 ## 8. 다음 작업 후보
 
 1. n8n end-to-end 연동 검증
-2. 파일 요구사항 등록 방식 검토
-3. PRD 수정 요청 Webhook 연계 확인
+2. 파일 요구사항 등록 `FormData` 입력과 n8n 노드 정합성 검증
+3. `/api/env-check`에서 `n8n.hasPrdReviseWebhook` 확인 후 PRD 수정 요청 end-to-end 검증
 4. 서비스 시나리오 메뉴 화면 설계
 5. UI 생성, 코드 생성, TC 메뉴별 서비스 흐름 정의
 6. Vercel 배포 환경에서 `/api/...` 연동 최종 확인

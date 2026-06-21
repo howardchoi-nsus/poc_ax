@@ -1,14 +1,8 @@
-export const config = {
-  api: {
-    bodyParser: false
-  }
-};
-
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     return res.status(200).json({
       success: true,
-      message: 'requirement-save proxy is running. Use POST to submit data.'
+      message: 'prd-revise proxy is running. Use POST to submit data.'
     });
   }
 
@@ -23,18 +17,21 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, message: 'Method Not Allowed' });
   }
 
-  const N8N_WEBHOOK_URL =
-    process.env.N8N_REQUIREMENT_SAVE_WEBHOOK ||
-    'https://kolchohoohu.app.n8n.cloud/webhook/agent1-requirement-save';
+  const N8N_WEBHOOK_URL = process.env.N8N_PRD_REVISE_WEBHOOK || '';
+
+  if (!N8N_WEBHOOK_URL) {
+    return res.status(501).json({
+      success: false,
+      step: 'env_check',
+      message: 'N8N_PRD_REVISE_WEBHOOK 환경변수가 설정되지 않았습니다.'
+    });
+  }
 
   try {
-    const body = await readRequestBody(req);
-    const contentType = req.headers['content-type'] || 'application/json';
-
     const response = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
-      headers: { 'Content-Type': contentType },
-      body
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body)
     });
 
     const text = await response.text();
@@ -54,14 +51,4 @@ export default async function handler(req, res) {
       message: error.message
     });
   }
-}
-
-function readRequestBody(req) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-
-    req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
-  });
 }
