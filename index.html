@@ -3,321 +3,387 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AGENT1 : PRD 생성 도우미</title>
-  <link rel="stylesheet" href="./asset/css/styles.css" />
+  <title>AGENT Workspace</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f6f8fc;
+      color: #111827;
+      font-size: 14px;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .landing_shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      background: #f6f8fc;
+    }
+    .landing_header {
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 28px;
+      border-bottom: 1px solid #dfe6f2;
+      background: #fff;
+    }
+    .landing_brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .login_logo {
+      width: 128px;
+      height: 40px;
+      margin-bottom: 18px;
+      background-image: url("https://nsuslab.com/assets/nsuslab_logo-DIbegr9K.png");
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: left center;
+    }
+    .landing_title { margin: 0; font-size: 16px; font-weight: 800; }
+    .landing_subtitle { margin: 4px 0 0; color: #94a3b8; font-size: 11px; letter-spacing: 0.12em; }
+    .landing_header_status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 7px;
+      background: #fff7ed;
+      color: #c2410c;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .landing_header_status.is_signed_in {
+      background: #eaf8ef;
+      color: #16a34a;
+    }
+    .landing_main {
+      width: min(1080px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 44px 0;
+      display: grid;
+      align-content: center;
+      min-height: calc(100vh - 76px);
+    }
+    .login_view,
+    .menu_view {
+      display: none;
+    }
+    .login_view.is_active,
+    .menu_view.is_active {
+      display: grid;
+    }
+    .login_card {
+      width: min(420px, 100%);
+      margin: 0 auto;
+      padding: 28px;
+      border: 1px solid #dfe6f2;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 14px 40px rgba(20, 35, 70, 0.08);
+    }
+    .login_card h2,
+    .menu_head h2 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+    .login_card p,
+    .menu_head p {
+      margin: 8px 0 0;
+      color: #63708a;
+      line-height: 1.6;
+    }
+    .login_form {
+      display: grid;
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .login_hint {
+      margin-top: 12px;
+      color: #7b879c;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .login_label {
+      display: grid;
+      gap: 7px;
+      color: #50607a;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .login_input {
+      width: 100%;
+      height: 42px;
+      border: 1px solid #dfe6f2;
+      border-radius: 8px;
+      padding: 0 12px;
+      color: #111827;
+      outline: 0;
+      background: #fff;
+    }
+    .login_input:focus {
+      border-color: #9db3ef;
+      box-shadow: 0 0 0 3px rgba(71, 104, 216, 0.1);
+    }
+    .landing_primary_button {
+      height: 44px;
+      border: 0;
+      border-radius: 8px;
+      background: #111827;
+      color: #fff;
+      font-weight: 900;
+    }
+    .login_error {
+      min-height: 20px;
+      color: #ef4444;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .menu_view {
+      gap: 22px;
+    }
+    .menu_head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-end;
+    }
+    .logout_button {
+      height: 34px;
+      padding: 0 14px;
+      border: 1px solid #dfe6f2;
+      border-radius: 8px;
+      background: #fff;
+      color: #334155;
+      font-weight: 800;
+    }
+    .service_grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .service_card {
+      min-height: 176px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px;
+      border: 1px solid #dfe6f2;
+      border-radius: 10px;
+      background: #fff;
+      color: #111827;
+      text-align: left;
+      box-shadow: 0 10px 28px rgba(20, 35, 70, 0.06);
+      text-decoration: none;
+    }
+    .service_card:hover {
+      border-color: #9db3ef;
+      transform: translateY(-1px);
+    }
+    .service_card.is_available {
+      border-color: #9db3ef;
+      background: linear-gradient(180deg, #fff 0%, #f7f9ff 100%);
+      box-shadow: 0 14px 34px rgba(71, 104, 216, 0.14);
+    }
+    .service_card.is_disabled {
+      color: #94a3b8;
+      background: #f9fbff;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .service_card strong {
+      display: block;
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .service_card span {
+      color: #63708a;
+      line-height: 1.5;
+      font-size: 12px;
+    }
+    .service_card.is_disabled span { color: #a6b1c3; }
+    .service_badge {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 6px;
+      background: #eef3ff;
+      color: #4768d8;
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .service_card.is_available .service_badge {
+      background: #1f2a44;
+      color: #fff;
+    }
+    .service_card.is_disabled .service_badge {
+      background: #eef2f7;
+      color: #96a2ba;
+    }
+    @media (max-width: 960px) {
+      .service_grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .menu_head { align-items: flex-start; flex-direction: column; }
+    }
+    @media (max-width: 560px) {
+      .landing_header { height: auto; padding: 14px 18px; align-items: flex-start; flex-direction: column; }
+      .landing_main { width: min(100vw - 24px, 1080px); padding: 24px 0; min-height: auto; }
+      .service_grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-  <div class="common_app_shell">
-    <header class="header" id="header">
-      <section class="header_brand" id="header_brand">
-        <div class="header_logo" aria-label="NSUSLAB logo"></div>
-        <div class="header_title_area">
-          <h1 class="header_title">PRD 생성 도우미 [ AGENT1 ]</h1>
-          <p class="header_subtitle">Project Requirement Description Assistant</p>
+  <div class="landing_shell">
+    <header class="landing_header">
+      <section class="landing_brand">
+        <div>
+          <h1 class="landing_title">AGENT Workspace</h1>
+          <p class="landing_subtitle">AI-NATIVE SERVICE BUILDER</p>
         </div>
       </section>
-
-      <section class="header_repo" id="header_repo">
-        <span class="header_repo_label">Vercel Blob</span>
-        <strong class="header_repo_badge" id="header_repo_badge">loading...</strong>
-        <span class="header_blob_status" id="header_blob_status">Blob Storage</span>
-        <button class="common_button common_button_secondary" id="header_btn_refresh">Blob 새로고침</button>
-      </section>
-
-      <section class="header_control" id="header_control">
-        <div class="header_column_switches" aria-label="column toggle">
-          <button class="header_column_switch is_active" data-toggle-col="1">1</button>
-          <button class="header_column_switch is_active" data-toggle-col="2">2</button>
-          <button class="header_column_switch is_active" data-toggle-col="3">3</button>
-        </div>
-      </section>
+      <span class="landing_header_status" id="landing_status">Login Required</span>
     </header>
 
-    <main class="content" id="content">
-      <section class="section section1" id="section1" data-col="1" aria-label="Requirement Source">
-        <button class="section1_collapsed_opener common_collapsed_opener" type="button" data-reopen-col="1" aria-label="1컬럼 열기">
-          <span class="common_rail_num">1</span>
-          <span class="common_rail_text">Requirement</span>
-          <span class="common_rail_arrow">›</span>
-        </button>
-
-        <div class="section1_panel common_panel">
-          <div class="section1_panel_head common_panel_head">
-            <div>
-              <h2 class="section1_title">요구사항 등록 관리</h2>
-              <p class="section1_description">Vercel Blob의 /req 문서를 불러와 PRD 생성 대상으로 선택합니다.</p>
-            </div>
-            <button class="section1_btn_close common_btn_close" data-close-col="1" title="1컬럼 닫기">×</button>
-          </div>
-
-          <div class="section1_source_actions">
-            <button class="section1_btn_file_source" id="section1_btn_file_source">＋ 파일 등록</button>
-            <button class="section1_btn_direct_source" id="section1_btn_direct_source">＋ 직접 등록</button>
-          </div>
-
-          <div class="section1_search_card common_card">
-            <div class="section1_search_input_wrap">
-              <span>⌕</span>
-              <input class="section1_search_input" id="section1_search_input" type="search" placeholder="요구사항 검색..." />
-            </div>
-            <div class="section1_filter_row">
-              <span class="section1_filter_label">필터:</span>
-              <button class="section1_filter_button is_active" data-filter="all">모두</button>
-              <button class="section1_filter_button" data-filter="JIRA">JIRA</button>
-              <button class="section1_filter_button" data-filter="SLACK">Slack</button>
-              <button class="section1_filter_button" data-filter="FILE">File</button>
-              <button class="section1_filter_button" data-filter="DIRECT">Direct</button>
-            </div>
-          </div>
-
-          <div class="section1_list_card common_card">
-            <div class="section1_list_toolbar">
-              <label class="section1_select_all_label">
-                <input type="checkbox" id="section1_select_all" /> 필터 대상 전체 선택
-              </label>
-              <span>선택됨 : <strong id="section1_selected_count_mini">0</strong> / <strong id="section1_total_count">0</strong></span>
-            </div>
-            <div class="section1_requirement_list" id="section1_requirement_list">
-              <div class="common_empty">Vercel Blob에서 요구사항을 불러오는 중입니다.</div>
-            </div>
-          </div>
-
-          <div class="section1_selected_card common_card">
-            <div class="section1_selected_head">
-              <strong>선택된 요구사항 <span id="section1_selected_count">0</span></strong>
-              <button class="section1_btn_clear_selection" id="section1_btn_clear_selection">선택 해제</button>
-            </div>
-            <div class="section1_selected_list" id="section1_selected_list">
-              <p class="common_muted">선택된 요구사항이 없습니다.</p>
-            </div>
-          </div>
-
-          <button class="section1_btn_confirm common_primary_action" id="section1_btn_confirm" disabled>선택 완료 및 충돌 검토 →</button>
+    <main class="landing_main">
+      <section class="login_view is_active" id="login_view">
+        <div class="login_card">
+          <div class="login_logo" aria-label="NSUSLAB logo"></div>
+          <h2>서비스 로그인</h2>
+          <p>계정 ID를 입력하고 서비스 작업 공간으로 이동합니다.</p>
+          <div class="login_hint">데모 접속: ID는 자유롭게 입력하고 Password는 1234를 사용합니다.</div>
+          <form class="login_form" id="login_form">
+            <label class="login_label">
+              ID
+              <input class="login_input" id="login_id" type="text" autocomplete="username" placeholder="ID를 입력하세요" />
+            </label>
+            <label class="login_label">
+              Password
+              <input class="login_input" id="login_password" type="password" autocomplete="current-password" placeholder="Password" />
+            </label>
+            <div class="login_error" id="login_error"></div>
+            <button class="landing_primary_button" type="submit">로그인</button>
+          </form>
         </div>
       </section>
 
-      <div class="common_resizer" data-resizer="1" role="separator" aria-label="1컬럼 너비 조절"></div>
-
-      <section class="section section2" id="section2" data-col="2" aria-label="PRD Workspace">
-        <button class="section2_collapsed_opener common_collapsed_opener" type="button" data-reopen-col="2" aria-label="2컬럼 열기">
-          <span class="common_rail_num">2</span>
-          <span class="common_rail_text">PRD</span>
-          <span class="common_rail_arrow">›</span>
-        </button>
-
-        <div class="section2_panel common_panel">
-          <div class="section2_panel_head common_panel_head">
-            <div>
-              <h2 class="section2_title">PRD 생성하기</h2>
-              <p class="section2_description">선택된 요구사항을 기반으로 PRD 생성 요청을 실행하고 생성된 문서 목록을 관리합니다.</p>
-            </div>
-            <button class="section2_btn_close common_btn_close" data-close-col="2" title="2컬럼 닫기">×</button>
+      <section class="menu_view" id="menu_view">
+        <div class="menu_head">
+          <div>
+            <h2>서비스 선택</h2>
+            <p>진행할 작업 유형을 선택합니다.</p>
           </div>
-
-          <section class="section2_target_card common_card">
-            <div class="section2_card_title_row">
-              <div>
-                <strong>요구사항 병합 및 연계 대상</strong>
-                <p>PRD 생성에 사용할 요구사항과 템플릿을 확인합니다.</p>
-              </div>
-              <div class="section2_target_badges">
-                <span>선택됨 <b id="section2_target_count">0개</b></span>
-                <span id="section2_target_status">대상 선택 필요</span>
-              </div>
-            </div>
-            <div class="section2_selected_summary" id="section2_selected_summary">
-              <div class="section2_empty_target">좌측 패널에서 요구사항을 선택하면 이곳에 표시됩니다.</div>
-            </div>
-
-            <section class="section2_form">
-              <label class="section2_form_label">
-                PRD 템플릿 양식
-                <select class="section2_prompt_template" id="section2_prompt_template">
-                  <option value="">Blob /prompts 로딩 중...</option>
-                </select>
-              </label>
-
-              <!-- 화면에서는 제거하지만 app.js의 기존 PRD 생성 로직 호환을 위해 값만 유지합니다. -->
-              <select id="section2_model_select" hidden>
-                <option value="gpt-4o-mini" selected>gpt-4o-mini</option>
-              </select>
-              <input id="section2_doc_title" type="hidden" value="" />
-            </section>
-
-            <button class="section2_btn_generate" id="section2_btn_generate" disabled>▶ 선택 요구사항으로 PRD 생성 요청</button>
-
-            <section class="section2_generation_status" id="section2_generation_status" data-status="idle">
-              <div class="section2_generation_head">
-                <strong id="section2_generation_title">PRD 생성 대기</strong>
-                <span id="section2_generation_elapsed">00:00</span>
-              </div>
-              <p id="section2_generation_message">요구사항을 선택하고 생성 요청을 실행하면 n8n 처리 상태가 이곳에 표시됩니다.</p>
-              <div class="section2_generation_bar"><span id="section2_generation_bar"></span></div>
-              <div class="section2_generation_meta" id="section2_generation_meta">자동 확인 대기 중</div>
-            </section>
-          </section>
-
-          <section class="section2_repo_card common_card">
-            <div class="section2_repo_head">
-              <strong>생성된 PRD 문서</strong>
-              <button class="common_small_button" id="section2_btn_refresh_prd" type="button">/prd 새로고침</button>
-            </div>
-            <div class="section2_prd_file_list" id="section2_prd_file_list">
-              <div class="common_empty">Vercel Blob에서 PRD 목록을 불러오는 중입니다.</div>
-            </div>
-          </section>
-
-          <button class="section2_btn_open_logs common_small_button" id="section2_btn_refresh_logs" type="button">생성 로그 보기</button>
+          <button class="logout_button" id="logout_button" type="button">로그아웃</button>
         </div>
-      </section>
 
-      <div class="common_resizer" data-resizer="2" role="separator" aria-label="2컬럼 너비 조절"></div>
-
-      <section class="section section3" id="section3" data-col="3" aria-label="PRD Viewer">
-        <button class="section3_collapsed_opener common_collapsed_opener" type="button" data-reopen-col="3" aria-label="3컬럼 열기">
-          <span class="common_rail_num">3</span>
-          <span class="common_rail_text">Viewer</span>
-          <span class="common_rail_arrow">›</span>
-        </button>
-
-        <div class="section3_panel common_panel">
-          <div class="section3_panel_head common_panel_head">
+        <div class="service_grid">
+          <a class="service_card is_available" href="./prd.html" aria-label="PRD 서비스로 이동">
             <div>
-              <h2 class="section3_title">PRD Viewer</h2>
-              <p class="section3_description">2번 섹션에서 생성된 PRD 문서를 선택하면 이곳에서 내용을 확인하고 수정 요청을 남길 수 있습니다.</p>
+              <strong>PRD</strong>
+              <span>요구사항을 선택하고 PRD 문서를 생성합니다.</span>
             </div>
-            <button class="section3_btn_close common_btn_close" data-close-col="3" title="3컬럼 닫기">×</button>
-          </div>
+            <em class="service_badge">사용 가능</em>
+          </a>
 
-          <section class="section3_prd_viewer_card common_card">
-            <div class="section2_viewer_tabs">
-              <button class="section2_viewer_tab is_active" data-view="preview">PRD Viewer</button>
-              <button class="section2_viewer_tab" data-view="raw">Raw Markdown</button>
-              <div class="common_spacer"></div>
-              <button class="common_small_button" id="section2_btn_copy_prd">복사</button>
-              <button class="common_small_button" id="section2_btn_download_prd">Markdown 다운로드</button>
+          <button class="service_card is_disabled" type="button" disabled>
+            <div>
+              <strong>서비스 시나리오</strong>
+              <span>PRD 기반 시나리오 산출물을 구성합니다.</span>
             </div>
-            <article class="section2_prd_preview" id="section2_prd_preview">
-              <div class="common_empty_state"><div>?</div><p>2번 섹션의 PRD 문서를 선택하면 내용이 표시됩니다.</p></div>
-            </article>
-            <textarea class="section2_prd_raw is_hidden" id="section2_prd_raw" spellcheck="false"></textarea>
-          </section>
+            <em class="service_badge">준비중</em>
+          </button>
 
-          <button class="section2_feedback_toggle common_small_button" id="section2_btn_feedback_toggle" type="button">PRD 피드백 / 수정 요청</button>
+          <button class="service_card is_disabled" type="button" disabled>
+            <div>
+              <strong>UI 생성</strong>
+              <span>화면 구조와 인터페이스 초안을 만듭니다.</span>
+            </div>
+            <em class="service_badge">준비중</em>
+          </button>
 
-          <section class="section2_feedback_card common_card" id="section2_feedback_panel" aria-hidden="true">
-            <div class="section2_feedback_head">
-              <strong>PRD 피드백 / 수정 요청</strong>
-              <button class="section2_feedback_close" id="section2_btn_feedback_close" type="button" aria-label="피드백 입력 닫기">×</button>
+          <button class="service_card is_disabled" type="button" disabled>
+            <div>
+              <strong>코드 생성</strong>
+              <span>정의된 화면과 정책을 코드 산출물로 전환합니다.</span>
             </div>
-            <div class="section2_feedback_row">
-              <input class="section2_feedback_input" id="section2_feedback_input" type="text" placeholder="피드백을 입력하세요. 예: 예외 케이스 추가, 정책 상세화, KPI 추가 등" />
-              <button class="section2_btn_feedback" id="section2_btn_feedback">피드백 제출</button>
-              <button class="section2_btn_revise" id="section2_btn_revise">수정 PRD 생성</button>
+            <em class="service_badge">준비중</em>
+          </button>
+
+          <button class="service_card is_disabled" type="button" disabled>
+            <div>
+              <strong>TC</strong>
+              <span>테스트 케이스와 검증 항목을 생성합니다.</span>
             </div>
-          </section>
+            <em class="service_badge">준비중</em>
+          </button>
         </div>
       </section>
     </main>
   </div>
 
-  <dialog class="modal_detail" id="modal_detail">
-    <form method="dialog" class="modal_form">
-      <div class="modal_head">
-        <div>
-          <span class="modal_badge" id="modal_badge">REQ</span>
-          <h3 class="modal_title" id="modal_title">요구사항 상세</h3>
-        </div>
-        <button class="modal_btn_close" aria-label="닫기">×</button>
-      </div>
-      <div class="modal_meta" id="modal_meta"></div>
-      <pre class="modal_body" id="modal_body"></pre>
-      <div class="modal_actions">
-        <button class="modal_btn_cancel" value="cancel">닫기</button>
-        <button class="modal_btn_select" id="modal_btn_select" value="default">선택하기</button>
-      </div>
-    </form>
-  </dialog>
+  <script>
+    const loginView = document.getElementById('login_view');
+    const menuView = document.getElementById('menu_view');
+    const loginForm = document.getElementById('login_form');
+    const loginId = document.getElementById('login_id');
+    const loginPassword = document.getElementById('login_password');
+    const loginError = document.getElementById('login_error');
+    const landingStatus = document.getElementById('landing_status');
+    const logoutButton = document.getElementById('logout_button');
 
-  <dialog class="modal_detail" id="modal_direct_register">
-    <form method="dialog" class="modal_form">
-      <div class="modal_head">
-        <div>
-          <span class="modal_badge DIRECT">DIRECT</span>
-          <h3 class="modal_title">요구사항 직접 등록</h3>
-        </div>
-        <button class="modal_btn_close" id="modal_direct_btn_close" type="button" aria-label="닫기">×</button>
-      </div>
+    function showMenu() {
+      loginView.classList.remove('is_active');
+      menuView.classList.add('is_active');
+      landingStatus.textContent = 'Service Menu';
+      landingStatus.classList.add('is_signed_in');
+    }
 
-      <div class="modal_meta">
-        요구사항 속성과 원문을 입력하면 Vercel Blob의 /req 문서로 저장됩니다.
-      </div>
+    function showLogin() {
+      menuView.classList.remove('is_active');
+      loginView.classList.add('is_active');
+      landingStatus.textContent = 'Login Required';
+      landingStatus.classList.remove('is_signed_in');
+      loginPassword.value = '';
+      loginId.focus();
+    }
 
-      <div class="direct_register_body">
-        <label class="direct_form_group" for="direct_source_type">
-          <span>요구사항 속성</span>
-          <select class="direct_source_type" id="direct_source_type">
-            <option value="DIRECT">Direct</option>
-            <option value="JIRA">JIRA</option>
-            <option value="SLACK">Slack</option>
-          </select>
-        </label>
+    if (sessionStorage.getItem('agent_workspace_logged_in') === 'true') {
+      showMenu();
+    }
 
-        <label class="direct_form_group" for="direct_source_detail">
-          <span>요구사항 추가 정보</span>
-          <input
-            class="direct_source_detail"
-            id="direct_source_detail"
-            type="text"
-            placeholder="JIRA 선택 시 티켓번호 또는 URL을 입력하세요."
-            disabled
-          />
-        </label>
+    loginForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const id = loginId.value.trim();
+      const password = loginPassword.value.trim();
 
-        <label class="direct_form_group" for="direct_requirement_text">
-          <span>요구사항 입력</span>
-          <textarea
-            class="direct_requirement_text"
-            id="direct_requirement_text"
-            rows="10"
-            placeholder="요구사항 내용을 입력하세요."
-          ></textarea>
-        </label>
-      </div>
+      if (!id) {
+        loginError.textContent = 'ID를 입력하세요.';
+        loginId.focus();
+        return;
+      }
 
-      <div class="modal_actions">
-        <button class="modal_btn_cancel" id="direct_btn_reset" type="button">재입력</button>
-        <button class="modal_btn_select" id="direct_btn_submit" type="button">등록 하기</button>
-      </div>
-    </form>
-  </dialog>
+      if (password !== '1234') {
+        loginError.textContent = 'Password가 올바르지 않습니다.';
+        loginPassword.focus();
+        return;
+      }
 
-  <dialog class="modal_detail modal_log" id="modal_logs">
-    <form method="dialog" class="modal_form">
-      <div class="modal_head">
-        <div>
-          <span class="modal_badge">LOGS</span>
-          <h3 class="modal_title">생성 로그</h3>
-        </div>
-        <button class="modal_btn_close" id="modal_logs_btn_close" type="button" aria-label="닫기">×</button>
-      </div>
+      loginError.textContent = '';
+      sessionStorage.setItem('agent_workspace_logged_in', 'true');
+      showMenu();
+    });
 
-      <div class="modal_meta">
-        Vercel Blob의 /logs 문서를 기준으로 최근 생성 기록을 확인합니다.
-      </div>
-
-      <div class="section2_log_list" id="section2_log_list">
-        <div class="common_empty">Vercel Blob에서 로그를 불러오는 중입니다.</div>
-      </div>
-
-      <div class="modal_actions">
-        <button class="modal_btn_cancel" id="modal_logs_btn_refresh" type="button">새로고침</button>
-        <button class="modal_btn_select" value="cancel">닫기</button>
-      </div>
-    </form>
-  </dialog>
-
-  <div class="toast_message" id="toast_message"></div>
-  <script src="./asset/js/app.js"></script>
+    logoutButton.addEventListener('click', () => {
+      sessionStorage.removeItem('agent_workspace_logged_in');
+      showLogin();
+    });
+  </script>
 </body>
 </html>
