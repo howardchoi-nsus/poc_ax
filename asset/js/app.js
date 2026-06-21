@@ -118,12 +118,8 @@ const elements = {
   search: $('section1_search_input'),
   selectAll: $('section1_select_all'),
   requirementList: $('section1_requirement_list'),
-  selectedList: $('section1_selected_list'),
-  selectedCount: $('section1_selected_count'),
   selectedCountMini: $('section1_selected_count_mini'),
   totalCount: $('section1_total_count'),
-  clearSelection: $('section1_btn_clear_selection'),
-  confirmSelection: $('section1_btn_confirm'),
 
   targetCount: $('section2_target_count'),
   targetStatus: $('section2_target_status'),
@@ -210,10 +206,6 @@ function bindEvents() {
 
   elements.search.addEventListener('input', renderRequirementList);
   elements.selectAll.addEventListener('change', onSelectAll);
-  elements.clearSelection.addEventListener('click', clearSelection);
-  elements.confirmSelection.addEventListener('click', () =>
-    showToast('선택이 완료되었습니다. 2컬럼에서 PRD 생성을 요청하세요.')
-  );
 
   elements.generatePrd.addEventListener('click', requestPrdGenerate);
   elements.refreshPrd.addEventListener('click', refreshPrdFiles);
@@ -449,6 +441,17 @@ function getRequirementSourceLabel(file) {
 
 function cleanRequirementListText(value) {
   return String(value || '').replace(/\s*\(\s*삭제\s*\)\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+}
+
+function getRequirementDisplayTitle(file) {
+  const title = cleanRequirementListText(file?.name || '')
+    .replace(/\.md$/i, '')
+    .replace(/^REQ_/i, '')
+    .replace(/_\d{6,8}_\d{6}$/g, '')
+    .replace(/_/g, ' ')
+    .trim();
+
+  return title || cleanRequirementListText(file?.name || '');
 }
 
 async function enrichRequirementMetadata(files, loadId) {
@@ -689,35 +692,29 @@ function renderRequirementList() {
   elements.requirementList.innerHTML = files
     .map((file) => {
       const source = getRequirementSource(file);
-      const sourceLabel = cleanRequirementListText(getRequirementSourceLabel(file));
       const displayName = cleanRequirementListText(file.name);
-      const displayPath = cleanRequirementListText(file.path);
+      const displayTitle = getRequirementDisplayTitle(file);
       const selected = state.selectedReqPaths.has(file.path);
 
       return `
         <article class="section1_req_item ${selected ? 'is_selected' : ''}" data-path="${escapeHtml(file.path)}">
-          <input
-            type="checkbox"
-            class="section1_req_checkbox"
-            ${selected ? 'checked' : ''}
-            aria-label="${escapeHtml(displayName)} 선택"
-          />
           <div class="section1_req_main">
-            <button class="section1_req_title_button" type="button">
-              ${escapeHtml(displayName)}
-            </button>
             <div class="section1_req_meta">
+              <input
+                type="checkbox"
+                class="section1_req_checkbox"
+                ${selected ? 'checked' : ''}
+                aria-label="${escapeHtml(displayName)} 선택"
+              />
+              <span class="section1_req_filename">${escapeHtml(displayName)}</span>
               <span class="common_badge ${source}">${source}</span>
-              <span>${escapeHtml(sourceLabel)}</span>
               <span>등록일 ${escapeHtml(file.registeredAtLabel)}</span>
               <span>${formatSize(file.size)}</span>
-              <span>${escapeHtml(displayPath)}</span>
             </div>
-            <p class="section1_req_snippet">
-              Vercel Blob의 ${escapeHtml(displayPath)} 파일입니다. 제목을 클릭하면 원문을 불러옵니다.
-            </p>
+            <button class="section1_req_title_button" type="button">
+              ${escapeHtml(displayTitle)}
+            </button>
           </div>
-          <span class="common_status_badge success">Blob</span>
         </article>
       `;
     })
@@ -1048,19 +1045,10 @@ function onSelectAll(event) {
   renderRequirementList();
 }
 
-/* 선택 해제 */
-function clearSelection() {
-  state.selectedReqPaths.clear();
-  updateSelectedView();
-  renderRequirementList();
-}
-
 /* 선택 뷰 업데이트 */
 function updateSelectedView() {
   const count = state.selectedReqPaths.size;
-  elements.selectedCount.textContent = String(count);
   elements.selectedCountMini.textContent = String(count);
-  elements.confirmSelection.disabled = count === 0;
 
   // Section2 요약
   elements.targetCount.textContent = `${count}개`;
@@ -1069,7 +1057,6 @@ function updateSelectedView() {
     elements.targetStatus.textContent = '대상 선택 필요';
     elements.targetStatus.className = '';
     elements.selectedSummary.innerHTML = '<div class="section2_empty_target">좌측 패널에서 요구사항을 선택하면 이곳에 표시됩니다.</div>';
-    elements.selectedList.innerHTML = '<p class="common_muted">선택된 요구사항이 없습니다.</p>';
     elements.generatePrd.disabled = true;
     return;
   }
@@ -1104,21 +1091,6 @@ function updateSelectedView() {
     button.addEventListener('click', () => toggleRequirementSelection(button.dataset.removePath, false));
   });
 
-  elements.selectedList.innerHTML = paths
-    .map((p) => {
-      const name = p.split('/').pop();
-      return `
-        <div class="section1_selected_pill">
-          <span>${escapeHtml(name)}</span>
-          <button type="button" class="section1_selected_remove" data-remove-path="${escapeHtml(p)}" title="제거">×</button>
-        </div>
-      `;
-    })
-    .join('');
-
-  $$('.section1_selected_remove', elements.selectedList).forEach((button) => {
-    button.addEventListener('click', () => toggleRequirementSelection(button.dataset.removePath, false));
-  });
 }
 
 /* 프롬프트 옵션 렌더 */
