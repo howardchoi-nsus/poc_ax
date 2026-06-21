@@ -134,16 +134,9 @@
             </section>
 
             <button class="section2_btn_generate" id="section2_btn_generate" disabled>▶ 선택 요구사항으로 PRD 생성 요청</button>
-
-            <section class="section2_generation_status" id="section2_generation_status" data-status="idle">
-              <div class="section2_generation_head">
-                <strong id="section2_generation_title">PRD 생성 대기</strong>
-                <span id="section2_generation_elapsed">00:00</span>
-              </div>
-              <p id="section2_generation_message">요구사항을 선택하고 생성 요청을 실행하면 n8n 처리 상태가 이곳에 표시됩니다.</p>
-              <div class="section2_generation_bar"><span id="section2_generation_bar"></span></div>
-              <div class="section2_generation_meta" id="section2_generation_meta">자동 확인 대기 중</div>
-            </section>
+            <button class="section2_generation_reopen common_small_button" id="section2_btn_generation_modal" type="button">
+              <span id="section2_generation_summary">PRD 생성 대기</span>
+            </button>
           </section>
 
           <section class="section2_repo_card common_card">
@@ -302,6 +295,33 @@
       <div class="modal_actions">
         <button class="modal_btn_cancel" id="modal_logs_btn_refresh" type="button">새로고침</button>
         <button class="modal_btn_select" value="cancel">닫기</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal_detail modal_generation" id="modal_generation">
+    <form method="dialog" class="modal_form">
+      <div class="modal_head">
+        <div>
+          <span class="modal_badge">PRD</span>
+          <h3 class="modal_title">PRD 생성 진행</h3>
+        </div>
+        <button class="modal_btn_close" id="modal_generation_btn_close" type="button" aria-label="닫기">×</button>
+      </div>
+
+      <section class="section2_generation_status" id="section2_generation_status" data-status="idle">
+        <div class="section2_generation_head">
+          <strong id="section2_generation_title">PRD 생성 대기</strong>
+          <span id="section2_generation_elapsed">00:00</span>
+        </div>
+        <p id="section2_generation_message">요구사항을 선택하고 생성 요청을 실행하면 n8n 처리 상태가 이곳에 표시됩니다.</p>
+        <div class="section2_generation_bar"><span id="section2_generation_bar"></span></div>
+        <div class="section2_generation_meta" id="section2_generation_meta">자동 확인 대기 중</div>
+      </section>
+
+      <div class="modal_actions">
+        <button class="modal_btn_cancel" id="modal_generation_btn_background" type="button">백그라운드로 진행</button>
+        <button class="modal_btn_select" id="modal_generation_btn_confirm" value="cancel">확인</button>
       </div>
     </form>
   </dialog>

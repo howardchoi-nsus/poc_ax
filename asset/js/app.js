@@ -132,6 +132,12 @@ const elements = {
   generationMessage: $('section2_generation_message'),
   generationBar: $('section2_generation_bar'),
   generationMeta: $('section2_generation_meta'),
+  generationSummary: $('section2_generation_summary'),
+  generationModalOpen: $('section2_btn_generation_modal'),
+  generationModal: $('modal_generation'),
+  generationModalClose: $('modal_generation_btn_close'),
+  generationModalBackground: $('modal_generation_btn_background'),
+  generationModalConfirm: $('modal_generation_btn_confirm'),
   prdFileList: $('section2_prd_file_list'),
   refreshPrd: $('section2_btn_refresh_prd'),
   prdPreview: $('section2_prd_preview'),
@@ -206,6 +212,10 @@ function bindEvents() {
   elements.selectAll.addEventListener('change', onSelectAll);
 
   elements.generatePrd.addEventListener('click', requestPrdGenerate);
+  elements.generationModalOpen?.addEventListener('click', openGenerationModal);
+  elements.generationModalClose?.addEventListener('click', closeGenerationModal);
+  elements.generationModalBackground?.addEventListener('click', closeGenerationModal);
+  elements.generationModalConfirm?.addEventListener('click', closeGenerationModal);
   elements.refreshPrd.addEventListener('click', refreshPrdFiles);
   elements.copyPrd.addEventListener('click', () => copyToClipboard(elements.prdRaw.value));
   elements.downloadPrd.addEventListener('click', () =>
@@ -771,6 +781,7 @@ function setGenerationStatus(status, options = {}) {
   if (typeof progress === 'number') {
     elements.generationBar.style.width = `${Math.max(0, Math.min(100, progress))}%`;
   }
+  updateGenerationSummary(status);
 }
 
 function updateGenerationElapsed() {
@@ -784,6 +795,34 @@ function updateGenerationElapsed() {
 
   elements.generationElapsed.textContent = formatDuration(elapsed);
   elements.generationBar.style.width = `${progress}%`;
+  updateGenerationSummary(elements.generationStatus?.dataset.status || 'idle');
+}
+
+function openGenerationModal() {
+  if (!elements.generationModal) return;
+  if (!elements.generationModal.open) {
+    elements.generationModal.showModal();
+  }
+}
+
+function closeGenerationModal() {
+  elements.generationModal?.close();
+}
+
+function updateGenerationSummary(status = 'idle') {
+  if (!elements.generationSummary) return;
+
+  const title = elements.generationTitle?.textContent || 'PRD 생성 대기';
+  const elapsed = elements.generationElapsed?.textContent || '00:00';
+
+  if (status === 'running') {
+    elements.generationSummary.textContent = `${title} · ${elapsed}`;
+    elements.generationModalOpen?.classList.add('is_active');
+    return;
+  }
+
+  elements.generationSummary.textContent = title;
+  elements.generationModalOpen?.classList.toggle('is_active', status === 'complete');
 }
 
 function startPrdGenerationWatch(knownPaths) {
@@ -804,6 +843,7 @@ function startPrdGenerationWatch(knownPaths) {
     progress: 8
   });
   updateGenerationElapsed();
+  openGenerationModal();
 
   state.generation.elapsedTimer = window.setInterval(updateGenerationElapsed, 1000);
   state.generation.timer = window.setInterval(pollGeneratedPrdFiles, 5000);
@@ -1503,17 +1543,113 @@ function renderError(msg) {
 /* 간단 마크다운 → HTML */
 function simpleMarkdown(text) {
   if (!text) return '';
-  return text
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+  const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+  const blocks = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index];
+
+    if (!line.trim()) {
+      index += 1;
+      continue;
+    }
+
+    if (isMarkdownTableStart(lines, index)) {
+      const tableLines = [];
+      while (index < lines.length && isMarkdownTableRow(lines[index])) {
+        tableLines.push(lines[index]);
+        index += 1;
+      }
+      blocks.push(renderMarkdownTable(tableLines));
+      continue;
+    }
+
+    if (/^###\s+/.test(line)) {
+      blocks.push(`<h4>${formatInlineMarkdown(line.replace(/^###\s+/, ''))}</h4>`);
+      index += 1;
+      continue;
+    }
+
+    if (/^##\s+/.test(line)) {
+      blocks.push(`<h3>${formatInlineMarkdown(line.replace(/^##\s+/, ''))}</h3>`);
+      index += 1;
+      continue;
+    }
+
+    if (/^#\s+/.test(line)) {
+      blocks.push(`<h2>${formatInlineMarkdown(line.replace(/^#\s+/, ''))}</h2>`);
+      index += 1;
+      continue;
+    }
+
+    if (/^-\s+/.test(line)) {
+      const items = [];
+      while (index < lines.length && /^-\s+/.test(lines[index])) {
+        items.push(`<li>${formatInlineMarkdown(lines[index].replace(/^-\s+/, ''))}</li>`);
+        index += 1;
+      }
+      blocks.push(`<ul>${items.join('')}</ul>`);
+      continue;
+    }
+
+    const paragraphLines = [];
+    while (
+      index < lines.length &&
+      lines[index].trim() &&
+      !/^#{1,3}\s+/.test(lines[index]) &&
+      !/^-\s+/.test(lines[index]) &&
+      !isMarkdownTableStart(lines, index)
+    ) {
+      paragraphLines.push(lines[index]);
+      index += 1;
+    }
+    blocks.push(`<p>${formatInlineMarkdown(paragraphLines.join('<br>'))}</p>`);
+  }
+
+  return blocks.join('');
+}
+
+function isMarkdownTableStart(lines, index) {
+  return isMarkdownTableRow(lines[index]) && isMarkdownTableDivider(lines[index + 1]);
+}
+
+function isMarkdownTableRow(line) {
+  return /^\s*\|.*\|\s*$/.test(String(line || ''));
+}
+
+function isMarkdownTableDivider(line) {
+  return /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)+\|?\s*$/.test(String(line || ''));
+}
+
+function renderMarkdownTable(lines) {
+  const [headerLine, , ...bodyLines] = lines;
+  const headers = splitMarkdownTableRow(headerLine);
+  const rows = bodyLines.map(splitMarkdownTableRow);
+
+  return `
+    <table>
+      <thead><tr>${headers.map((cell) => `<th>${formatInlineMarkdown(cell)}</th>`).join('')}</tr></thead>
+      <tbody>
+        ${rows.map((row) => `<tr>${row.map((cell) => `<td>${formatInlineMarkdown(cell)}</td>`).join('')}</tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function splitMarkdownTableRow(line) {
+  return String(line || '')
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((cell) => cell.trim());
+}
+
+function formatInlineMarkdown(value) {
+  return escapeHtml(value)
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
-    .replace(/\n{2,}/g, '</p><p>')
-    .replace(/^(?!<[h|u|l])(.+)$/gm, (m) => m ? `<p>${m}</p>` : '');
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
 }
 
 /* ── 앱 시작 ── */
