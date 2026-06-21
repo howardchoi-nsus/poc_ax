@@ -447,6 +447,10 @@ function getRequirementSourceLabel(file) {
   return detail || source;
 }
 
+function cleanRequirementListText(value) {
+  return String(value || '').replace(/\s*\(\s*삭제\s*\)\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+}
+
 async function enrichRequirementMetadata(files, loadId) {
   const targets = files.filter((file) =>
     file.path &&
@@ -685,7 +689,9 @@ function renderRequirementList() {
   elements.requirementList.innerHTML = files
     .map((file) => {
       const source = getRequirementSource(file);
-      const sourceLabel = getRequirementSourceLabel(file);
+      const sourceLabel = cleanRequirementListText(getRequirementSourceLabel(file));
+      const displayName = cleanRequirementListText(file.name);
+      const displayPath = cleanRequirementListText(file.path);
       const selected = state.selectedReqPaths.has(file.path);
 
       return `
@@ -694,21 +700,21 @@ function renderRequirementList() {
             type="checkbox"
             class="section1_req_checkbox"
             ${selected ? 'checked' : ''}
-            aria-label="${escapeHtml(file.name)} 선택"
+            aria-label="${escapeHtml(displayName)} 선택"
           />
           <div class="section1_req_main">
             <button class="section1_req_title_button" type="button">
-              ${escapeHtml(file.name)}
+              ${escapeHtml(displayName)}
             </button>
             <div class="section1_req_meta">
               <span class="common_badge ${source}">${source}</span>
               <span>${escapeHtml(sourceLabel)}</span>
               <span>등록일 ${escapeHtml(file.registeredAtLabel)}</span>
               <span>${formatSize(file.size)}</span>
-              <span>${escapeHtml(file.path)}</span>
+              <span>${escapeHtml(displayPath)}</span>
             </div>
             <p class="section1_req_snippet">
-              Vercel Blob의 ${escapeHtml(file.path)} 파일입니다. 제목을 클릭하면 원문을 불러옵니다.
+              Vercel Blob의 ${escapeHtml(displayPath)} 파일입니다. 제목을 클릭하면 원문을 불러옵니다.
             </p>
           </div>
           <span class="common_status_badge success">Blob</span>
