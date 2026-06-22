@@ -83,7 +83,10 @@ const state = {
   generation: {
     active: false,
     startedAt: null,
+    requestId: null,
+    estimatedMs: null,
     knownPaths: new Set(),
+    knownLogPaths: new Set(),
     timer: null,
     elapsedTimer: null,
     lastCheckedAt: null,
@@ -781,6 +784,31 @@ function getGenerationLimitMs() {
   return state.generation.maxAttempts * state.generation.pollIntervalMs;
 }
 
+function createPrdRequestId() {
+  const random = Math.random().toString(36).slice(2, 8);
+  return `prd_${Date.now().toString(36)}_${random}`;
+}
+
+function estimatePrdGenerationMs(paths = []) {
+  const selectedRequirements = paths
+    .map((path) => state.requirements.find((file) => file.path === path))
+    .filter(Boolean);
+  const prompt = state.prompts.find((file) => file.path === elements.promptTemplate?.value);
+  const requirementBytes = selectedRequirements.reduce((sum, file) => sum + Number(file.size || 0), 0);
+  const promptBytes = Number(prompt?.size || 0);
+  const totalKb = Math.ceil((requirementBytes + promptBytes) / 1024);
+  const estimate =
+    45 * 1000 +
+    selectedRequirements.length * 15 * 1000 +
+    totalKb * 2500;
+
+  return Math.max(90 * 1000, Math.min(getGenerationLimitMs(), estimate));
+}
+
+function getGenerationEstimateMs() {
+  return state.generation.estimatedMs || getGenerationLimitMs();
+}
+
 function setGenerationStatus(status, options = {}) {
   if (!elements.generationStatus) return;
 
@@ -812,19 +840,19 @@ function updateGenerationElapsed() {
   if (!state.generation.startedAt) {
     elements.generationElapsed.textContent = '00:00';
     if (elements.generationEta) {
-      elements.generationEta.textContent = formatDuration(getGenerationLimitMs());
+      elements.generationEta.textContent = formatDuration(getGenerationEstimateMs());
     }
     return;
   }
 
   const elapsed = Date.now() - state.generation.startedAt;
-  const limitMs = getGenerationLimitMs();
-  const remaining = Math.max(0, limitMs - elapsed);
-  const progress = Math.min(92, (elapsed / limitMs) * 100);
+  const estimateMs = getGenerationEstimateMs();
+  const remaining = Math.max(0, estimateMs - elapsed);
+  const progress = Math.min(92, (elapsed / estimateMs) * 100);
 
   elements.generationElapsed.textContent = formatDuration(elapsed);
   if (elements.generationEta) {
-    elements.generationEta.textContent = formatDuration(remaining);
+    elements.generationEta.textContent = remaining > 0 ? formatDuration(remaining) : '완료 확인 중';
   }
   elements.generationBar.style.width = `${progress}%`;
   updateGenerationSummary(elements.generationStatus?.dataset.status || 'idle');
@@ -880,12 +908,15 @@ function stopPrdGenerationByUser() {
   showToast('PRD 생성 자동 확인을 중단했습니다.');
 }
 
-function startPrdGenerationWatch(knownPaths) {
+function startPrdGenerationWatch(knownPaths, options = {}) {
   stopPrdGenerationWatch(false);
 
   state.generation.active = true;
   state.generation.startedAt = Date.now();
+  state.generation.requestId = options.requestId || createPrdRequestId();
+  state.generation.estimatedMs = options.estimatedMs || getGenerationLimitMs();
   state.generation.knownPaths = new Set(knownPaths);
+  state.generation.knownLogPaths = new Set(options.knownLogPaths || []);
   state.generation.lastCheckedAt = null;
   state.generation.attempts = 0;
 
@@ -896,6 +927,9 @@ function startPrdGenerationWatch(knownPaths) {
     message: 'n8n에서 문서를 작성하고 있습니다. 완료되면 목록이 자동 갱신됩니다.',
     meta: '자동 확인 준비 중',
     progress: 8
+  });
+  setGenerationStatus('running', {
+    meta: `예상 ${formatDuration(state.generation.estimatedMs)} · 최대 ${formatDuration(getGenerationLimitMs())}`
   });
   updateGenerationElapsed();
   openGenerationModal();
@@ -923,6 +957,53 @@ function stopPrdGenerationWatch(resetButton = true) {
   }
 }
 
+function isGenerationErrorLogCandidate(file) {
+  const requestId = state.generation.requestId;
+  if (!file?.path || state.generation.knownLogPaths.has(file.path)) return false;
+
+  const text = `${file.path} ${file.name || ''}`.toLowerCase();
+  if (requestId && text.includes(requestId.toLowerCase())) return true;
+  if (!text.includes('error') && !text.includes('err')) return false;
+
+  const uploadedAt = file.uploadedAt ? new Date(file.uploadedAt).getTime() : 0;
+  const startedAt = state.generation.startedAt || 0;
+  return !uploadedAt || !startedAt || uploadedAt >= startedAt - 5000;
+}
+
+async function findPrdGenerationErrorLog() {
+  const logs = await fetchBlobFolder(APP_CONFIG.storage.folders.logs);
+  state.logs = logs;
+
+  const candidates = logs
+    .filter(isGenerationErrorLogCandidate)
+    .sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0))
+    .slice(0, 5);
+
+  for (const file of candidates) {
+    try {
+      const text = await fetchBlobText(file.path);
+      const data = JSON.parse(text);
+      const requestMatches =
+        !state.generation.requestId ||
+        data.requestId === state.generation.requestId ||
+        data.requirementSetId === state.generation.requestId;
+      const failed = data.status === 'error' || data.success === false || data.error;
+
+      if (requestMatches && failed) {
+        return {
+          file,
+          data,
+          message: data.message || data.error?.message || data.error || 'n8n workflow error'
+        };
+      }
+    } catch (error) {
+      // Ignore unreadable/non-JSON logs while polling for workflow errors.
+    }
+  }
+
+  return null;
+}
+
 async function pollGeneratedPrdFiles() {
   if (!state.generation.active) return;
 
@@ -933,6 +1014,20 @@ async function pollGeneratedPrdFiles() {
   });
 
   try {
+    const errorLog = await findPrdGenerationErrorLog();
+    if (errorLog) {
+      stopPrdGenerationWatch();
+      setGenerationStatus('error', {
+        title: 'PRD 생성 실패',
+        message: errorLog.message,
+        meta: `n8n error log: ${errorLog.file.path}`,
+        progress: 100
+      });
+      renderLogs();
+      showToast(`PRD 생성 실패: ${errorLog.message}`);
+      return;
+    }
+
     const files = await fetchBlobFolder(APP_CONFIG.storage.folders.prd);
     const newFiles = files.filter((file) => !state.generation.knownPaths.has(file.path));
 
@@ -1312,7 +1407,10 @@ async function requestPrdGenerate() {
   if (state.generation.active) { showToast('이미 PRD 생성이 진행 중입니다.'); return; }
 
   const knownPaths = new Set(state.prds.map((file) => file.path));
-  startPrdGenerationWatch(knownPaths);
+  const knownLogPaths = new Set(state.logs.map((file) => file.path));
+  const requestId = createPrdRequestId();
+  const estimatedMs = estimatePrdGenerationMs(paths);
+  startPrdGenerationWatch(knownPaths, { requestId, estimatedMs, knownLogPaths });
   showToast('PRD 생성 요청을 전송했습니다.');
 
   try {
@@ -1324,6 +1422,8 @@ async function requestPrdGenerate() {
         promptTemplate: elements.promptTemplate.value,
         model: elements.modelSelect.value,
         docTitle: elements.docTitle.value,
+        requestId,
+        estimatedSeconds: Math.ceil(estimatedMs / 1000),
         secret: APP_CONFIG.webhooks.secret
       })
     });

@@ -1,0 +1,803 @@
+{
+  "name": "AGENT1_PRD생성_Vercel_poc",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent1-requirement-save",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        6496,
+        272
+      ],
+      "id": "ca970596-cdf3-4d29-aa1a-067086c4a4bb",
+      "name": "Webhook - Requirement Save",
+      "webhookId": "7bd5124a-49a4-4f8f-9bb3-aeedc99fa0f4"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.body && typeof $json.body === 'object'\n  ? $json.body\n  : $json;\n\nfunction pick(...values) {\n  return values.find((v) => {\n    if (v === undefined || v === null) return false;\n    return String(v).trim() !== '';\n  });\n}\n\nfunction slug(value) {\n  return String(value || 'requirement')\n    .trim()\n    .replace(/^REQ_/i, '')\n    .replace(/\\.[^.]+$/, '')\n    .replace(/\\s+/g, '_')\n    .replace(/[^A-Za-z0-9가-힣_-]+/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '');\n}\n\nfunction timestamp() {\n  const d = new Date();\n  const yy = String(d.getFullYear()).slice(-2);\n  const mm = String(d.getMonth() + 1).padStart(2, '0');\n  const dd = String(d.getDate()).padStart(2, '0');\n  const hh = String(d.getHours()).padStart(2, '0');\n  const mi = String(d.getMinutes()).padStart(2, '0');\n  const ss = String(d.getSeconds()).padStart(2, '0');\n  return `${yy}${mm}${dd}_${hh}${mi}${ss}`;\n}\n\nconst DEFAULT_VERCEL_BASE_URL = 'https://howardchoi-nsus-pocax.vercel.app';\n\nconst keyword = slug(\n  pick(\n    payload.requirementKeyword,\n    payload.requirement_keyword,\n    payload.keyword,\n    payload.title,\n    payload.requirementId,\n    'manual'\n  )\n);\n\nconst ts = timestamp();\n\nconst requirementId = pick(\n  payload.requirementId,\n  payload.requirement_id,\n  `REQ_${keyword}_${ts}`\n);\n\nconst sourceText = pick(\n  payload.sourceText,\n  payload.requirementText,\n  payload.requirement_text,\n  payload.content,\n  payload.text,\n  ''\n);\n\nif (!String(sourceText).trim()) {\n  throw new Error('sourceText 또는 requirementText 값이 없습니다.');\n}\n\nconst sourceType = pick(payload.sourceType, payload.source_type, 'DIRECT');\n\nconst sourceLabel = pick(\n  payload.sourceLabel,\n  payload.source_label,\n  sourceType === 'DIRECT' ? '직접등록' : sourceType\n);\n\nreturn [\n  {\n    json: {\n      action: 'requirement_save',\n\n      requirementKeyword: keyword,\n      requirementId,\n\n      sourceType,\n      sourceLabel,\n      sourceDetail: pick(payload.sourceDetail, payload.source_detail, ''),\n\n      sourceText: String(sourceText).trim(),\n\n      storageType: 'vercel_blob',\n\n      vercelBaseUrl: String(\n        pick(\n          payload.vercelBaseUrl,\n          payload.vercel_base_url,\n          payload.baseUrl,\n          DEFAULT_VERCEL_BASE_URL\n        )\n      ).replace(/\\/+$/, ''),\n\n      sourceDir: pick(\n        payload.sourceDir,\n        payload.githubSourceDir,\n        payload.github_source_dir,\n        'source'\n      ),\n\n      reqDir: pick(\n        payload.reqDir,\n        payload.githubReqDir,\n        payload.github_req_dir,\n        'req'\n      ),\n\n      requestedBy: pick(payload.requestedBy, payload.requested_by, 'web'),\n      receivedAt: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6736,
+        272
+      ],
+      "id": "d4e558ed-bb77-4bf2-b670-99dee2912b26",
+      "name": "Normalize - Requirement Save"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json;\nfunction toBase64(value) { return Buffer.from(value, 'utf8').toString('base64').replace(/\\r?\\n|\\r/g, ''); }\nconst sourceDir = (input.githubSourceDir || 'source').replace(/^\\/+|\\/+$/g, '');\nconst sourceFileName = `${input.requirementId}.txt`;\nconst sourceFilePath = `${sourceDir}/${sourceFileName}`;\nconst metaBlock = [\n  `source_type: ${input.sourceType}`,\n  `source_label: ${input.sourceLabel}`,\n  input.sourceDetail ? `source_detail: ${input.sourceDetail}` : '',\n  `created_at: ${new Date().toISOString()}`,\n  ''\n].filter(Boolean).join('\\n');\nconst sourceBody = `${metaBlock}\\n${input.sourceText}`;\nreturn [{ json: {\n  ...input,\n  sourceFileName,\n  sourceFilePath,\n  sourceBody,\n  sourceRequestBody: {\n    message: `Save source requirement: ${sourceFileName}`,\n    content: toBase64(sourceBody),\n    branch: input.githubBranch || 'main'\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6976,
+        272
+      ],
+      "id": "ab7066ec-23c2-40c1-b4c4-c803f712fbe8",
+      "name": "Prepare Source File"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Prepare Source File').item.json;\nfunction toBase64(value) { return Buffer.from(value, 'utf8').toString('base64').replace(/\\r?\\n|\\r/g, ''); }\nconst reqDir = (input.githubReqDir || 'req').replace(/^\\/+|\\/+$/g, '');\nconst reqFileName = `${input.requirementId}.md`;\nconst requirementFilePath = `${reqDir}/${reqFileName}`;\nconst reqMarkdown = `---\nrequirement_id: ${input.requirementId}\nsource_type: ${input.sourceType}\nsource_label: ${input.sourceLabel}\nsource_detail: ${String(input.sourceDetail || '').replace(/\\n/g, ' ')}\nsource_file: ${input.sourceFilePath}\ncreated_at: ${new Date().toISOString()}\nstatus: registered\nagent: agent1_requirement_save\n---\n\n# 요구사항\n\n${input.sourceText.trim()}\n`;\nreturn [{ json: {\n  ...input,\n  reqFileName,\n  requirementFilePath,\n  reqMarkdown,\n  requirementRequestBody: {\n    message: `Save normalized requirement: ${reqFileName}`,\n    content: toBase64(reqMarkdown),\n    branch: input.githubBranch || 'main'\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7456,
+        272
+      ],
+      "id": "6bfb35a7-a422-48ba-9f0f-efd30b212312",
+      "name": "Prepare Requirement File"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Prepare Requirement File').item.json;\nreturn [{ json: {\n  success: true,\n  action: 'requirement_save',\n  message: '요구사항이 Git Repository에 저장되었습니다.',\n  requirementId: input.requirementId,\n  sourceFilePath: input.sourceFilePath,\n  requirementFilePath: input.requirementFilePath,\n  githubOwner: input.githubOwner,\n  githubRepo: input.githubRepo,\n  githubBranch: input.githubBranch,\n  createdAt: new Date().toISOString()\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7936,
+        272
+      ],
+      "id": "b068e42b-b79a-4f1c-a890-6ff62dca2aac",
+      "name": "Prepare Response - Requirement Save"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        8176,
+        272
+      ],
+      "id": "f86fc246-3334-4b20-b0b4-147fb62fc697",
+      "name": "Respond - Requirement Save"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent1-prd-generate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        6496,
+        784
+      ],
+      "id": "27a51ebc-2d7a-48bb-a8b2-879ee2009e07",
+      "name": "Webhook - PRD Generate",
+      "webhookId": "9696e7aa-afba-4e69-9bed-f6c6f1b333d6"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.body && typeof $json.body === 'object'\n  ? $json.body\n  : $json;\n\nfunction pick(...values) {\n  return values.find((value) => {\n    if (value === undefined || value === null) return false;\n    return String(value).trim() !== '';\n  });\n}\n\nfunction timestamp() {\n  const d = new Date();\n  const yy = String(d.getFullYear()).slice(-2);\n  const mm = String(d.getMonth() + 1).padStart(2, '0');\n  const dd = String(d.getDate()).padStart(2, '0');\n  const hh = String(d.getHours()).padStart(2, '0');\n  const mi = String(d.getMinutes()).padStart(2, '0');\n  const ss = String(d.getSeconds()).padStart(2, '0');\n  return `${yy}${mm}${dd}_${hh}${mi}${ss}`;\n}\n\nfunction normalizePath(path) {\n  return String(path || '')\n    .trim()\n    .replace(/^\\/+/, '');\n}\n\nfunction normalizeDir(dir, fallback) {\n  return String(dir || fallback)\n    .trim()\n    .replace(/^\\/+|\\/+$/g, '');\n}\n\nfunction makeTitleFromPaths(paths, fallback) {\n  if (!paths.length) return fallback;\n\n  const firstName = String(paths[0])\n    .split('/')\n    .pop()\n    .replace(/\\.[^.]+$/, '')\n    .replace(/^REQ_/i, '');\n\n  const suffix = paths.length > 1 ? `_외_${paths.length - 1}건` : '';\n\n  return `${firstName}${suffix}`;\n}\n\nconst paths =\n  payload.requirementFilePaths ||\n  payload.requirementFiles ||\n  payload.reqFilePaths ||\n  payload.requirements ||\n  [];\n\nif (!Array.isArray(paths) || !paths.length) {\n  throw new Error('requirementFilePaths 배열이 필요합니다.');\n}\n\nconst normalizedPaths = paths.map(normalizePath).filter(Boolean);\n\nif (!normalizedPaths.length) {\n  throw new Error('유효한 요구사항 파일 경로가 없습니다.');\n}\n\nconst ts = timestamp();\n\nconst requirementSetId = pick(\n  payload.requirementSetId,\n  `REQ_SET_${ts}`\n);\n\nconst requestId = pick(\n  payload.requestId,\n  requirementSetId\n);\n\nconst vercelBaseUrl = String(\n  pick(\n    payload.vercelBaseUrl,\n    payload.vercel_base_url,\n    payload.baseUrl,\n    'https://howardchoi-nsus-pocax.vercel.app'\n  )\n).replace(/\\/+$/, '');\n\nconst promptFilePath = normalizePath(\n  pick(\n    payload.promptFilePath,\n    payload.promptTemplate,\n    'prompts/prd-template-v1.md'\n  )\n);\n\nconst outputDir = normalizeDir(\n  pick(payload.outputDir, payload.githubOutputDir),\n  'prd'\n);\n\nconst mapDir = normalizeDir(\n  pick(payload.mapDir, payload.githubMapDir),\n  'maps'\n);\n\nconst logDir = normalizeDir(\n  pick(payload.logDir, payload.githubLogDir),\n  'logs'\n);\n\nconst documentTitle = pick(\n  payload.documentTitle,\n  payload.docTitle,\n  makeTitleFromPaths(normalizedPaths, requirementSetId)\n);\n\nreturn [\n  {\n    json: {\n      action: 'agent1_prd_generate',\n      storageType: 'vercel_blob',\n\n      vercelBaseUrl,\n\n      requestId,\n      requirementSetId,\n      requirementFilePaths: normalizedPaths,\n      promptFilePath,\n\n      model: pick(payload.model, 'gpt-4o-mini'),\n      documentTitle,\n\n      outputDir,\n      mapDir,\n      logDir,\n\n      requestedBy: pick(payload.requestedBy, 'web'),\n      timestamp: ts,\n      estimatedSeconds: Number(payload.estimatedSeconds || 0) || null,\n      receivedAt: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6736,
+        784
+      ],
+      "id": "4dfe7ceb-48ef-4765-b247-30809e4092b5",
+      "name": "Normalize - PRD Generate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json;\n\nconst baseUrl = String(\n  input.vercelBaseUrl || 'https://howardchoi-nsus-pocax.vercel.app'\n).replace(/\\/+$/, '');\n\nasync function readBlobText(path) {\n  const cleanPath = String(path || '').replace(/^\\/+/, '');\n\n  if (!cleanPath) {\n    throw new Error('읽을 파일 경로가 비어 있습니다.');\n  }\n\n  const url = `${baseUrl}/api/blob-file?path=${encodeURIComponent(cleanPath)}`;\n\n  const data = await this.helpers.httpRequest({\n    method: 'GET',\n    url,\n    headers: {\n      Accept: 'application/json'\n    },\n    json: true\n  });\n\n  if (!data || data.success === false) {\n    throw new Error(data?.message || `${cleanPath} 파일 조회 실패`);\n  }\n\n  const content = data.content || data.text || '';\n\n  if (!String(content).trim()) {\n    throw new Error(`${cleanPath} 파일 내용이 비어 있습니다.`);\n  }\n\n  return content;\n}\n\nconst requirementDocs = [];\n\nfor (const path of input.requirementFilePaths || []) {\n  const text = await readBlobText.call(this, path);\n\n  requirementDocs.push({\n    path,\n    text\n  });\n}\n\nif (!requirementDocs.length) {\n  throw new Error('읽어온 요구사항 문서가 없습니다.');\n}\n\nconst promptText = await readBlobText.call(this, input.promptFilePath);\n\nreturn [\n  {\n    json: {\n      ...input,\n      requirementDocs,\n      promptText\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6976,
+        784
+      ],
+      "id": "b90a00cb-1b60-4804-99c2-9d80f27a8e4e",
+      "name": "Read Selected Req and Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json;\nfunction normalizeText(text) {\n  return String(text || '').replace(/\\r\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').replace(/[ \\t]+$/gm, '').trim();\n}\nconst mergedRequirements = input.requirementDocs\n  .map((doc, idx) => `## 요구사항 ${idx + 1}: ${doc.path}\\n\\n${normalizeText(doc.text)}`)\n  .join('\\n\\n---\\n\\n');\nconst outputDir = (input.outputDir || input.githubOutputDir || 'prd').replace(/^\\/+|\\/+$/g, '');\nconst mapDir = (input.mapDir || input.githubMapDir || 'maps').replace(/^\\/+|\\/+$/g, '');\nconst logDir = (input.logDir || input.githubLogDir || 'logs').replace(/^\\/+|\\/+$/g, '');\nconst titleSlug = String(input.documentTitle || input.requirementSetId).replace(/[^A-Za-z0-9가-힣_-]+/g, '_').replace(/^_+|_+$/g, '');\nconst prdFileName = `PRD_${titleSlug}_${input.timestamp}.md`;\nconst mapFileName = `MAP_${titleSlug}_${input.timestamp}.json`;\nconst logFileName = `LOG_${titleSlug}_${input.timestamp}.json`;\nconst prdFilePath = `${outputDir}/${prdFileName}`;\nconst mapFilePath = `${mapDir}/${mapFileName}`;\nconst logFilePath = `${logDir}/${logFileName}`;\nconst llmInput = `${normalizeText(input.promptText)}\n\n---\n\n# 입력 요구사항 묶음\n\n${mergedRequirements}\n\n---\n\n# 생성 요청\n\n위 요구사항 묶음을 기반으로 하나의 PRD 문서를 작성한다.\n\n출력 조건:\n- Markdown 형식으로 작성\n- PRD 문서 본문만 출력\n- 선택된 요구사항 파일 경로를 출처로 명시\n- 불명확한 내용은 \"확인 필요\"로 표시\n- 임의로 기능, 정책, 일정, 범위를 확정하지 말 것\n- 중복 요구사항은 정리하고, 충돌 항목은 \"충돌/확인 필요\"로 분리할 것\n- 개발자, 디자이너, QA가 바로 이해할 수 있도록 기능 요구사항과 예외 케이스를 구조화할 것`;\nreturn [{ json: {\n  ...input,\n  mergedRequirements,\n  prdFileName,\n  mapFileName,\n  logFileName,\n  prdFilePath,\n  mapFilePath,\n  logFilePath,\n  llmInput,\n  preprocess: {\n    requirementCount: input.requirementDocs.length,\n    promptCharCount: normalizeText(input.promptText).length,\n    requirementCharCount: mergedRequirements.length,\n    llmInputCharCount: llmInput.length,\n    normalized: true,\n    duplicateCheck: 'instruction_based',\n    conflictCheck: 'instruction_based'\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7216,
+        784
+      ],
+      "id": "89f885b2-d908-4af0-a8be-bb4f806febfa",
+      "name": "Pre-process Selected Requirements"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ $('Pre-process Selected Requirements').item.json.llmInput }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        7456,
+        784
+      ],
+      "id": "32f72e39-192e-4c2b-b7b5-e088cc8ecb3a",
+      "name": "Generate PRD",
+      "credentials": {
+        "openAiApi": {
+          "id": "DTo46yNs8HplsQYY",
+          "name": "n8n free OpenAI API credits"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Pre-process Selected Requirements').item.json;\nconst llm = $json;\nfunction extractText(value) {\n  if (!value) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) return value.map(extractText).filter(Boolean).join('\\n');\n  if (typeof value === 'object') {\n    if (typeof value.text === 'string') return value.text;\n    if (typeof value.output_text === 'string') return value.output_text;\n    if (typeof value.content === 'string') return value.content;\n    if (Array.isArray(value.content)) return extractText(value.content);\n    if (Array.isArray(value.output)) return extractText(value.output);\n    if (value.message?.content) return extractText(value.message.content);\n    if (value.choices) return extractText(value.choices);\n  }\n  return '';\n}\nfunction toBase64(value) { return Buffer.from(value, 'utf8').toString('base64').replace(/\\r?\\n|\\r/g, ''); }\nconst prdMarkdown = extractText(llm).trim();\nif (!prdMarkdown) throw new Error('LLM 출력에서 PRD Markdown을 찾지 못했습니다. Generate PRD 노드 응답 구조를 확인하세요.');\nconst mapping = {\n  requestId: input.requestId,\n  requirementSetId: input.requirementSetId,\n  requirementFilePaths: input.requirementFilePaths,\n  promptFilePath: input.promptFilePath,\n  prdFilePath: input.prdFilePath,\n  mapFilePath: input.mapFilePath,\n  logFilePath: input.logFilePath,\n  agent: 'agent1_prd_generate',\n  model: input.model || 'gpt-4o-mini',\n  status: 'success',\n  createdAt: new Date().toISOString(),\n  requestedBy: input.requestedBy || 'web'\n};\nconst log = {\n  requestId: input.requestId,\n  executionId: $execution?.id || null,\n  workflowId: $workflow?.id || null,\n  workflowName: $workflow?.name || 'AGENT1_PRD_WebIntegrated_v0.4',\n  agent: 'agent1_prd_generate',\n  requirementSetId: input.requirementSetId,\n  requirementFilePaths: input.requirementFilePaths,\n  promptFilePath: input.promptFilePath,\n  prdFilePath: input.prdFilePath,\n  mapFilePath: input.mapFilePath,\n  logFilePath: input.logFilePath,\n  status: 'success',\n  startedAt: input.receivedAt || null,\n  endedAt: new Date().toISOString(),\n  preprocess: input.preprocess\n};\nreturn [{\n\n  json: {\n\n    githubOwner: input.githubOwner,\n\n    githubRepo: input.githubRepo,\n\n    githubBranch: input.githubBranch || 'main',\n\n    requestId: input.requestId,\n    requirementSetId: input.requirementSetId,\n\n    requirementFilePaths: input.requirementFilePaths,\n\n    promptFilePath: input.promptFilePath,\n\n    prdFilePath: input.prdFilePath,\n\n    mapFilePath: input.mapFilePath,\n\n    logFilePath: input.logFilePath,\n\n    prdMarkdown,\n\n    mapping,\n\n    log,\n\n    mappingText: JSON.stringify(mapping, null, 2),\n\n    logText: JSON.stringify(log, null, 2),\n\n    prdRequestBody: {\n\n      message: `Add generated PRD: ${input.prdFileName}`,\n\n      content: toBase64(prdMarkdown),\n\n      branch: input.githubBranch || 'main'\n\n    },\n\n    mapRequestBody: {\n\n      message: `Save Req-PRD mapping: ${input.mapFileName}`,\n\n      content: toBase64(JSON.stringify(mapping, null, 2)),\n\n      branch: input.githubBranch || 'main'\n\n    },\n\n    logRequestBody: {\n\n      message: `Save Agent1 execution log: ${input.logFileName}`,\n\n      content: toBase64(JSON.stringify(log, null, 2)),\n\n      branch: input.githubBranch || 'main'\n\n    }\n\n  }\n\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7728,
+        784
+      ],
+      "id": "effe6355-b837-4723-9c61-aea574fd403a",
+      "name": "Prepare Result Files"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://howardchoi-nsus-pocax.vercel.app/api/blob-save",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "path",
+              "value": "={{ $('Prepare Result Files').item.json.logFilePath }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $('Prepare Result Files').item.json.logText }}"
+            },
+            {
+              "name": "contentType",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "name": "access",
+              "value": "private"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8416,
+        784
+      ],
+      "id": "d7dfa0bf-1836-4d9e-82a1-f368df79d7f0",
+      "name": "Save Log to GitHub"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Prepare Result Files').item.json;\nreturn [{ json: {\n  success: true,\n  action: 'agent1_prd_generate',\n  message: 'PRD 생성 및 Git Repository 저장이 완료되었습니다.',\n  requestId: input.requestId,\n  requirementSetId: input.requirementSetId,\n  requirementFilePaths: input.requirementFilePaths,\n  promptFilePath: input.promptFilePath,\n  prdFilePath: input.prdFilePath,\n  mapFilePath: input.mapFilePath,\n  logFilePath: input.logFilePath,\n  githubOwner: input.githubOwner,\n  githubRepo: input.githubRepo,\n  githubBranch: input.githubBranch,\n  completedAt: new Date().toISOString()\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8656,
+        784
+      ],
+      "id": "8b183235-3327-4042-9ae4-55fada55ed5f",
+      "name": "Prepare Response - PRD Generate"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        8896,
+        784
+      ],
+      "id": "4a529b7e-0e7c-4072-823f-a5332c1a70c6",
+      "name": "Respond - PRD Generate"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://howardchoi-nsus-pocax.vercel.app/api/blob-save",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "path",
+              "value": "={{ $json.sourceFilePath }}"
+            },
+            {
+              "name": "=content",
+              "value": "={{ $json.sourceBody }}"
+            },
+            {
+              "name": "contentType",
+              "value": "=text/plain; charset=utf-8"
+            },
+            {
+              "name": "access",
+              "value": "private"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7216,
+        272
+      ],
+      "id": "8518d2ea-0fd4-4963-bbe2-89dfc4a5c293",
+      "name": "Save Source to Blob",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2mcOhcZfa10QlQQQ",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://howardchoi-nsus-pocax.vercel.app/api/blob-save",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "path",
+              "value": "={{ $json.requirementFilePath }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.reqMarkdown }}"
+            },
+            {
+              "name": "contentType",
+              "value": "text/markdown; charset=utf-8"
+            },
+            {
+              "name": "access",
+              "value": "private"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7696,
+        272
+      ],
+      "id": "548656e0-2890-477d-b114-44b4bc5269a2",
+      "name": "Save Requirement to Blob"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://howardchoi-nsus-pocax.vercel.app/api/blob-save",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "path",
+              "value": "={{ $json.prdFilePath }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.prdMarkdown }}"
+            },
+            {
+              "name": "contentType",
+              "value": "text/markdown; charset=utf-8"
+            },
+            {
+              "name": "access",
+              "value": "private"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7936,
+        784
+      ],
+      "id": "9f286247-8d4f-4c4b-a45a-64a067b68524",
+      "name": "Save PRD to Blob"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://howardchoi-nsus-pocax.vercel.app/api/blob-save",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "path",
+              "value": "={{ $('Prepare Result Files').item.json.mapFilePath }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $('Prepare Result Files').item.json.mappingText }}"
+            },
+            {
+              "name": "contentType",
+              "value": "=application/json; charset=utf-8"
+            },
+            {
+              "name": "access",
+              "value": "private"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8176,
+        784
+      ],
+      "id": "961f1600-a73b-428a-a853-b9e8abcdde34",
+      "name": "Save Mapping to Blob"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Pre-process Selected Requirements').item.json;\nconst errorPayload = $json || {};\nconst error = errorPayload.error || errorPayload;\nconst message = error.message || error.description || errorPayload.message || 'n8n workflow error';\nconst logDir = String(input.logDir || 'logs').replace(/^\\/+|\\/+$/g, '');\nconst id = input.requestId || input.requirementSetId || input.timestamp;\nconst errorFilePath = `${logDir}/ERR_${id}_${input.timestamp}.json`;\nconst response = {\n  success: false,\n  status: 'error',\n  step: 'Generate PRD',\n  nodeName: 'Generate PRD',\n  message,\n  requestId: input.requestId,\n  requirementSetId: input.requirementSetId,\n  requirementFilePaths: input.requirementFilePaths,\n  promptFilePath: input.promptFilePath,\n  errorFilePath,\n  createdAt: new Date().toISOString()\n};\nreturn [{ json: {\n  ...input,\n  status: 'error',\n  errorFilePath,\n  errorText: JSON.stringify(response, null, 2),\n  response\n}}];"
+      },
+      "id": "prepare-prd-error-log",
+      "name": "Prepare PRD Error Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2500,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://howardchoi-nsus-pocax.vercel.app/api/blob-save",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "path",
+              "value": "={{ $json.errorFilePath }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.errorText }}"
+            },
+            {
+              "name": "contentType",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "name": "access",
+              "value": "private"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "save-prd-error-log-to-blob",
+      "name": "Save PRD Error Log to Blob",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2720,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $('Prepare PRD Error Log').item.json.response }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "respond-prd-generate-error",
+      "name": "Respond - PRD Generate Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2940,
+        520
+      ]
+    }
+  ],
+  "pinData": {
+    "Webhook - PRD Generate": [
+      {
+        "json": {
+          "headers": {
+            "host": "kolchohoohu.app.n8n.cloud",
+            "user-agent": "node",
+            "content-length": "194",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "*",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "100.52.234.233",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "US",
+            "cf-ray": "a0e2a5251f9d9c7e-IAD",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "sec-fetch-mode": "cors",
+            "x-forwarded-for": "100.52.234.233, 172.68.15.149",
+            "x-forwarded-host": "kolchohoohu.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-swc-13-6868f6d46c-g772f",
+            "x-invocation-id": "icn1::rjh6b-1781873275407-5b24d23343b5",
+            "x-is-trusted": "yes",
+            "x-real-ip": "100.52.234.233",
+            "x-vercel-id": "icn1::rjh6b-1781873275407-5b24d23343b5"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "requirements": [
+              "req/REQ_요구사항_등록_테스트_문자_정리_문자_정_260619_122255.md"
+            ],
+            "promptTemplate": "prompts/prd-template-v1.md",
+            "model": "gpt-4o-mini",
+            "docTitle": "",
+            "secret": ""
+          },
+          "webhookUrl": "https://kolchohoohu.app.n8n.cloud/webhook/agent1-prd-generate",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook - Requirement Save": {
+      "main": [
+        [
+          {
+            "node": "Normalize - Requirement Save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize - Requirement Save": {
+      "main": [
+        [
+          {
+            "node": "Prepare Source File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Source File": {
+      "main": [
+        [
+          {
+            "node": "Save Source to Blob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Requirement File": {
+      "main": [
+        [
+          {
+            "node": "Save Requirement to Blob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Response - Requirement Save": {
+      "main": [
+        [
+          {
+            "node": "Respond - Requirement Save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - PRD Generate": {
+      "main": [
+        [
+          {
+            "node": "Normalize - PRD Generate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize - PRD Generate": {
+      "main": [
+        [
+          {
+            "node": "Read Selected Req and Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Selected Req and Prompt": {
+      "main": [
+        [
+          {
+            "node": "Pre-process Selected Requirements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pre-process Selected Requirements": {
+      "main": [
+        [
+          {
+            "node": "Generate PRD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate PRD": {
+      "main": [
+        [
+          {
+            "node": "Prepare Result Files",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare PRD Error Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Result Files": {
+      "main": [
+        [
+          {
+            "node": "Save PRD to Blob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Log to GitHub": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response - PRD Generate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Response - PRD Generate": {
+      "main": [
+        [
+          {
+            "node": "Respond - PRD Generate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Source to Blob": {
+      "main": [
+        [
+          {
+            "node": "Prepare Requirement File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Requirement to Blob": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response - Requirement Save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save PRD to Blob": {
+      "main": [
+        [
+          {
+            "node": "Save Mapping to Blob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Mapping to Blob": {
+      "main": [
+        [
+          {
+            "node": "Save Log to GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare PRD Error Log": {
+      "main": [
+        [
+          {
+            "node": "Save PRD Error Log to Blob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save PRD Error Log to Blob": {
+      "main": [
+        [
+          {
+            "node": "Respond - PRD Generate Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d107b53b-e4fb-4f77-9287-9c165bd15253",
+  "meta": {
+    "instanceId": "ee6d8ea39b1dbea6e747bcf329edcc14093b08f85629cd5e0c191de80b3c89a8"
+  },
+  "nodeGroups": [],
+  "id": "iAoQaYb49RfIHeRU",
+  "tags": []
+}
