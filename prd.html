@@ -315,12 +315,17 @@
           <span id="section2_generation_elapsed">00:00</span>
         </div>
         <p id="section2_generation_message">요구사항을 선택하고 생성 요청을 실행하면 n8n 처리 상태가 이곳에 표시됩니다.</p>
+        <div class="section2_generation_eta">
+          <span>예상 완료</span>
+          <strong id="section2_generation_eta">10:00</strong>
+        </div>
         <div class="section2_generation_bar"><span id="section2_generation_bar"></span></div>
         <div class="section2_generation_meta" id="section2_generation_meta">자동 확인 대기 중</div>
       </section>
 
       <div class="modal_actions">
         <button class="modal_btn_cancel" id="modal_generation_btn_background" type="button">백그라운드로 진행</button>
+        <button class="modal_btn_cancel modal_btn_danger" id="modal_generation_btn_stop" type="button">중단</button>
         <button class="modal_btn_select" id="modal_generation_btn_confirm" value="cancel">확인</button>
       </div>
     </form>

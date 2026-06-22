@@ -909,7 +909,8 @@ select:focus, input:focus, textarea:focus {
 }
 
 .section2_generation_status[data-status="error"],
-.section2_generation_status[data-status="unknown"] {
+.section2_generation_status[data-status="unknown"],
+.section2_generation_status[data-status="stopped"] {
   border-color: #fecdd3;
   background: #fff7f8;
 }
@@ -940,6 +941,28 @@ select:focus, input:focus, textarea:focus {
   margin-bottom: 10px;
 }
 
+.section2_generation_eta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 30px;
+  margin-bottom: 10px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.section2_generation_eta strong {
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
 .section2_generation_bar {
   height: 6px;
   overflow: hidden;
@@ -961,7 +984,8 @@ select:focus, input:focus, textarea:focus {
 }
 
 .section2_generation_status[data-status="error"] .section2_generation_bar span,
-.section2_generation_status[data-status="unknown"] .section2_generation_bar span {
+.section2_generation_status[data-status="unknown"] .section2_generation_bar span,
+.section2_generation_status[data-status="stopped"] .section2_generation_bar span {
   background: var(--red);
 }
 
@@ -1299,6 +1323,16 @@ select:focus, input:focus, textarea:focus {
   background: var(--primary);
   color: #fff;
   border-color: var(--primary);
+}
+
+.modal_btn_danger {
+  color: var(--red);
+  border-color: #fecdd3;
+  background: #fff7f8;
+}
+
+.modal_btn_danger:hover {
+  border-color: var(--red);
 }
 
 /* ============================================================

@@ -88,7 +88,8 @@ const state = {
     elapsedTimer: null,
     lastCheckedAt: null,
     attempts: 0,
-    maxAttempts: 60
+    maxAttempts: 120,
+    pollIntervalMs: 5000
   },
   closedCols: new Set(),
   widths: {
@@ -129,6 +130,7 @@ const elements = {
   generationStatus: $('section2_generation_status'),
   generationTitle: $('section2_generation_title'),
   generationElapsed: $('section2_generation_elapsed'),
+  generationEta: $('section2_generation_eta'),
   generationMessage: $('section2_generation_message'),
   generationBar: $('section2_generation_bar'),
   generationMeta: $('section2_generation_meta'),
@@ -137,6 +139,7 @@ const elements = {
   generationModal: $('modal_generation'),
   generationModalClose: $('modal_generation_btn_close'),
   generationModalBackground: $('modal_generation_btn_background'),
+  generationModalStop: $('modal_generation_btn_stop'),
   generationModalConfirm: $('modal_generation_btn_confirm'),
   prdFileList: $('section2_prd_file_list'),
   refreshPrd: $('section2_btn_refresh_prd'),
@@ -215,6 +218,7 @@ function bindEvents() {
   elements.generationModalOpen?.addEventListener('click', openGenerationModal);
   elements.generationModalClose?.addEventListener('click', closeGenerationModal);
   elements.generationModalBackground?.addEventListener('click', closeGenerationModal);
+  elements.generationModalStop?.addEventListener('click', stopPrdGenerationByUser);
   elements.generationModalConfirm?.addEventListener('click', closeGenerationModal);
   elements.refreshPrd.addEventListener('click', refreshPrdFiles);
   elements.copyPrd.addEventListener('click', () => copyToClipboard(elements.prdRaw.value));
@@ -773,6 +777,10 @@ function formatDuration(ms) {
   return `${minutes}:${seconds}`;
 }
 
+function getGenerationLimitMs() {
+  return state.generation.maxAttempts * state.generation.pollIntervalMs;
+}
+
 function setGenerationStatus(status, options = {}) {
   if (!elements.generationStatus) return;
 
@@ -790,19 +798,34 @@ function setGenerationStatus(status, options = {}) {
   if (typeof progress === 'number') {
     elements.generationBar.style.width = `${Math.max(0, Math.min(100, progress))}%`;
   }
+  if (elements.generationEta) {
+    if (status === 'complete') {
+      elements.generationEta.textContent = '완료';
+    } else if (status === 'error' || status === 'unknown' || status === 'stopped') {
+      elements.generationEta.textContent = '확인 필요';
+    }
+  }
   updateGenerationSummary(status);
 }
 
 function updateGenerationElapsed() {
   if (!state.generation.startedAt) {
     elements.generationElapsed.textContent = '00:00';
+    if (elements.generationEta) {
+      elements.generationEta.textContent = formatDuration(getGenerationLimitMs());
+    }
     return;
   }
 
   const elapsed = Date.now() - state.generation.startedAt;
-  const progress = Math.min(92, (elapsed / (state.generation.maxAttempts * 5000)) * 100);
+  const limitMs = getGenerationLimitMs();
+  const remaining = Math.max(0, limitMs - elapsed);
+  const progress = Math.min(92, (elapsed / limitMs) * 100);
 
   elements.generationElapsed.textContent = formatDuration(elapsed);
+  if (elements.generationEta) {
+    elements.generationEta.textContent = formatDuration(remaining);
+  }
   elements.generationBar.style.width = `${progress}%`;
   updateGenerationSummary(elements.generationStatus?.dataset.status || 'idle');
 }
@@ -823,15 +846,38 @@ function updateGenerationSummary(status = 'idle') {
 
   const title = elements.generationTitle?.textContent || 'PRD 생성 대기';
   const elapsed = elements.generationElapsed?.textContent || '00:00';
+  const eta = elements.generationEta?.textContent || formatDuration(getGenerationLimitMs());
 
   if (status === 'running') {
-    elements.generationSummary.textContent = `${title} · ${elapsed}`;
+    elements.generationSummary.textContent = `${title} · 남은 시간 ${eta}`;
     elements.generationModalOpen?.classList.add('is_active');
     return;
   }
 
   elements.generationSummary.textContent = title;
-  elements.generationModalOpen?.classList.toggle('is_active', status === 'complete');
+  elements.generationModalOpen?.classList.toggle('is_active', status === 'complete' || status === 'stopped');
+}
+
+function stopPrdGenerationByUser() {
+  if (!state.generation.active) {
+    closeGenerationModal();
+    return;
+  }
+
+  const confirmed = window.confirm(
+    'PRD 생성 자동 확인을 중단할까요?\n이미 전송된 n8n 작업은 계속 실행될 수 있으며, 나중에 /prd 새로고침으로 결과를 확인할 수 있습니다.'
+  );
+
+  if (!confirmed) return;
+
+  stopPrdGenerationWatch();
+  setGenerationStatus('stopped', {
+    title: 'PRD 생성 확인 중단됨',
+    message: '자동 확인을 중단했습니다. 이미 전송된 n8n 작업은 계속 실행될 수 있으므로, 잠시 후 /prd 새로고침으로 결과를 확인하세요.',
+    meta: `중단 시각 ${new Date().toLocaleTimeString()}`,
+    progress: 100
+  });
+  showToast('PRD 생성 자동 확인을 중단했습니다.');
 }
 
 function startPrdGenerationWatch(knownPaths) {
@@ -855,7 +901,7 @@ function startPrdGenerationWatch(knownPaths) {
   openGenerationModal();
 
   state.generation.elapsedTimer = window.setInterval(updateGenerationElapsed, 1000);
-  state.generation.timer = window.setInterval(pollGeneratedPrdFiles, 5000);
+  state.generation.timer = window.setInterval(pollGeneratedPrdFiles, state.generation.pollIntervalMs);
   window.setTimeout(pollGeneratedPrdFiles, 1200);
 }
 
