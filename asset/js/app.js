@@ -1352,8 +1352,20 @@ function requestFileRequirementSave() {
 
     showToast(`${file.name} 업로드 중...`);
     try {
+      const requirementKeyword = createRequirementKeyword(file.name);
+      const sourceText = await readRequirementFileText(file);
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('inputType', 'FILE');
+      formData.append('requirementKeyword', requirementKeyword);
+      formData.append('title', requirementKeyword);
+      formData.append('sourceType', 'FILE');
+      formData.append('sourceLabel', 'File');
+      formData.append('sourceDetail', file.name);
+      formData.append('sourceText', sourceText);
+      formData.append('fileName', file.name);
+      formData.append('fileType', file.type || file.name.split('.').pop() || 'file');
+      formData.append('fileSize', String(file.size || 0));
       formData.append('reqDir', APP_CONFIG.storage.folders.req);
       formData.append('sourceDir', 'source');
       formData.append('vercelBaseUrl', APP_CONFIG.storage.baseUrl);
@@ -1378,6 +1390,16 @@ function requestFileRequirementSave() {
     }
   };
   input.click();
+}
+
+async function readRequirementFileText(file) {
+  const extension = file.name.split('.').pop()?.toLowerCase() || '';
+
+  if (['md', 'txt'].includes(extension) || file.type.startsWith('text/')) {
+    return file.text();
+  }
+
+  return '';
 }
 
 /* 직접 요구사항 등록 모달 열기 */
