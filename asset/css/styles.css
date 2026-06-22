@@ -649,16 +649,23 @@ body.is_resizing .common_resizer::before {
   cursor: pointer;
 }
 
-.section1_req_main { min-width: 0; }
+.section1_req_main {
+  width: 100%;
+  min-width: 0;
+}
 
 .section1_req_title_row {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  width: 100%;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .section1_req_title_button {
+  display: block;
   border: 0;
   padding: 0;
   background: transparent;
@@ -666,8 +673,12 @@ body.is_resizing .common_resizer::before {
   color: #111827;
   font-weight: 900;
   line-height: 1.35;
+  width: 100%;
   min-width: 0;
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .section1_req_title_button:hover { color: var(--blue); }

@@ -350,7 +350,7 @@ function normalizeFileList(items, folder = '') {
 }
 
 function getRequirementMetaCacheKey(path) {
-  return `agent1_req_meta:${path}`;
+  return `agent1_req_meta:v2:${path}`;
 }
 
 function getRequirementMetaSignature(uploadedAt, size) {
@@ -441,10 +441,18 @@ function getRequirementSource(file) {
   return normalizeSourceType(file?.sourceType);
 }
 
+function getRequirementSourceBadgeLabel(file) {
+  const source = getRequirementSource(file);
+  if (source === 'FILE') return 'File';
+  if (source === 'DIRECT') return 'Direct';
+  if (source === 'SLACK') return 'Slack';
+  return source;
+}
+
 function getRequirementSourceLabel(file) {
   const source = getRequirementSource(file);
   const detail = [file?.sourceLabel, file?.sourceDetail].filter(Boolean).join(' · ');
-  return detail || source;
+  return detail || getRequirementSourceBadgeLabel(file);
 }
 
 function cleanRequirementListText(value) {
@@ -700,6 +708,7 @@ function renderRequirementList() {
   elements.requirementList.innerHTML = files
     .map((file) => {
       const source = getRequirementSource(file);
+      const sourceBadgeLabel = getRequirementSourceBadgeLabel(file);
       const displayTitle = getRequirementDisplayTitle(file);
       const selected = state.selectedReqPaths.has(file.path);
 
@@ -718,7 +727,7 @@ function renderRequirementList() {
               </button>
             </div>
             <div class="section1_req_meta">
-              <span class="common_badge ${source}">${source}</span>
+              <span class="common_badge ${source}">${sourceBadgeLabel}</span>
               <span>등록일 ${escapeHtml(file.registeredAtLabel)}</span>
               <span>${formatSize(file.size)}</span>
             </div>
@@ -1110,6 +1119,7 @@ function updateSelectedView() {
       const name = p.split('/').pop();
       const file = state.requirements.find((item) => item.path === p);
       const source = getRequirementSource(file);
+      const sourceBadgeLabel = getRequirementSourceBadgeLabel(file);
       const date = file?.registeredAtLabel || '등록일 확인 필요';
       return `
         <article class="section2_summary_item">
@@ -1117,7 +1127,7 @@ function updateSelectedView() {
             <strong>${escapeHtml(name)}</strong>
             <span>${escapeHtml(p)}</span>
           </div>
-          <em class="common_badge ${source}">${source}</em>
+          <em class="common_badge ${source}">${sourceBadgeLabel}</em>
           <small>${escapeHtml(date)}</small>
           <button type="button" class="section2_selected_remove" data-remove-path="${escapeHtml(p)}" title="선택 해제">×</button>
         </article>
@@ -1342,46 +1352,25 @@ async function requestPrdRevise() {
 function requestFileRequirementSave() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.md,.txt,.pdf,.docx';
+  input.accept = '.md,.txt';
   input.onchange = async () => {
     const file = input.files[0];
     if (!file) return;
-
-    const endpoint = APP_CONFIG.webhooks.requirementSave;
-    if (!endpoint) { showToast('저장 API가 설정되지 않았습니다.'); return; }
 
     showToast(`${file.name} 업로드 중...`);
     try {
       const requirementKeyword = createRequirementKeyword(file.name);
       const sourceText = await readRequirementFileText(file);
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('inputType', 'FILE');
-      formData.append('requirementKeyword', requirementKeyword);
-      formData.append('title', requirementKeyword);
-      formData.append('sourceType', 'FILE');
-      formData.append('sourceLabel', 'File');
-      formData.append('sourceDetail', file.name);
-      formData.append('sourceText', sourceText);
-      formData.append('fileName', file.name);
-      formData.append('fileType', file.type || file.name.split('.').pop() || 'file');
-      formData.append('fileSize', String(file.size || 0));
-      formData.append('reqDir', APP_CONFIG.storage.folders.req);
-      formData.append('sourceDir', 'source');
-      formData.append('vercelBaseUrl', APP_CONFIG.storage.baseUrl);
-      formData.append('requestedBy', 'web');
-      formData.append('secret', APP_CONFIG.webhooks.secret);
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        body: formData
-      });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result.success === false) {
-        throw new Error(result.message || `HTTP ${response.status}`);
+      if (!sourceText) {
+        throw new Error('파일 등록은 현재 .md 또는 .txt만 지원합니다.');
       }
+
+      await saveTextRequirementFile({
+        file,
+        requirementKeyword,
+        sourceText
+      });
 
       showToast(`${file.name} 등록 완료`);
       await refreshRequirements();
@@ -1400,6 +1389,77 @@ async function readRequirementFileText(file) {
   }
 
   return '';
+}
+
+async function saveTextRequirementFile({ file, requirementKeyword, sourceText }) {
+  const now = new Date();
+  const timestamp = formatFileTimestamp(now);
+  const reqPath = `${APP_CONFIG.storage.folders.req}/REQ_${requirementKeyword}_${timestamp}.md`;
+  const sourcePath = `source/REQ_${requirementKeyword}_${timestamp}.txt`;
+  const markdown = buildRequirementMarkdown({
+    title: requirementKeyword,
+    sourceText,
+    sourceDetail: file.name,
+    sourcePath,
+    generatedAt: now
+  });
+
+  await saveBlobText(sourcePath, sourceText, 'text/plain; charset=utf-8');
+  await saveBlobText(reqPath, markdown, 'text/markdown; charset=utf-8');
+}
+
+async function saveBlobText(path, content, contentType) {
+  const response = await fetch('/api/blob-save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      path,
+      content,
+      contentType,
+      access: 'private'
+    })
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || `Blob 저장 실패 HTTP ${response.status}`);
+  }
+
+  return result;
+}
+
+function buildRequirementMarkdown({ title, sourceText, sourceDetail, sourcePath, generatedAt }) {
+  return [
+    '---',
+    `title: "${escapeYamlValue(title)}"`,
+    'source_type: FILE',
+    'source_label: File',
+    `source_detail: "${escapeYamlValue(sourceDetail)}"`,
+    `source_path: "${escapeYamlValue(sourcePath)}"`,
+    `created_at: "${generatedAt.toISOString()}"`,
+    '---',
+    '',
+    `# ${title}`,
+    '',
+    '## 요구사항 내용',
+    '',
+    sourceText.trim()
+  ].join('\n');
+}
+
+function escapeYamlValue(value) {
+  return String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function formatFileTimestamp(date) {
+  const yy = String(date.getFullYear()).slice(-2);
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mi = String(date.getMinutes()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
+  return `${yy}${mm}${dd}_${hh}${mi}${ss}`;
 }
 
 /* 직접 요구사항 등록 모달 열기 */
