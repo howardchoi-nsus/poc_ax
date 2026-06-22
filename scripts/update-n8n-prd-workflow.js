@@ -12,18 +12,24 @@ const workflow = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
 const byName = (name) => workflow.nodes.find((node) => node.name === name);
 
 const normalize = byName('Normalize - PRD Generate');
-normalize.parameters.jsCode = normalize.parameters.jsCode.replace(
-  "const requirementSetId = pick(\n  payload.requirementSetId,\n  `REQ_SET_${ts}`\n);",
-  "const requirementSetId = pick(\n  payload.requirementSetId,\n  `REQ_SET_${ts}`\n);\n\nconst requestId = pick(\n  payload.requestId,\n  requirementSetId\n);"
-);
-normalize.parameters.jsCode = normalize.parameters.jsCode.replace(
-  '      requirementSetId,\n      requirementFilePaths: normalizedPaths,',
-  '      requestId,\n      requirementSetId,\n      requirementFilePaths: normalizedPaths,'
-);
-normalize.parameters.jsCode = normalize.parameters.jsCode.replace(
-  '      receivedAt: new Date().toISOString()',
-  '      estimatedSeconds: Number(payload.estimatedSeconds || 0) || null,\n      receivedAt: new Date().toISOString()'
-);
+if (!normalize.parameters.jsCode.includes('const requestId = pick(')) {
+  normalize.parameters.jsCode = normalize.parameters.jsCode.replace(
+    "const requirementSetId = pick(\n  payload.requirementSetId,\n  `REQ_SET_${ts}`\n);",
+    "const requirementSetId = pick(\n  payload.requirementSetId,\n  `REQ_SET_${ts}`\n);\n\nconst requestId = pick(\n  payload.requestId,\n  requirementSetId\n);"
+  );
+}
+if (!normalize.parameters.jsCode.includes('      requestId,\n      requirementSetId,')) {
+  normalize.parameters.jsCode = normalize.parameters.jsCode.replace(
+    '      requirementSetId,\n      requirementFilePaths: normalizedPaths,',
+    '      requestId,\n      requirementSetId,\n      requirementFilePaths: normalizedPaths,'
+  );
+}
+if (!normalize.parameters.jsCode.includes('estimatedSeconds: Number(payload.estimatedSeconds')) {
+  normalize.parameters.jsCode = normalize.parameters.jsCode.replace(
+    '      receivedAt: new Date().toISOString()',
+    '      estimatedSeconds: Number(payload.estimatedSeconds || 0) || null,\n      receivedAt: new Date().toISOString()'
+  );
+}
 
 const preprocess = byName('Pre-process Selected Requirements');
 preprocess.parameters.jsCode = preprocess.parameters.jsCode
@@ -38,8 +44,9 @@ preprocess.parameters.jsCode = preprocess.parameters.jsCode
   .replace(
     "const logDir = (input.githubLogDir || 'logs').replace",
     "const logDir = (input.logDir || input.githubLogDir || 'logs').replace"
-  )
-  .replace(
+  );
+if (!preprocess.parameters.jsCode.includes('promptCharCount: normalizeText(input.promptText).length,')) {
+  preprocess.parameters.jsCode = preprocess.parameters.jsCode.replace(
     'requirementCount: input.requirementDocs.length,',
     [
       'requirementCount: input.requirementDocs.length,',
@@ -48,27 +55,35 @@ preprocess.parameters.jsCode = preprocess.parameters.jsCode
       '    llmInputCharCount: llmInput.length,'
     ].join('\n')
   );
+}
 
 const prepareResult = byName('Prepare Result Files');
-prepareResult.parameters.jsCode = prepareResult.parameters.jsCode
-  .replace(
+if (!prepareResult.parameters.jsCode.includes('const mapping = {\n  requestId: input.requestId,')) {
+  prepareResult.parameters.jsCode = prepareResult.parameters.jsCode.replace(
     'const mapping = {\n  requirementSetId: input.requirementSetId,',
     'const mapping = {\n  requestId: input.requestId,\n  requirementSetId: input.requirementSetId,'
-  )
-  .replace(
+  );
+}
+if (!prepareResult.parameters.jsCode.includes('const log = {\n  requestId: input.requestId,')) {
+  prepareResult.parameters.jsCode = prepareResult.parameters.jsCode.replace(
     'const log = {\n  executionId:',
     'const log = {\n  requestId: input.requestId,\n  executionId:'
-  )
-  .replace(
+  );
+}
+if (!prepareResult.parameters.jsCode.includes('    requestId: input.requestId,\n    requirementSetId: input.requirementSetId,')) {
+  prepareResult.parameters.jsCode = prepareResult.parameters.jsCode.replace(
     '    requirementSetId: input.requirementSetId,',
     '    requestId: input.requestId,\n    requirementSetId: input.requirementSetId,'
   );
+}
 
 const prepareResponse = byName('Prepare Response - PRD Generate');
-prepareResponse.parameters.jsCode = prepareResponse.parameters.jsCode.replace(
-  'requirementSetId: input.requirementSetId,',
-  'requestId: input.requestId,\n  requirementSetId: input.requirementSetId,'
-);
+if (!prepareResponse.parameters.jsCode.includes('requestId: input.requestId,\n  requirementSetId: input.requirementSetId,')) {
+  prepareResponse.parameters.jsCode = prepareResponse.parameters.jsCode.replace(
+    'requirementSetId: input.requirementSetId,',
+    'requestId: input.requestId,\n  requirementSetId: input.requirementSetId,'
+  );
+}
 
 const savePrd = byName('Save PRD to Blob');
 for (const param of savePrd.parameters.headerParameters.parameters) {
@@ -77,6 +92,14 @@ for (const param of savePrd.parameters.headerParameters.parameters) {
 
 const generate = byName('Generate PRD');
 generate.onError = 'continueErrorOutput';
+generate.parameters.responses = {
+  values: [
+    {
+      role: 'user',
+      content: "={{ $('Pre-process Selected Requirements').item.json.llmInput }}"
+    }
+  ]
+};
 
 const prepareError = {
   parameters: {

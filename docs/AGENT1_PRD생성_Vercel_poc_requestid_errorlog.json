@@ -154,6 +154,7 @@
         "responses": {
           "values": [
             {
+              "role": "user",
               "content": "={{ $('Pre-process Selected Requirements').item.json.llmInput }}"
             }
           ]
