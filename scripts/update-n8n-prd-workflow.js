@@ -91,14 +91,32 @@ for (const param of savePrd.parameters.headerParameters.parameters) {
 }
 
 const generate = byName('Generate PRD');
+generate.type = 'n8n-nodes-base.httpRequest';
+generate.typeVersion = 4.2;
 generate.onError = 'continueErrorOutput';
-generate.parameters.responses = {
-  values: [
-    {
-      role: 'user',
-      content: "={{ $('Pre-process Selected Requirements').item.json.llmInput }}"
-    }
-  ]
+delete generate.credentials?.openAiApi;
+if (generate.credentials && Object.keys(generate.credentials).length === 0) {
+  delete generate.credentials;
+}
+generate.parameters = {
+  method: 'POST',
+  url: 'https://api.openai.com/v1/chat/completions',
+  authentication: 'genericCredentialType',
+  genericAuthType: 'httpHeaderAuth',
+  sendHeaders: true,
+  headerParameters: {
+    parameters: [
+      {
+        name: 'Content-Type',
+        value: 'application/json'
+      }
+    ]
+  },
+  sendBody: true,
+  specifyBody: 'json',
+  jsonBody:
+    '={{ JSON.stringify({ model: $("Normalize - PRD Generate").item.json.model || "gpt-4o-mini", messages: [{ role: "user", content: $("Pre-process Selected Requirements").item.json.llmInput }], temperature: 0.2 }) }}',
+  options: {}
 };
 
 const prepareError = {

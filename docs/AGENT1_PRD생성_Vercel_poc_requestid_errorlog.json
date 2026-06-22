@@ -145,37 +145,32 @@
     },
     {
       "parameters": {
-        "modelId": {
-          "__rl": true,
-          "value": "gpt-4o-mini",
-          "mode": "list",
-          "cachedResultName": "GPT-4O-MINI"
-        },
-        "responses": {
-          "values": [
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "role": "user",
-              "content": "={{ $('Pre-process Selected Requirements').item.json.llmInput }}"
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
         },
-        "builtInTools": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $(\"Normalize - PRD Generate\").item.json.model || \"gpt-4o-mini\", messages: [{ role: \"user\", content: $(\"Pre-process Selected Requirements\").item.json.llmInput }], temperature: 0.2 }) }}",
         "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 2.3,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         7456,
         784
       ],
       "id": "32f72e39-192e-4c2b-b7b5-e088cc8ecb3a",
       "name": "Generate PRD",
-      "credentials": {
-        "openAiApi": {
-          "id": "DTo46yNs8HplsQYY",
-          "name": "n8n free OpenAI API credits"
-        }
-      },
       "onError": "continueErrorOutput"
     },
     {
