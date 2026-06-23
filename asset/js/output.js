@@ -53,7 +53,10 @@ const outputState = {
   rawMode: false,
   generationStartedAt: null,
   generationTimer: null,
-  closedCols: new Set()
+  closedCols: new Set(),
+  widths: {
+    section1: localStorage.getItem('agent2_section1_width') || '30%'
+  }
 };
 
 const $ = (id) => document.getElementById(id);
@@ -110,8 +113,13 @@ document.addEventListener('DOMContentLoaded', initOutput);
 
 function initOutput() {
   outputElements.repoBadge.textContent = `vercel_blob · ${OUTPUT_CONFIG.storage.baseUrl}`;
+  applyOutputLayout();
   bindOutputEvents();
   refreshOutputData();
+}
+
+function applyOutputLayout() {
+  document.documentElement.style.setProperty('--output_section1_width', outputState.widths.section1);
 }
 
 function bindOutputEvents() {
@@ -154,6 +162,9 @@ function bindOutputEvents() {
   });
   $$('[data-close-col]').forEach((button) => button.addEventListener('click', () => closeColumn(button.dataset.closeCol)));
   $$('[data-reopen-col]').forEach((button) => button.addEventListener('click', () => openColumn(button.dataset.reopenCol)));
+  $$('.output_content .common_resizer').forEach((resizer) => {
+    resizer.addEventListener('pointerdown', startOutputResize);
+  });
 }
 
 async function refreshOutputData() {
@@ -479,6 +490,55 @@ function toggleColumn(col) {
 
 function updateColumnSwitches() {
   $$('.header_column_switch').forEach((button) => button.classList.toggle('is_active', !outputState.closedCols.has(button.dataset.toggleCol)));
+}
+
+let outputResizeState = null;
+
+function startOutputResize(event) {
+  event.preventDefault();
+
+  const section1 = $('section1');
+  const sectionB = $('section2');
+  const content = $('content');
+
+  if (!section1 || !sectionB || !content) return;
+
+  outputResizeState = {
+    startX: event.clientX,
+    startLeftW: section1.getBoundingClientRect().width,
+    startRightW: sectionB.getBoundingClientRect().width,
+    totalWidth: content.getBoundingClientRect().width
+  };
+
+  document.body.classList.add('is_resizing');
+  document.addEventListener('pointermove', onOutputResizeMove);
+  document.addEventListener('pointerup', stopOutputResize, { once: true });
+}
+
+function onOutputResizeMove(event) {
+  if (!outputResizeState) return;
+
+  const { startX, startLeftW, startRightW, totalWidth } = outputResizeState;
+  const delta = event.clientX - startX;
+  const minLeft = 280;
+  const minRight = 620;
+  const available = startLeftW + startRightW;
+  const nextLeft = Math.max(minLeft, Math.min(startLeftW + delta, available - minRight));
+  const nextPct = `${((nextLeft / totalWidth) * 100).toFixed(2)}%`;
+
+  outputState.widths.section1 = nextPct;
+  document.documentElement.style.setProperty('--output_section1_width', nextPct);
+}
+
+function stopOutputResize() {
+  document.body.classList.remove('is_resizing');
+  document.removeEventListener('pointermove', onOutputResizeMove);
+
+  if (outputResizeState) {
+    localStorage.setItem('agent2_section1_width', outputState.widths.section1);
+  }
+
+  outputResizeState = null;
 }
 
 function showToast(message) {
