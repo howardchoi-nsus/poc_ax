@@ -2,7 +2,9 @@ import { list } from '@vercel/blob';
 
 export default async function handler(req, res) {
   try {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+
+    if (!token) {
       return res.status(500).json({
         success: false,
         step: 'env_check',
@@ -13,7 +15,8 @@ export default async function handler(req, res) {
     const prefix = String(req.query.prefix || req.query.folder || '').replace(/^\/+/, '');
     const result = await list({
       prefix: prefix ? `${prefix.replace(/\/+$/, '')}/` : undefined,
-      limit: Number(req.query.limit || 1000)
+      limit: Number(req.query.limit || 1000),
+      token
     });
 
     return res.status(200).json({

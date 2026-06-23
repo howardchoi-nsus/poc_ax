@@ -1,7 +1,11 @@
-import { list } from '@vercel/blob';
+import { get } from '@vercel/blob';
 
 export default async function handler(req, res) {
   try {
+    if (req.method !== 'GET') {
+      return res.status(405).json({ success: false, message: 'Method Not Allowed' });
+    }
+
     const path = String(req.query.path || '').replace(/^\/+/, '');
 
     if (!path) {
@@ -21,46 +25,20 @@ export default async function handler(req, res) {
       });
     }
 
-    const result = await list({
-      prefix: path,
-      limit: 10,
+    const result = await get(path, {
+      access: 'private',
       token
     });
 
-    const blob = result.blobs.find((item) => item.pathname === path);
-
-    if (!blob) {
+    if (!result || result.statusCode !== 200 || !result.stream) {
       return res.status(404).json({
         success: false,
         message: `${path} 파일을 찾지 못했습니다.`
       });
     }
 
-    const readUrl = blob.downloadUrl || blob.url;
-
-    if (!readUrl || !/^https?:\/\//.test(readUrl)) {
-      return res.status(500).json({
-        success: false,
-        step: 'blob_url_check',
-        message: `Invalid URL: ${readUrl || 'empty'}`
-      });
-    }
-
-    const response = await fetch(readUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        success: false,
-        step: 'blob_fetch',
-        message: `Blob 파일을 읽지 못했습니다. HTTP ${response.status}`
-      });
-    }
-
-    const content = await response.text();
+    const content = await new Response(result.stream).text();
+    const blob = result.blob;
 
     return res.status(200).json({
       success: true,
