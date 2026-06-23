@@ -14,6 +14,8 @@ const APP_CONFIG = {
       req: 'req',
       prompts: 'prompts',
       prd: 'prd',
+      maps: 'maps',
+      approvedPrd: 'prd-approved',
       logs: 'logs'
     }
   },
@@ -32,6 +34,8 @@ const APP_CONFIG = {
 
 const query = new URLSearchParams(location.search);
 
+APP_CONFIG.mock = query.get('mock') === '1' || query.get('demo') === '1';
+
 APP_CONFIG.storage.folders.req =
   query.get('reqFolder') ||
   localStorage.getItem('agent1_req_folder') ||
@@ -46,6 +50,16 @@ APP_CONFIG.storage.folders.prd =
   query.get('prdFolder') ||
   localStorage.getItem('agent1_prd_folder') ||
   APP_CONFIG.storage.folders.prd;
+
+APP_CONFIG.storage.folders.maps =
+  query.get('mapFolder') ||
+  localStorage.getItem('agent1_map_folder') ||
+  APP_CONFIG.storage.folders.maps;
+
+APP_CONFIG.storage.folders.approvedPrd =
+  query.get('approvedPrdFolder') ||
+  localStorage.getItem('agent1_approved_prd_folder') ||
+  APP_CONFIG.storage.folders.approvedPrd;
 
 APP_CONFIG.storage.folders.logs =
   query.get('logFolder') ||
@@ -74,7 +88,9 @@ const state = {
   requirements: [],
   prompts: [],
   prds: [],
+  maps: [],
   logs: [],
+  mockFiles: {},
   requirementMetaLoadId: 0,
   selectedReqPaths: new Set(),
   activeFilter: 'all',
@@ -148,6 +164,11 @@ const elements = {
   refreshPrd: $('section2_btn_refresh_prd'),
   prdPreview: $('section2_prd_preview'),
   prdRaw: $('section2_prd_raw'),
+  prdRequirements: $('section3_prd_requirements'),
+  prdRequirementsCount: $('section3_prd_requirements_count'),
+  prdRequirementList: $('section3_prd_requirement_list'),
+  prdTemplate: $('section3_prd_template'),
+  prdTemplateName: $('section3_prd_template_name'),
   copyPrd: $('section2_btn_copy_prd'),
   downloadPrd: $('section2_btn_download_prd'),
   feedbackToggle: $('section2_btn_feedback_toggle'),
@@ -156,6 +177,7 @@ const elements = {
   feedbackInput: $('section2_feedback_input'),
   feedback: $('section2_btn_feedback'),
   revise: $('section2_btn_revise'),
+  approvePrd: $('section3_btn_approve_prd'),
   logList: $('section2_log_list'),
   refreshLogs: $('section2_btn_refresh_logs'),
   logsModal: $('modal_logs'),
@@ -233,6 +255,7 @@ function bindEvents() {
   elements.revise.addEventListener('click', requestPrdRevise);
   elements.feedbackToggle.addEventListener('click', toggleFeedbackPanel);
   elements.feedbackClose.addEventListener('click', closeFeedbackPanel);
+  elements.approvePrd?.addEventListener('click', approveActivePrd);
 
   elements.refreshLogs.addEventListener('click', openLogsModal);
   elements.logsModalClose?.addEventListener('click', () => elements.logsModal.close());
@@ -301,6 +324,23 @@ function bindEvents() {
 async function fetchBlobFolder(folder, options = {}) {
   const { required = false, label = folder } = options;
   const cleanFolder = String(folder || '').replace(/^\/+|\/+$/g, '');
+  if (APP_CONFIG.mock) {
+    const files = Object.keys(state.mockFiles)
+      .filter((path) => path.startsWith(`${cleanFolder}/`))
+      .map((path) => {
+        const content = state.mockFiles[path] || '';
+        return {
+          name: path.split('/').pop(),
+          path,
+          pathname: path,
+          size: content.length,
+          uploadedAt: '2026-06-23T09:00:00.000Z'
+        };
+      });
+    if (!files.length && required) return [];
+    return normalizeFileList(files, cleanFolder);
+  }
+
   const response = await fetch(`/api/blob-list?folder=${encodeURIComponent(cleanFolder)}&limit=1000`, {
     headers: { Accept: 'application/json' }
   });
@@ -599,6 +639,10 @@ async function fetchBlobFolderWithFallback(primaryFolder, fallbackFolders = [], 
 
 async function fetchBlobText(path) {
   const cleanPath = String(path || '').replace(/^\/+/, '');
+  if (APP_CONFIG.mock && Object.prototype.hasOwnProperty.call(state.mockFiles, cleanPath)) {
+    return state.mockFiles[cleanPath];
+  }
+
   const response = await fetch(`/api/blob-file?path=${encodeURIComponent(cleanPath)}`, {
     headers: { Accept: 'application/json' }
   });
@@ -617,16 +661,107 @@ async function fetchBlobText(path) {
 }
 
 async function refreshBlobData() {
+  if (APP_CONFIG.mock) {
+    await loadMockData();
+    showToast('Mock 데이터로 화면을 표시합니다.');
+    return;
+  }
   showToast('Vercel Blob 데이터를 불러오는 중입니다.');
 
   await Promise.allSettled([
     refreshRequirements(),
     refreshPrompts(),
     refreshPrdFiles(),
+    refreshMaps(),
     refreshLogs()
   ]);
 
   showToast('Vercel Blob 데이터 갱신 완료');
+}
+
+async function loadMockData() {
+  const now = '2026-06-23T09:00:00.000Z';
+  state.mockFiles = {
+    'req/REQ_GGTweets_vs_GGPoker_260622_005548.md': [
+      '---',
+      'source_type: FILE',
+      'source_label: GGTweets',
+      'source_detail: Campaign analysis',
+      'created_at: "2026-06-22T00:55:48.000Z"',
+      '---',
+      '',
+      '# 요구사항',
+      '',
+      '- GGTweets 캠페인과 GGPoker 유입 성과를 비교한다.',
+      '- 채널별 클릭, 가입, 전환율을 한 화면에서 확인한다.',
+      '- 캠페인 기간과 기준 통화를 필터로 제공한다.'
+    ].join('\n'),
+    'req/REQ_Agent2_Approved_PRD_List_260623_101500.md': [
+      '---',
+      'source_type: DIRECT',
+      'source_label: Product Review',
+      'created_at: "2026-06-23T10:15:00.000Z"',
+      '---',
+      '',
+      '# 요구사항',
+      '',
+      '- 승인된 PRD만 Agent2 입력 목록에 노출한다.',
+      '- 승인 해제 시 Agent2 목록에서 즉시 제외한다.',
+      '- 승인 상태를 PRD 목록에서 배지로 표시한다.'
+    ].join('\n'),
+    'prompts/prd-template-v1.md': '# PRD Template\n\n요구사항을 기반으로 PRD를 작성한다.',
+    'prd/PRD_GGTweets_vs_GGPoker_260623_103000.md': [
+      '# GGTweets vs GGPoker 성과 분석 PRD',
+      '',
+      '## 1. 목적',
+      'GGTweets 캠페인과 GGPoker 유입 성과를 비교하고 승인된 PRD만 후속 Agent2 단계로 전달한다.',
+      '',
+      '## 2. 주요 기능',
+      '- 캠페인 성과 비교 대시보드',
+      '- 승인된 PRD 목록 관리',
+      '- 승인/해제 상태 변경',
+      '',
+      '## 3. 예외 케이스',
+      '- 요구사항 매핑 정보가 없는 PRD는 안내 문구를 표시한다.',
+      '- 승인 해제 실패 시 기존 승인 상태를 유지한다.'
+    ].join('\n'),
+    'maps/MAP_GGTweets_vs_GGPoker_260623_103000.json': JSON.stringify({
+      requestId: 'mock_prd_request_001',
+      requirementSetId: 'REQ_SET_MOCK_001',
+      requirementFilePaths: [
+        'req/REQ_GGTweets_vs_GGPoker_260622_005548.md',
+        'req/REQ_Agent2_Approved_PRD_List_260623_101500.md'
+      ],
+      promptFilePath: 'prompts/prd-template-v1.md',
+      prdFilePath: 'prd/PRD_GGTweets_vs_GGPoker_260623_103000.md',
+      mapFilePath: 'maps/MAP_GGTweets_vs_GGPoker_260623_103000.json',
+      status: 'success',
+      createdAt: now
+    }, null, 2),
+    'logs/LOG_GGTweets_vs_GGPoker_260623_103000.json': JSON.stringify({
+      status: 'success',
+      prdFilePath: 'prd/PRD_GGTweets_vs_GGPoker_260623_103000.md',
+      endedAt: now
+    }, null, 2)
+  };
+
+  state.requirements = await fetchBlobFolder(APP_CONFIG.storage.folders.req);
+  state.prompts = await fetchBlobFolder(APP_CONFIG.storage.folders.prompts);
+  state.prds = await fetchBlobFolder(APP_CONFIG.storage.folders.prd);
+  state.maps = await fetchBlobFolder(APP_CONFIG.storage.folders.maps);
+  state.logs = await fetchBlobFolder(APP_CONFIG.storage.folders.logs);
+  state.requirements.forEach((file) => Object.assign(file, parseRequirementMeta(state.mockFiles[file.path])));
+
+  renderRequirementList();
+  renderPromptOptions();
+  renderPrdFiles();
+  renderLogs();
+  updateSelectedView();
+  if (state.prds[0]) {
+    await openPrd(state.prds[0].path);
+  } else {
+    renderActivePrdRequirements([]);
+  }
 }
 
 async function refreshRequirements() {
@@ -661,6 +796,14 @@ async function refreshPrdFiles() {
     renderPrdFiles();
   } catch (error) {
     elements.prdFileList.innerHTML = renderError(error.message);
+  }
+}
+
+async function refreshMaps() {
+  try {
+    state.maps = await fetchBlobFolder(APP_CONFIG.storage.folders.maps);
+  } catch {
+    state.maps = [];
   }
 }
 
@@ -1294,6 +1437,98 @@ function renderPromptOptions() {
 }
 
 /* PRD 파일 목록 렌더 */
+async function findPrdMapping(prdPath) {
+  for (const file of state.maps || []) {
+    try {
+      const text = await fetchBlobText(file.path);
+      const mapping = JSON.parse(text);
+      if (mapping.prdFilePath === prdPath) return mapping;
+    } catch {
+      // Ignore malformed map files.
+    }
+  }
+  return null;
+}
+
+function getRequirementTitleByPath(path) {
+  const file = state.requirements.find((item) => item.path === path);
+  if (file) return getRequirementDisplayTitle(file);
+  return getRequirementDisplayTitle({ name: String(path || '').split('/').pop() });
+}
+
+function getPromptTemplateTitleByPath(path) {
+  const file = state.prompts.find((item) => item.path === path);
+  const name = file?.name || String(path || '').split('/').pop();
+  return String(name || '')
+    .replace(/\.md$/i, '')
+    .replace(/_/g, ' ')
+    .trim() || '확인 필요';
+}
+
+function renderActivePrdTemplate(promptFilePath, options = {}) {
+  if (!elements.prdTemplateName) return;
+
+  if (options.loading) {
+    elements.prdTemplateName.textContent = '확인 중';
+    elements.prdTemplateName.removeAttribute('title');
+    return;
+  }
+
+  if (!promptFilePath) {
+    elements.prdTemplateName.textContent = options.message || '매핑 정보 없음';
+    elements.prdTemplateName.removeAttribute('title');
+    return;
+  }
+
+  elements.prdTemplateName.textContent = getPromptTemplateTitleByPath(promptFilePath);
+  elements.prdTemplateName.title = promptFilePath;
+}
+
+function renderActivePrdRequirements(paths = [], options = {}) {
+  if (!elements.prdRequirementList || !elements.prdRequirementsCount) return;
+
+  const count = paths.length;
+  elements.prdRequirementsCount.textContent = count ? `${count}건` : '0건';
+
+  if (options.loading) {
+    elements.prdRequirementList.innerHTML = '<div class="common_empty">반영 요구사항을 확인하는 중입니다.</div>';
+    return;
+  }
+
+  if (!count) {
+    elements.prdRequirementList.innerHTML = `<div class="common_empty">${escapeHtml(options.message || '매핑 정보가 없습니다.')}</div>`;
+    return;
+  }
+
+  elements.prdRequirementList.innerHTML = paths
+    .map((path) => {
+      const file = state.requirements.find((item) => item.path === path);
+      const source = getRequirementSource(file);
+      const sourceBadgeLabel = getRequirementSourceBadgeLabel(file);
+      return `
+      <div class="section3_prd_requirement_item" role="button" tabindex="0" data-path="${escapeHtml(path)}">
+        <span class="section3_prd_requirement_text">
+          <span class="section3_prd_requirement_title">${escapeHtml(getRequirementTitleByPath(path))}</span>
+          <span class="section3_prd_requirement_path">${escapeHtml(path)}</span>
+        </span>
+        <span class="common_badge ${source}">${sourceBadgeLabel}</span>
+      </div>
+    `;
+    })
+    .join('');
+
+  $$('.section3_prd_requirement_item', elements.prdRequirementList).forEach((item) => {
+    const openItem = () => openRequirementModal(item.dataset.path);
+    item.addEventListener('click', openItem);
+    item.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openItem();
+      }
+    });
+  });
+}
+
 function renderPrdFiles() {
   if (!state.prds.length) {
     elements.prdFileList.innerHTML = '<div class="common_empty">생성된 PRD 문서가 없습니다.</div>';
@@ -1319,13 +1554,80 @@ async function openPrd(path) {
   renderPrdFiles();
   openColumn('3');
   elements.feedbackToggle.textContent = `PRD 피드백 / 수정 요청`;
+  updateApprovePrdButton('ready');
+  renderActivePrdRequirements([], { loading: true });
+  renderActivePrdTemplate('', { loading: true });
 
   try {
     const text = await fetchBlobText(path);
     elements.prdRaw.value = text;
     elements.prdPreview.innerHTML = simpleMarkdown(text);
+    const mapping = await findPrdMapping(path);
+    renderActivePrdRequirements(mapping?.requirementFilePaths || [], {
+      message: '이 PRD의 요구사항 매핑 정보가 없습니다.'
+    });
+    renderActivePrdTemplate(mapping?.promptFilePath, {
+      message: '매핑 정보 없음'
+    });
   } catch (error) {
     elements.prdPreview.innerHTML = renderError(error.message);
+    renderActivePrdRequirements([], { message: 'PRD를 불러오지 못해 요구사항을 표시할 수 없습니다.' });
+    renderActivePrdTemplate('', { message: '표시할 수 없음' });
+    updateApprovePrdButton('disabled');
+  }
+}
+
+function updateApprovePrdButton(status = 'disabled') {
+  if (!elements.approvePrd) return;
+
+  const labels = {
+    disabled: '문서승인',
+    ready: '문서승인',
+    saving: '승인 중...',
+    complete: '승인완료',
+    error: '재시도'
+  };
+
+  elements.approvePrd.textContent = labels[status] || labels.disabled;
+  elements.approvePrd.disabled = status === 'disabled' || status === 'saving' || !state.activePrd;
+  elements.approvePrd.dataset.status = status;
+}
+
+async function approveActivePrd() {
+  if (!state.activePrd) {
+    showToast('승인할 PRD 문서를 먼저 선택해주세요.');
+    updateApprovePrdButton('disabled');
+    return;
+  }
+
+  const sourceText = elements.prdRaw.value || await fetchBlobText(state.activePrd.path);
+  const approvedName = `APPROVED_${state.activePrd.name || state.activePrd.path.split('/').pop()}`;
+  const approvedPath = `${APP_CONFIG.storage.folders.approvedPrd}/${approvedName}`.replace(/\/+/g, '/');
+  const approvedAt = new Date();
+  const metadata = [
+    '---',
+    'approval_status: approved',
+    `approved_at: "${approvedAt.toISOString()}"`,
+    'approved_by: "확인 필요"',
+    `source_prd_path: "${escapeYamlValue(state.activePrd.path)}"`,
+    `prd_version: "확인 필요"`,
+    '---',
+    ''
+  ].join('\n');
+  const approvedContent = sourceText.startsWith('---\n')
+    ? sourceText.replace(/^---\n([\s\S]*?)\n---\n?/, `${metadata}`)
+    : `${metadata}${sourceText}`;
+
+  updateApprovePrdButton('saving');
+  showToast('PRD 승인 처리 중...');
+
+  try {
+    await saveBlobText(approvedPath, approvedContent, 'text/markdown; charset=utf-8');
+    updateApprovePrdButton('complete');
+    showToast('PRD 승인 완료. Agent2에서 확인할 수 있습니다.');
+  } catch (error) {
+    updateApprovePrdButton('error');
+    showToast(`승인 실패: ${error.message}`);
   }
 }
 
@@ -1377,8 +1679,13 @@ function renderLogs() {
 
 /* 요구사항 모달 열기 */
 async function openRequirementModal(path) {
-  const file = state.requirements.find((f) => f.path === path);
-  if (!file) return;
+  const file = state.requirements.find((f) => f.path === path) || {
+    name: String(path || '').split('/').pop(),
+    path,
+    size: 0,
+    registeredAtLabel: '확인 필요',
+    ...getDefaultRequirementMeta()
+  };
 
   elements.modalBadge.className = `modal_badge ${getRequirementSource(file)}`;
   elements.modalBadge.textContent = getRequirementSource(file);

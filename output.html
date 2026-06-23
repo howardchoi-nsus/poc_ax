@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AGENT2 : 기획 산출물 생성</title>
+  <link rel="stylesheet" href="./asset/css/styles.css" />
+</head>
+<body>
+  <div class="common_app_shell">
+    <header class="header" id="header">
+      <section class="header_brand" id="header_brand">
+        <div class="header_logo" aria-label="NSUSLAB logo"></div>
+        <div class="header_title_area">
+          <h1 class="header_title">기획 산출물 생성 [ AGENT2 ]</h1>
+          <p class="header_subtitle">Scenario · Policy · IA · Draw.io Output</p>
+        </div>
+      </section>
+
+      <section class="header_repo" id="header_repo">
+        <span class="header_repo_label">Vercel Blob</span>
+        <strong class="header_repo_badge" id="header_repo_badge">loading...</strong>
+        <span class="header_blob_status is_connected" id="header_blob_status">Blob Storage</span>
+        <button class="common_button common_button_secondary" id="header_btn_services" type="button">서비스 선택</button>
+        <button class="common_button common_button_secondary" id="header_btn_refresh" type="button">Blob 새로고침</button>
+      </section>
+
+      <section class="header_control" id="header_control">
+        <div class="header_column_switches" aria-label="section toggle">
+          <button class="header_column_switch is_active" data-toggle-col="1">1</button>
+          <button class="header_column_switch is_active" data-toggle-col="2">B</button>
+        </div>
+      </section>
+    </header>
+
+    <main class="content output_content" id="content">
+      <section class="section section1" id="section1" data-col="1" aria-label="Approved PRD">
+        <button class="section1_collapsed_opener common_collapsed_opener" type="button" data-reopen-col="1" aria-label="1컬럼 열기">
+          <span class="common_rail_num">1</span>
+          <span class="common_rail_text">Approved PRD</span>
+          <span class="common_rail_arrow">›</span>
+        </button>
+
+        <div class="section1_panel common_panel">
+          <div class="section1_panel_head common_panel_head">
+            <div>
+              <h2 class="section1_title">승인 PRD 선택</h2>
+              <p class="section1_description">Agent1 PRD Viewer에서 승인된 문서만 후속 산출물 대상으로 표시합니다.</p>
+            </div>
+            <button class="section1_btn_close common_btn_close" data-close-col="1" title="1컬럼 닫기">×</button>
+          </div>
+
+          <div class="section1_search_card common_card">
+            <div class="section1_search_input_wrap">
+              <span>⌕</span>
+              <input class="section1_search_input" id="output_search_input" type="search" placeholder="승인 PRD 검색..." />
+            </div>
+          </div>
+
+          <div class="section1_list_card common_card">
+            <div class="section1_list_toolbar">
+              <strong>승인 문서</strong>
+              <span>총 <strong id="output_prd_total_count">0</strong>개</span>
+            </div>
+            <div class="section1_requirement_list" id="output_approved_prd_list">
+              <div class="common_empty">승인된 PRD 목록을 불러오는 중입니다.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="common_resizer" data-resizer="1" role="separator" aria-label="섹션 너비 조절"></div>
+
+      <section class="section section2 output_section_b" id="section2" data-col="2" aria-label="Output Workspace">
+        <button class="section2_collapsed_opener common_collapsed_opener" type="button" data-reopen-col="2" aria-label="섹션B 열기">
+          <span class="common_rail_num">B</span>
+          <span class="common_rail_text">Output</span>
+          <span class="common_rail_arrow">›</span>
+        </button>
+
+        <div class="section2_panel common_panel output_b_panel">
+          <div class="section2_panel_head common_panel_head">
+            <div>
+              <h2 class="section2_title">섹션B · 기획 산출물 생성</h2>
+              <p class="section2_description">row1에서 승인 PRD 기반 서비스 시나리오를 생성하고, row2에서 시나리오 확인 및 후속 산출물을 생성합니다.</p>
+            </div>
+            <button class="section2_btn_close common_btn_close" data-close-col="2" title="섹션B 닫기">×</button>
+          </div>
+
+          <div class="output_b_rows">
+            <section class="output_b_row output_b_row1" aria-label="Scenario Generation Row">
+              <section class="section2_target_card common_card output_b_prd_card">
+                <div class="section2_card_title_row">
+                  <div>
+                    <strong>선택된 승인 PRD</strong>
+                    <p id="output_selected_prd_hint">좌측에서 승인 PRD를 선택하세요.</p>
+                  </div>
+                  <div class="section2_target_badges">
+                    <span id="output_selected_prd_status">대상 선택 필요</span>
+                  </div>
+                </div>
+                <div class="section2_selected_summary" id="output_selected_prd_summary">
+                  <div class="section2_empty_target">승인된 PRD를 선택하면 이곳에 표시됩니다.</div>
+                </div>
+
+                <div class="output_scenario_controls">
+                  <label class="section2_form_label">
+                    서비스 시나리오 기본 프롬프트
+                    <select class="section2_prompt_template" id="output_prompt_template">
+                      <option value="">프롬프트 로딩 중...</option>
+                    </select>
+                  </label>
+                  <button class="section2_btn_generate" id="output_btn_generate" type="button" disabled>▶ 서비스 시나리오 생성</button>
+                </div>
+              </section>
+
+              <section class="output_generation_card common_card output_b_policy_card">
+                <div class="section2_repo_head">
+                  <strong>리전 정책 적용</strong>
+                  <span class="common_muted">생성 프롬프트에 포함할 대상 리전입니다.</span>
+                </div>
+                <div class="output_region_grid">
+                  <label><input type="checkbox" value="KR" checked /> KR</label>
+                  <label><input type="checkbox" value="US-CA" checked /> US-CA</label>
+                  <label><input type="checkbox" value="EU" checked /> EU</label>
+                  <label><input type="checkbox" value="UK" checked /> UK</label>
+                  <label><input type="checkbox" value="JP" checked /> JP</label>
+                </div>
+                <button class="section2_generation_reopen common_small_button" id="output_btn_generation_modal" type="button">
+                  <span id="output_generation_summary">산출물 생성 대기</span>
+                </button>
+              </section>
+            </section>
+
+            <section class="output_b_row output_b_row2" aria-label="Scenario Viewer And Follow-up Outputs">
+              <section class="section3_prd_viewer_card common_card output_scenario_viewer_card">
+                <div class="section2_viewer_tabs">
+                  <button class="section2_viewer_tab is_active" data-view="preview" type="button">Scenario Viewer</button>
+                  <button class="section2_viewer_tab" data-view="raw" type="button">Raw Markdown</button>
+                  <div class="common_spacer"></div>
+                  <button class="common_small_button" id="output_btn_copy_scenario" type="button">복사</button>
+                  <button class="common_small_button" id="output_btn_download_scenario" type="button">다운로드</button>
+                </div>
+                <article class="section2_prd_preview" id="output_scenario_preview">
+                  <div class="common_empty_state"><div>?</div><p>서비스 시나리오를 생성하면 이곳에 표시됩니다.</p></div>
+                </article>
+                <textarea class="section2_prd_raw is_hidden" id="output_scenario_raw" spellcheck="false"></textarea>
+              </section>
+
+              <section class="output_followup_card common_card">
+                <div class="section2_repo_head">
+                  <strong>후속 산출물 생성</strong>
+                  <span class="common_muted">서비스 시나리오 생성 후 사용할 수 있습니다.</span>
+                </div>
+                <div class="output_followup_grid">
+                  <article class="output_followup_item">
+                    <div>
+                      <strong>서비스 정책서</strong>
+                      <p>운영/법무/QA 기준 정책 문서를 생성합니다.</p>
+                    </div>
+                    <label class="section2_form_label">
+                      프롬프트
+                      <select class="section2_prompt_template" id="output_policy_prompt_template"></select>
+                    </label>
+                    <button class="common_small_button output_followup_button" id="output_btn_policy" data-output-type="service_policy" type="button" disabled>정책서 생성</button>
+                  </article>
+
+                  <article class="output_followup_item">
+                    <div>
+                      <strong>서비스 IA</strong>
+                      <p>화면 구조, 메뉴, 권한/동의 화면을 정의합니다.</p>
+                    </div>
+                    <label class="section2_form_label">
+                      프롬프트
+                      <select class="section2_prompt_template" id="output_ia_prompt_template"></select>
+                    </label>
+                    <button class="common_small_button output_followup_button" id="output_btn_ia" data-output-type="ia" type="button" disabled>IA 생성</button>
+                  </article>
+
+                  <article class="output_followup_item">
+                    <div>
+                      <strong>서비스 다이어그램</strong>
+                      <p>draw.io에서 열 수 있는 XML 다이어그램을 생성합니다.</p>
+                    </div>
+                    <label class="section2_form_label">
+                      프롬프트
+                      <select class="section2_prompt_template" id="output_diagram_prompt_template"></select>
+                    </label>
+                    <button class="common_small_button output_followup_button" id="output_btn_diagram" data-output-type="service_diagram" type="button" disabled>Draw.io 생성</button>
+                  </article>
+                </div>
+              </section>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="modal_detail" id="output_modal_prd_detail">
+    <form method="dialog" class="modal_form">
+      <div class="modal_head">
+        <div>
+          <span class="modal_badge DIRECT">APPROVED</span>
+          <h3 class="modal_title" id="output_prd_modal_title">승인 PRD 상세</h3>
+        </div>
+        <button class="modal_btn_close" id="output_prd_modal_close" type="button" aria-label="닫기">×</button>
+      </div>
+      <div class="modal_meta" id="output_prd_modal_meta"></div>
+      <pre class="modal_body" id="output_prd_modal_body"></pre>
+      <div class="modal_actions">
+        <button class="modal_btn_cancel" id="output_prd_modal_select" type="button">이 PRD 선택</button>
+        <button class="modal_btn_select" value="cancel">닫기</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal_detail modal_generation" id="output_modal_generation">
+    <form method="dialog" class="modal_form">
+      <div class="modal_head">
+        <div>
+          <span class="modal_badge">OUTPUT</span>
+          <h3 class="modal_title">산출물 생성 진행</h3>
+        </div>
+        <button class="modal_btn_close" id="output_modal_generation_close" type="button" aria-label="닫기">×</button>
+      </div>
+      <section class="section2_generation_status" id="output_generation_status" data-status="idle">
+        <div class="section2_generation_head">
+          <strong id="output_generation_title">산출물 생성 대기</strong>
+          <span id="output_generation_elapsed">00:00</span>
+        </div>
+        <p id="output_generation_message">승인 PRD와 산출물 프롬프트를 선택하면 생성 상태가 표시됩니다.</p>
+        <div class="section2_generation_eta">
+          <span>예상 완료</span>
+          <strong id="output_generation_eta">03:00</strong>
+        </div>
+        <div class="section2_generation_bar"><span id="output_generation_bar"></span></div>
+        <div class="section2_generation_meta" id="output_generation_meta">자동 확인 대기 중</div>
+      </section>
+      <div class="modal_actions">
+        <button class="modal_btn_select" value="cancel">확인</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal_detail output_result_modal" id="output_modal_result">
+    <form method="dialog" class="modal_form">
+      <div class="modal_head">
+        <div>
+          <span class="modal_badge" id="output_modal_badge">OUTPUT</span>
+          <h3 class="modal_title" id="output_modal_title">산출물 보기</h3>
+        </div>
+        <button class="modal_btn_close" id="output_modal_result_close" type="button" aria-label="닫기">×</button>
+      </div>
+      <div class="modal_meta" id="output_modal_meta"></div>
+      <pre class="modal_body" id="output_modal_body"></pre>
+      <div class="modal_actions">
+        <button class="modal_btn_cancel" id="output_modal_copy" type="button">복사</button>
+        <button class="modal_btn_select" value="cancel">닫기</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast_message" id="toast_message"></div>
+  <script src="./asset/js/output.js"></script>
+</body>
+</html>

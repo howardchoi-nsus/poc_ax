@@ -171,6 +171,20 @@
             <button class="section3_btn_close common_btn_close" data-close-col="3" title="3컬럼 닫기">×</button>
           </div>
 
+          <section class="section3_prd_requirements" id="section3_prd_requirements">
+            <div class="section3_prd_requirements_head">
+              <strong>반영 요구사항</strong>
+              <span id="section3_prd_requirements_count">0건</span>
+            </div>
+            <div class="section3_prd_requirement_list" id="section3_prd_requirement_list">
+              <div class="common_empty">PRD 문서를 선택하면 반영된 요구사항이 표시됩니다.</div>
+            </div>
+            <div class="section3_prd_template" id="section3_prd_template">
+              <span>PRD 생성 템플릿</span>
+              <strong id="section3_prd_template_name">PRD 문서를 선택하면 표시됩니다.</strong>
+            </div>
+          </section>
+
           <section class="section3_prd_viewer_card common_card">
             <div class="section2_viewer_tabs">
               <button class="section2_viewer_tab is_active" data-view="preview">PRD Viewer</button>
@@ -178,6 +192,9 @@
               <div class="common_spacer"></div>
               <button class="common_small_button" id="section2_btn_copy_prd">복사</button>
               <button class="common_small_button" id="section2_btn_download_prd">Markdown 다운로드</button>
+              <button class="section3_btn_approve_prd common_small_button" id="section3_btn_approve_prd" type="button" disabled>
+                문서승인
+              </button>
             </div>
             <article class="section2_prd_preview" id="section2_prd_preview">
               <div class="common_empty_state"><div>?</div><p>2번 섹션의 PRD 문서를 선택하면 내용이 표시됩니다.</p></div>
