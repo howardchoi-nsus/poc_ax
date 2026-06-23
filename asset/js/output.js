@@ -442,7 +442,7 @@ function enableSecondaryOutputs() {
 }
 
 function getSelectedRegions() {
-  return $$('.output_region_grid input:checked').map((input) => input.value);
+  return ['KR', 'US-CA', 'EU', 'UK', 'JP'];
 }
 
 function getOutputTypeLabel(type) {

@@ -1427,7 +1427,7 @@ select:focus, input:focus, textarea:focus {
 
 .output_b_row1 {
   display: grid;
-  grid-template-columns: minmax(420px, 1.4fr) minmax(280px, 0.8fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   align-items: stretch;
 }
@@ -1439,18 +1439,20 @@ select:focus, input:focus, textarea:focus {
 
 .output_b_row2 {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+  grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
   gap: 12px;
   overflow: hidden;
 }
 
 .output_scenario_viewer_card {
   margin-bottom: 0;
+  order: 2;
 }
 
 .output_b_row2 .output_followup_card {
   min-height: 0;
   overflow: hidden;
+  order: 1;
 }
 
 .output_b_row2 .output_followup_grid {
@@ -1462,33 +1464,6 @@ select:focus, input:focus, textarea:focus {
 
 .output_b_row2 .output_followup_item {
   min-height: 164px;
-}
-
-.output_region_grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  margin: 10px 0 12px;
-}
-
-.output_region_grid label {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 34px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
-  color: #334155;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.output_region_grid input {
-  width: 14px;
-  height: 14px;
-  margin: 0;
 }
 
 .output_generation_card {
@@ -1579,12 +1554,6 @@ select:focus, input:focus, textarea:focus {
 
   .output_followup_grid {
     grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 860px) {
-  .output_region_grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

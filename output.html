@@ -28,7 +28,7 @@
       <section class="header_control" id="header_control">
         <div class="header_column_switches" aria-label="section toggle">
           <button class="header_column_switch is_active" data-toggle-col="1">1</button>
-          <button class="header_column_switch is_active" data-toggle-col="2">B</button>
+          <button class="header_column_switch is_active" data-toggle-col="2">2</button>
         </div>
       </section>
     </header>
@@ -72,8 +72,8 @@
       <div class="common_resizer" data-resizer="1" role="separator" aria-label="섹션 너비 조절"></div>
 
       <section class="section section2 output_section_b" id="section2" data-col="2" aria-label="Output Workspace">
-        <button class="section2_collapsed_opener common_collapsed_opener" type="button" data-reopen-col="2" aria-label="섹션B 열기">
-          <span class="common_rail_num">B</span>
+        <button class="section2_collapsed_opener common_collapsed_opener" type="button" data-reopen-col="2" aria-label="섹션2 열기">
+          <span class="common_rail_num">2</span>
           <span class="common_rail_text">Output</span>
           <span class="common_rail_arrow">›</span>
         </button>
@@ -81,10 +81,10 @@
         <div class="section2_panel common_panel output_b_panel">
           <div class="section2_panel_head common_panel_head">
             <div>
-              <h2 class="section2_title">섹션B · 기획 산출물 생성</h2>
+              <h2 class="section2_title">섹션2 · 기획 산출물 생성</h2>
               <p class="section2_description">row1에서 승인 PRD 기반 서비스 시나리오를 생성하고, row2에서 시나리오 확인 및 후속 산출물을 생성합니다.</p>
             </div>
-            <button class="section2_btn_close common_btn_close" data-close-col="2" title="섹션B 닫기">×</button>
+            <button class="section2_btn_close common_btn_close" data-close-col="2" title="섹션2 닫기">×</button>
           </div>
 
           <div class="output_b_rows">
@@ -111,24 +111,10 @@
                     </select>
                   </label>
                   <button class="section2_btn_generate" id="output_btn_generate" type="button" disabled>▶ 서비스 시나리오 생성</button>
+                  <button class="section2_generation_reopen common_small_button" id="output_btn_generation_modal" type="button">
+                    <span id="output_generation_summary">산출물 생성 대기</span>
+                  </button>
                 </div>
-              </section>
-
-              <section class="output_generation_card common_card output_b_policy_card">
-                <div class="section2_repo_head">
-                  <strong>리전 정책 적용</strong>
-                  <span class="common_muted">생성 프롬프트에 포함할 대상 리전입니다.</span>
-                </div>
-                <div class="output_region_grid">
-                  <label><input type="checkbox" value="KR" checked /> KR</label>
-                  <label><input type="checkbox" value="US-CA" checked /> US-CA</label>
-                  <label><input type="checkbox" value="EU" checked /> EU</label>
-                  <label><input type="checkbox" value="UK" checked /> UK</label>
-                  <label><input type="checkbox" value="JP" checked /> JP</label>
-                </div>
-                <button class="section2_generation_reopen common_small_button" id="output_btn_generation_modal" type="button">
-                  <span id="output_generation_summary">산출물 생성 대기</span>
-                </button>
               </section>
             </section>
 
