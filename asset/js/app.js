@@ -12,7 +12,7 @@ const APP_CONFIG = {
     baseUrl: location.origin,
     folders: {
       req: 'req',
-      prompts: 'prompts',
+      prompts: 'prompts/output/prd',
       prd: 'prd',
       maps: 'maps',
       approvedPrd: 'prd-approved',
@@ -41,9 +41,10 @@ APP_CONFIG.storage.folders.req =
   localStorage.getItem('agent1_req_folder') ||
   APP_CONFIG.storage.folders.req;
 
+const storedPromptFolder = localStorage.getItem('agent1_prompt_folder');
 APP_CONFIG.storage.folders.prompts =
   query.get('promptFolder') ||
-  localStorage.getItem('agent1_prompt_folder') ||
+  (storedPromptFolder && storedPromptFolder !== 'prompts' ? storedPromptFolder : '') ||
   APP_CONFIG.storage.folders.prompts;
 
 APP_CONFIG.storage.folders.prd =
@@ -709,7 +710,7 @@ async function loadMockData() {
       '- 승인 해제 시 Agent2 목록에서 즉시 제외한다.',
       '- 승인 상태를 PRD 목록에서 배지로 표시한다.'
     ].join('\n'),
-    'prompts/prd-template-v1.md': '# PRD Template\n\n요구사항을 기반으로 PRD를 작성한다.',
+    'prompts/output/prd/prd-template-v1.md': '# PRD Template\n\n요구사항을 기반으로 PRD를 작성한다.',
     'prd/PRD_GGTweets_vs_GGPoker_260623_103000.md': [
       '# GGTweets vs GGPoker 성과 분석 PRD',
       '',
@@ -732,7 +733,7 @@ async function loadMockData() {
         'req/REQ_GGTweets_vs_GGPoker_260622_005548.md',
         'req/REQ_Agent2_Approved_PRD_List_260623_101500.md'
       ],
-      promptFilePath: 'prompts/prd-template-v1.md',
+      promptFilePath: 'prompts/output/prd/prd-template-v1.md',
       prdFilePath: 'prd/PRD_GGTweets_vs_GGPoker_260623_103000.md',
       mapFilePath: 'maps/MAP_GGTweets_vs_GGPoker_260623_103000.json',
       status: 'success',

@@ -52,7 +52,7 @@ flowchart LR
 | 영역 | 진행 내용 | 산출물 |
 | --- | --- | --- |
 | 요구사항 관리 | 요구사항 원문과 Markdown 변환 파일 관리 구조 구성 | `req`, `source` |
-| PRD 템플릿 | 글로벌 B2C 기준 PRD 생성 프롬프트 정의 | `prompts/prd-template-v1.md` |
+| PRD 템플릿 | 글로벌 B2C 기준 PRD 생성 프롬프트 정의 | `prompts/output/prd/prd-template-v1.md` |
 | PRD 생성 결과 | 샘플 요구사항 기반 PRD 문서 생성 | `prd` |
 | 저장소 연동 | Vercel Blob 기반 파일 목록/본문 조회 및 저장 구조 구성 | Blob API |
 | 자동화 연동 | n8n Webhook을 통한 요구사항 저장 및 PRD 생성 요청 구조 구성 | Webhook Proxy API |
@@ -81,7 +81,7 @@ flowchart TB
     end
 
     subgraph Prompt["Prompt Layer"]
-        P1["prompts/prd-template-v1.md<br/>PRD 생성 템플릿"]
+        P1["prompts/output/prd/prd-template-v1.md<br/>PRD 생성 템플릿"]
     end
 
     subgraph Automation["Automation Layer"]
