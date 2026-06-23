@@ -1727,6 +1727,51 @@ select:focus, input:focus, textarea:focus {
   font-family: Consolas, Monaco, 'Courier New', monospace;
 }
 
+.modal_body_sheet {
+  padding: 0;
+  white-space: normal;
+  background: #fff;
+}
+
+.modal_sheet_table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+.modal_sheet_table th,
+.modal_sheet_table td {
+  min-width: 132px;
+  max-width: 280px;
+  padding: 9px 10px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.modal_sheet_table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 800;
+}
+
+.modal_sheet_table td {
+  color: #334155;
+  line-height: 1.55;
+}
+
+.modal_sheet_table tr:hover td {
+  background: #f8fbff;
+}
+
 .modal_actions {
   display: flex;
   justify-content: flex-end;

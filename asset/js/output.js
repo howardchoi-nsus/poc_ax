@@ -401,7 +401,7 @@ async function requestOutputGenerate(type) {
     };
 
     const result = await callOutputGenerate(payload);
-    const content = result.content || result.output || result.generatedContent || createSampleOutput(type);
+    const content = getGeneratedContent(result, type);
     completeGenerationStatus(`${getOutputTypeLabel(type)} 생성 완료`);
 
     if (type === 'service_scenario') {
@@ -459,6 +459,14 @@ function createSampleOutput(type) {
   if (type === 'service_diagram') {
     return '<mxfile host="app.diagrams.net"><diagram name="Service Diagram"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="start" value="Approved PRD" vertex="1" parent="1"><mxGeometry x="80" y="80" width="140" height="60" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>';
   }
+  if (type === 'ia') {
+    return [
+      'depth1,depth2,screenId,screenName,path,auth,description',
+      'Home,Promotion,HOME-001,Promotion Home,/promotion,guest,Entry point for the promotion service',
+      'User,Login,LOGIN-001,Login,/login,guest,Authentication screen',
+      'Reward,History,RWD-001,Reward History,/rewards,user,User reward history screen'
+    ].join('\n');
+  }
   return [
     `## 1. ${getOutputTypeLabel(type)} 문서 개요`,
     '',
@@ -480,18 +488,38 @@ function createSampleOutput(type) {
 }
 
 function openResultModal(type, content, result = {}) {
-  outputState.resultModalContent = content || '';
+  outputState.resultModalContent = getCopyContent(type, content, result);
   outputElements.resultModalBadge.textContent = type === 'service_diagram' ? 'DRAW.IO' : 'OUTPUT';
   outputElements.resultModalTitle.textContent = `${getOutputTypeLabel(type)} 보기`;
   outputElements.resultModalMeta.innerHTML = `
     <div>경로: <b>${escapeHtml(result.path || 'local-preview')}</b></div>
-    <div>형식: ${type === 'service_diagram' ? '.drawio XML' : 'Markdown'}</div>
+    <div>형식: ${getResultFormatLabel(type, result)}</div>
   `;
-  renderResultModalBody(type, content);
+  renderResultModalBody(type, content, result);
   outputElements.resultModal.showModal();
 }
 
-function renderResultModalBody(type, content) {
+function getGeneratedContent(result = {}, type) {
+  if (type === 'ia') {
+    return result.csvContent || result.content || result.output || result.generatedContent || createSampleOutput(type);
+  }
+  return result.content || result.output || result.generatedContent || createSampleOutput(type);
+}
+
+function getCopyContent(type, content, result = {}) {
+  if (type === 'ia' && Array.isArray(result.rows) && !String(result.csvContent || content || '').trim()) {
+    return rowsToCsv(result.rows);
+  }
+  return result.csvContent || content || '';
+}
+
+function getResultFormatLabel(type, result = {}) {
+  if (type === 'service_diagram') return '.drawio XML';
+  if (type === 'ia' && (result.format === 'csv' || result.csvContent || Array.isArray(result.rows))) return 'CSV Sheet';
+  return 'Markdown';
+}
+
+function renderResultModalBody(type, content, result = {}) {
   const body = outputElements.resultModalBody;
   body.className = 'modal_body';
 
@@ -501,8 +529,98 @@ function renderResultModalBody(type, content) {
     return;
   }
 
+  if (type === 'ia' && (result.format === 'csv' || result.csvContent || Array.isArray(result.rows) || looksLikeCsv(content))) {
+    const rows = Array.isArray(result.rows) && result.rows.length ? result.rows : parseCsv(result.csvContent || content);
+    body.classList.add('modal_body_sheet');
+    body.innerHTML = renderSheetTable(rows);
+    return;
+  }
+
   body.classList.add('modal_body_document');
   body.innerHTML = simpleMarkdown(content);
+}
+
+function looksLikeCsv(value) {
+  const text = String(value || '').trim();
+  if (!text || text.includes('\n#') || /^#\s/m.test(text)) return false;
+  const lines = text.split(/\r?\n/);
+  return lines.length > 1 && (lines[0] || '').includes(',');
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let inQuotes = false;
+  const source = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i];
+    const next = source[i + 1];
+
+    if (char === '"' && inQuotes && next === '"') {
+      cell += '"';
+      i += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      row.push(cell);
+      cell = '';
+    } else if (char === '\n' && !inQuotes) {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += char;
+    }
+  }
+
+  if (cell || row.length) {
+    row.push(cell);
+    rows.push(row);
+  }
+
+  return rows.filter((item) => item.some((value) => String(value).trim()));
+}
+
+function rowsToCsv(rows) {
+  return normalizeSheetRows(rows).map((row) => row.map(csvEscape).join(',')).join('\n');
+}
+
+function csvEscape(value) {
+  const text = String(value ?? '');
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function normalizeSheetRows(rows) {
+  if (!Array.isArray(rows) || !rows.length) return [];
+  if (Array.isArray(rows[0])) return rows;
+
+  const headers = [];
+  rows.forEach((row) => {
+    Object.keys(row || {}).forEach((key) => {
+      if (!headers.includes(key)) headers.push(key);
+    });
+  });
+
+  return [
+    headers,
+    ...rows.map((row) => headers.map((key) => row?.[key] ?? ''))
+  ];
+}
+
+function renderSheetTable(rows) {
+  const normalized = normalizeSheetRows(rows);
+  if (!normalized.length) {
+    return '<div class="common_empty">IA CSV 데이터가 없습니다.</div>';
+  }
+
+  const [headers, ...bodyRows] = normalized;
+  const head = headers.map((cell) => `<th>${escapeHtml(cell)}</th>`).join('');
+  const body = bodyRows.map((row) => `<tr>${headers.map((_, index) => `<td>${escapeHtml(row[index] ?? '')}</td>`).join('')}</tr>`).join('');
+
+  return `<table class="modal_sheet_table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
 }
 
 function startGenerationStatus(title) {

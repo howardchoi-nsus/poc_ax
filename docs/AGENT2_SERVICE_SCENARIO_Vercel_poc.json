@@ -1,5 +1,5 @@
 {
-  "name": "AGENT2_ServiceScenario_Vercel_poc",
+  "name": "AGENT2_OutputGenerate_Vercel_poc",
   "nodes": [
     {
       "parameters": {
@@ -10,26 +10,20 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        0,
-        0
-      ],
+      "position": [0, 0],
       "id": "a2-webhook-output-generate",
       "name": "Webhook - Output Generate",
       "webhookId": "agent2-output-generate"
     },
     {
       "parameters": {
-        "jsCode": "const payload = $json.body && typeof $json.body === 'object' ? $json.body : $json;\n\nfunction pick(...values) {\n  return values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');\n}\n\nfunction normalizePath(value) {\n  return String(value || '').trim().replace(/^\\/+/, '');\n}\n\nfunction normalizeDir(value, fallback) {\n  return String(value || fallback).trim().replace(/^\\/+|\\/+$/g, '');\n}\n\nfunction slug(value) {\n  return String(value || 'output')\n    .replace(/\\.[^.]+$/, '')\n    .replace(/^APPROVED_/i, '')\n    .replace(/^PRD_/i, '')\n    .replace(/\\s+/g, '_')\n    .replace(/[^A-Za-z0-9가-힣_-]+/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '') || 'output';\n}\n\nfunction timestamp() {\n  const d = new Date();\n  const yy = String(d.getFullYear()).slice(-2);\n  const mm = String(d.getMonth() + 1).padStart(2, '0');\n  const dd = String(d.getDate()).padStart(2, '0');\n  const hh = String(d.getHours()).padStart(2, '0');\n  const mi = String(d.getMinutes()).padStart(2, '0');\n  const ss = String(d.getSeconds()).padStart(2, '0');\n  return yy + mm + dd + '_' + hh + mi + ss;\n}\n\nconst targetOutputType = pick(payload.targetOutputType, 'service_scenario');\nif (targetOutputType !== 'service_scenario') {\n  throw new Error('This workflow only supports targetOutputType=service_scenario');\n}\n\nconst sourcePrdPath = normalizePath(payload.sourcePrdPath);\nconst prdMarkdown = pick(payload.prdMarkdown, payload.prdContent, payload.content, '');\n\nif (!sourcePrdPath) throw new Error('sourcePrdPath is required');\nif (!String(prdMarkdown).trim()) throw new Error('prdMarkdown is required');\n\nconst sourcePrdName = slug(pick(payload.sourcePrdName, sourcePrdPath.split('/').pop(), 'approved_prd'));\nconst ts = timestamp();\nconst outputDir = normalizeDir(pick(payload.outputDir, payload.scenarioDir), 'scenario');\nconst outputFileName = 'SCN_' + sourcePrdName + '_' + ts + '.md';\nconst outputPath = outputDir + '/' + outputFileName;\nconst promptTemplate = normalizePath(pick(payload.promptTemplate, 'prompts/output/scenario/scenario-prompt-v1.md'));\nconst targetRegions = Array.isArray(payload.targetRegions) && payload.targetRegions.length\n  ? payload.targetRegions\n  : ['KR', 'US-CA', 'EU', 'UK', 'JP'];\nconst supportedLanguages = Array.isArray(payload.supportedLanguages) && payload.supportedLanguages.length\n  ? payload.supportedLanguages\n  : ['ko', 'en', 'ja'];\n\nreturn [{ json: {\n  action: 'agent2_output_generate',\n  targetOutputType,\n  sourcePrdPath,\n  sourcePrdName,\n  prdMarkdown: String(prdMarkdown).trim(),\n  serviceType: pick(payload.serviceType, 'global_b2c_web_promotion'),\n  targetRegions,\n  supportedLanguages,\n  outputLanguage: pick(payload.outputLanguage, 'ko'),\n  promptTemplate,\n  promptTemplateType: pick(payload.promptTemplateType, 'service_scenario'),\n  businessPolicyOverrides: payload.businessPolicyOverrides || {},\n  regionPolicyMatrix: payload.regionPolicyMatrix || [],\n  documentVersion: pick(payload.documentVersion, '1.0'),\n  generatedDate: pick(payload.generatedDate, new Date().toISOString().slice(0, 10)),\n  requestedBy: pick(payload.requestedBy, 'web'),\n  model: pick(payload.model, 'gpt-4o-mini'),\n  temperature: Number(payload.temperature ?? 0.2),\n  maxTokens: Number(payload.maxTokens || 12000),\n  vercelBaseUrl: String(pick(payload.vercelBaseUrl, payload.baseUrl, 'https://howardchoi-nsus-pocax.vercel.app')).replace(/\\/+$/, ''),\n  outputPath,\n  outputFileName,\n  outputDir,\n  timestamp: ts,\n  receivedAt: new Date().toISOString()\n}}];"
+        "jsCode": "const payload = $json.body && typeof $json.body === 'object' ? $json.body : $json;\n\nfunction pick(...values) {\n  return values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');\n}\n\nfunction cleanPath(value) {\n  return String(value || '').trim().replace(/^\\/+/, '');\n}\n\nfunction cleanDir(value, fallback) {\n  return String(value || fallback).trim().replace(/^\\/+|\\/+$/g, '');\n}\n\nfunction slug(value) {\n  return String(value || 'output')\n    .replace(/\\.[^.]+$/, '')\n    .replace(/^APPROVED_/i, '')\n    .replace(/^PRD_/i, '')\n    .replace(/\\s+/g, '_')\n    .replace(/[^A-Za-z0-9가-힣_-]+/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '') || 'output';\n}\n\nfunction timestamp() {\n  const d = new Date();\n  const yy = String(d.getFullYear()).slice(-2);\n  const mm = String(d.getMonth() + 1).padStart(2, '0');\n  const dd = String(d.getDate()).padStart(2, '0');\n  const hh = String(d.getHours()).padStart(2, '0');\n  const mi = String(d.getMinutes()).padStart(2, '0');\n  const ss = String(d.getSeconds()).padStart(2, '0');\n  return `${yy}${mm}${dd}_${hh}${mi}${ss}`;\n}\n\nconst allowedTypes = ['service_scenario', 'service_policy', 'ia', 'service_diagram'];\nconst targetOutputType = pick(payload.targetOutputType, 'service_scenario');\nif (!allowedTypes.includes(targetOutputType)) throw new Error(`Unsupported targetOutputType: ${targetOutputType}`);\n\nconst prdMarkdown = pick(payload.prdMarkdown, payload.prdContent, payload.content, '');\nif (!String(prdMarkdown).trim()) throw new Error('prdMarkdown is required');\n\nconst sourcePrdPath = cleanPath(payload.sourcePrdPath || 'approved-prd/manual.md');\nconst sourcePrdName = slug(pick(payload.sourcePrdName, sourcePrdPath.split('/').pop(), 'approved_prd'));\nconst ts = timestamp();\n\nconst config = {\n  service_scenario: { dir: 'scenario', prefix: 'SCN', ext: 'md', contentType: 'text/markdown; charset=utf-8', prompt: 'prompts/output/scenario/scenario-prompt-v1.md' },\n  service_policy: { dir: 'policy', prefix: 'POLICY', ext: 'md', contentType: 'text/markdown; charset=utf-8', prompt: 'prompts/output/policy/policy-prompt-v1.md' },\n  ia: { dir: 'ia', prefix: 'IA', ext: 'csv', contentType: 'text/csv; charset=utf-8', prompt: 'prompts/output/ia/ia-prompt-v1.md' },\n  service_diagram: { dir: 'diagram', prefix: 'DIAGRAM', ext: 'drawio', contentType: 'application/xml; charset=utf-8', prompt: 'prompts/output/diagram/drawio-diagram-prompt-v1.md' }\n}[targetOutputType];\n\nconst outputDir = cleanDir(pick(payload.outputDir, payload[`${targetOutputType}Dir`]), config.dir);\nconst outputFileName = `${config.prefix}_${sourcePrdName}_${ts}.${config.ext}`;\nconst outputPath = `${outputDir}/${outputFileName}`;\nconst promptTemplate = cleanPath(pick(payload.promptTemplate, payload.promptTemplateUrl && new URL(payload.promptTemplateUrl).pathname, config.prompt));\nconst targetRegions = Array.isArray(payload.targetRegions) && payload.targetRegions.length ? payload.targetRegions : ['KR', 'US-CA', 'EU', 'UK', 'JP'];\nconst supportedLanguages = Array.isArray(payload.supportedLanguages) && payload.supportedLanguages.length ? payload.supportedLanguages : ['ko', 'en', 'ja'];\n\nreturn [{ json: {\n  action: 'agent2_output_generate',\n  targetOutputType,\n  sourcePrdPath,\n  sourcePrdName,\n  prdMarkdown: String(prdMarkdown).trim(),\n  serviceScenarioPath: cleanPath(payload.serviceScenarioPath),\n  serviceType: pick(payload.serviceType, 'global_b2c_web_promotion'),\n  targetRegions,\n  supportedLanguages,\n  outputLanguage: pick(payload.outputLanguage, 'ko'),\n  promptTemplate,\n  promptTemplateType: pick(payload.promptTemplateType, targetOutputType),\n  businessPolicyOverrides: payload.businessPolicyOverrides || {},\n  regionPolicyMatrix: payload.regionPolicyMatrix || [],\n  requestedBy: pick(payload.requestedBy, 'web'),\n  model: pick(payload.model, 'gpt-4o-mini'),\n  temperature: Number(payload.temperature ?? 0.2),\n  maxTokens: Number(payload.maxTokens || 12000),\n  vercelBaseUrl: String(pick(payload.vercelBaseUrl, payload.baseUrl, 'https://howardchoi-nsus-pocax.vercel.app')).replace(/\\/+$/, ''),\n  outputPath,\n  outputFileName,\n  outputDir,\n  outputContentType: config.contentType,\n  logPath: `logs/AGENT2_${config.prefix}_${sourcePrdName}_${ts}.json`,\n  timestamp: ts,\n  receivedAt: new Date().toISOString()\n}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        240,
-        0
-      ],
-      "id": "a2-normalize-request",
-      "name": "Normalize Service Scenario Request"
+      "position": [240, 0],
+      "id": "a2-normalize-output-request",
+      "name": "Normalize - Output Request"
     },
     {
       "parameters": {
@@ -49,23 +43,17 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        480,
-        0
-      ],
+      "position": [480, 0],
       "id": "a2-read-prompt",
-      "name": "Read Scenario Prompt"
+      "name": "Read Prompt from Blob"
     },
     {
       "parameters": {
-        "jsCode": "const base = $('Normalize Service Scenario Request').item.json;\nconst promptResponse = $json;\nconst promptText = String(promptResponse.content || promptResponse.text || '').trim();\n\nif (!promptText) {\n  throw new Error('Scenario prompt file is empty or unreadable: ' + base.promptTemplate);\n}\n\nconst userContent = [\n  '# Service Scenario Generation Input',\n  '',\n  '## Request Metadata',\n  '- targetOutputType: ' + base.targetOutputType,\n  '- sourcePrdPath: ' + base.sourcePrdPath,\n  '- serviceType: ' + base.serviceType,\n  '- targetRegions: ' + base.targetRegions.join(', '),\n  '- supportedLanguages: ' + base.supportedLanguages.join(', '),\n  '- outputLanguage: ' + base.outputLanguage,\n  '- documentVersion: ' + base.documentVersion,\n  '- generatedDate: ' + base.generatedDate,\n  '',\n  '## Region Policy Matrix',\n  JSON.stringify(base.regionPolicyMatrix || [], null, 2),\n  '',\n  '## Business Policy Overrides',\n  JSON.stringify(base.businessPolicyOverrides || {}, null, 2),\n  '',\n  '## PRD Markdown',\n  base.prdMarkdown\n].join('\\n');\n\nreturn [{ json: {\n  ...base,\n  promptText,\n  openAiRequestBody: {\n    model: base.model,\n    temperature: base.temperature,\n    max_tokens: base.maxTokens,\n    messages: [\n      { role: 'system', content: promptText },\n      { role: 'user', content: userContent }\n    ]\n  }\n}}];"
+        "jsCode": "const base = $('Normalize - Output Request').item.json;\nconst promptResponse = $json;\nconst promptText = String(promptResponse.content || promptResponse.text || '').trim();\nif (!promptText) throw new Error(`Prompt file is empty or unreadable: ${base.promptTemplate}`);\n\nconst formatInstruction = base.targetOutputType === 'ia'\n  ? [\n      '## IA CSV Output Contract',\n      'Return a strict JSON object only. Do not wrap it in markdown code fences.',\n      'Required keys:',\n      '- markdown: short IA summary in Markdown',\n      '- csvContent: CSV text with header row',\n      '- rows: array of objects matching the CSV columns',\n      'Recommended columns: depth1, depth2, depth3, screenId, screenName, path, auth, component, description, policyRef, regionNote, status'\n    ].join('\\n')\n  : base.targetOutputType === 'service_diagram'\n    ? 'Return draw.io compatible mxfile XML only. Do not return Mermaid.'\n    : 'Return the generated document body only.';\n\nconst userContent = [\n  '# Agent2 Output Generation Input',\n  '',\n  '## Request Metadata',\n  `targetOutputType: ${base.targetOutputType}`,\n  `sourcePrdPath: ${base.sourcePrdPath}`,\n  `serviceScenarioPath: ${base.serviceScenarioPath || ''}`,\n  `serviceType: ${base.serviceType}`,\n  `targetRegions: ${base.targetRegions.join(', ')}`,\n  `supportedLanguages: ${base.supportedLanguages.join(', ')}`,\n  `outputLanguage: ${base.outputLanguage}`,\n  '',\n  '## Format Instruction',\n  formatInstruction,\n  '',\n  '## Region Policy Matrix',\n  JSON.stringify(base.regionPolicyMatrix || [], null, 2),\n  '',\n  '## Business Policy Overrides',\n  JSON.stringify(base.businessPolicyOverrides || {}, null, 2),\n  '',\n  '## Approved PRD Markdown',\n  base.prdMarkdown\n].join('\\n');\n\nreturn [{ json: {\n  ...base,\n  promptText,\n  llmInput: userContent,\n  openAiRequestBody: {\n    model: base.model,\n    temperature: base.temperature,\n    max_tokens: base.maxTokens,\n    messages: [\n      { role: 'system', content: promptText },\n      { role: 'user', content: userContent }\n    ]\n  }\n}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        720,
-        0
-      ],
+      "position": [720, 0],
       "id": "a2-build-openai-request",
       "name": "Build OpenAI Request"
     },
@@ -93,12 +81,9 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        960,
-        0
-      ],
-      "id": "a2-generate-service-scenario",
-      "name": "Generate Service Scenario",
+      "position": [960, 0],
+      "id": "a2-generate-output",
+      "name": "Generate Output",
       "credentials": {
         "httpHeaderAuth": {
           "id": "REPLACE_WITH_OPENAI_HTTP_HEADER_AUTH_CREDENTIAL_ID",
@@ -108,21 +93,18 @@
     },
     {
       "parameters": {
-        "jsCode": "const base = $('Build OpenAI Request').item.json;\nconst llm = $json;\n\nfunction extractText(value) {\n  if (!value) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) return value.map(extractText).filter(Boolean).join('\\n');\n  if (typeof value === 'object') {\n    if (typeof value.text === 'string') return value.text;\n    if (typeof value.output_text === 'string') return value.output_text;\n    if (typeof value.content === 'string') return value.content;\n    if (Array.isArray(value.content)) return extractText(value.content);\n    if (Array.isArray(value.output)) return extractText(value.output);\n    if (value.message?.content) return extractText(value.message.content);\n    if (value.choices) return extractText(value.choices);\n  }\n  return '';\n}\n\nconst generatedContent = extractText(llm).trim();\nif (!generatedContent) {\n  throw new Error('LLM output did not contain service scenario markdown');\n}\n\nreturn [{ json: {\n  success: true,\n  targetOutputType: base.targetOutputType,\n  path: base.outputPath,\n  content: generatedContent,\n  generatedContent,\n  contentType: 'text/markdown; charset=utf-8',\n  access: 'private',\n  metadata: {\n    sourcePrdPath: base.sourcePrdPath,\n    sourcePrdName: base.sourcePrdName,\n    promptTemplate: base.promptTemplate,\n    targetRegions: base.targetRegions,\n    supportedLanguages: base.supportedLanguages,\n    outputLanguage: base.outputLanguage,\n    model: base.model,\n    generatedDate: base.generatedDate,\n    documentVersion: base.documentVersion,\n    createdAt: new Date().toISOString()\n  }\n}}];"
+        "jsCode": "const base = $('Build OpenAI Request').item.json;\nconst llm = $json;\n\nfunction extractText(value) {\n  if (!value) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) return value.map(extractText).filter(Boolean).join('\\n');\n  if (typeof value === 'object') {\n    if (typeof value.text === 'string') return value.text;\n    if (typeof value.output_text === 'string') return value.output_text;\n    if (typeof value.content === 'string') return value.content;\n    if (Array.isArray(value.content)) return extractText(value.content);\n    if (Array.isArray(value.output)) return extractText(value.output);\n    if (value.message?.content) return extractText(value.message.content);\n    if (value.choices) return extractText(value.choices);\n  }\n  return '';\n}\n\nfunction stripFence(text) {\n  return String(text || '').trim().replace(/^```(?:json|csv|xml|markdown)?\\s*/i, '').replace(/```$/i, '').trim();\n}\n\nfunction csvEscape(value) {\n  const text = String(value ?? '');\n  return /[\",\\n]/.test(text) ? `\"${text.replace(/\"/g, '\"\"')}\"` : text;\n}\n\nfunction rowsToCsv(rows) {\n  if (!Array.isArray(rows) || !rows.length) return '';\n  const headers = [];\n  rows.forEach((row) => Object.keys(row || {}).forEach((key) => { if (!headers.includes(key)) headers.push(key); }));\n  return [headers.join(','), ...rows.map((row) => headers.map((key) => csvEscape(row?.[key])).join(','))].join('\\n');\n}\n\nlet rawText = stripFence(extractText(llm));\nif (!rawText) throw new Error('LLM output is empty');\n\nlet content = rawText;\nlet markdownContent = '';\nlet csvContent = '';\nlet rows = [];\nlet format = base.targetOutputType === 'service_diagram' ? 'drawio' : 'markdown';\nlet contentType = base.outputContentType;\n\nif (base.targetOutputType === 'ia') {\n  format = 'csv';\n  try {\n    const parsed = JSON.parse(rawText);\n    markdownContent = String(parsed.markdown || '').trim();\n    csvContent = String(parsed.csvContent || parsed.csv || '').trim();\n    rows = Array.isArray(parsed.rows) ? parsed.rows : [];\n    if (!csvContent && rows.length) csvContent = rowsToCsv(rows);\n    content = csvContent || rawText;\n  } catch {\n    csvContent = rawText;\n    content = csvContent;\n  }\n  if (!String(content).trim()) throw new Error('IA CSV output is empty');\n}\n\nconst log = {\n  action: base.action,\n  targetOutputType: base.targetOutputType,\n  sourcePrdPath: base.sourcePrdPath,\n  promptTemplate: base.promptTemplate,\n  outputPath: base.outputPath,\n  model: base.model,\n  status: 'success',\n  startedAt: base.receivedAt,\n  endedAt: new Date().toISOString(),\n  targetRegions: base.targetRegions,\n  supportedLanguages: base.supportedLanguages\n};\n\nreturn [{ json: {\n  success: true,\n  targetOutputType: base.targetOutputType,\n  format,\n  path: base.outputPath,\n  content,\n  output: content,\n  generatedContent: content,\n  markdownContent,\n  csvContent,\n  rows,\n  contentType,\n  access: 'private',\n  logPath: base.logPath,\n  logText: JSON.stringify(log, null, 2),\n  metadata: {\n    sourcePrdPath: base.sourcePrdPath,\n    sourcePrdName: base.sourcePrdName,\n    promptTemplate: base.promptTemplate,\n    targetRegions: base.targetRegions,\n    supportedLanguages: base.supportedLanguages,\n    outputLanguage: base.outputLanguage,\n    model: base.model,\n    createdAt: new Date().toISOString()\n  }\n}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1200,
-        0
-      ],
-      "id": "a2-normalize-scenario-output",
-      "name": "Normalize Scenario Output"
+      "position": [1200, 0],
+      "id": "a2-prepare-output-result",
+      "name": "Prepare Output Result"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Normalize Service Scenario Request').item.json.vercelBaseUrl + '/api/blob-save' }}",
+        "url": "={{ $('Normalize - Output Request').item.json.vercelBaseUrl + '/api/blob-save' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -163,23 +145,61 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1440,
-        0
-      ],
-      "id": "a2-save-scenario",
-      "name": "Save Scenario to Blob"
+      "position": [1440, 0],
+      "id": "a2-save-output-to-blob",
+      "name": "Save Output to Blob"
     },
     {
       "parameters": {
-        "jsCode": "const output = $('Normalize Scenario Output').item.json;\nconst save = $json || {};\n\nreturn [{ json: {\n  success: true,\n  targetOutputType: output.targetOutputType,\n  path: save.pathname || output.path,\n  url: save.url || null,\n  downloadUrl: save.downloadUrl || null,\n  contentType: output.contentType,\n  content: output.content,\n  output: output.content,\n  generatedContent: output.content,\n  message: 'service scenario generated',\n  savedAt: new Date().toISOString()\n}}];"
+        "method": "POST",
+        "url": "={{ $('Normalize - Output Request').item.json.vercelBaseUrl + '/api/blob-save' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "path",
+              "value": "={{ $('Prepare Output Result').item.json.logPath }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $('Prepare Output Result').item.json.logText }}"
+            },
+            {
+              "name": "contentType",
+              "value": "application/json; charset=utf-8"
+            },
+            {
+              "name": "access",
+              "value": "private"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1680, 0],
+      "id": "a2-save-log-to-blob",
+      "name": "Save Log to Blob"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $('Prepare Output Result').item.json;\nconst save = $('Save Output to Blob').item.json || {};\nreturn [{ json: {\n  success: true,\n  targetOutputType: output.targetOutputType,\n  format: output.format,\n  path: save.pathname || output.path,\n  url: save.url || null,\n  downloadUrl: save.downloadUrl || null,\n  contentType: output.contentType,\n  content: output.content,\n  output: output.content,\n  generatedContent: output.content,\n  markdownContent: output.markdownContent || '',\n  csvContent: output.csvContent || '',\n  rows: output.rows || [],\n  logPath: output.logPath,\n  message: 'agent2 output generated',\n  savedAt: new Date().toISOString()\n}}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1680,
-        0
-      ],
+      "position": [1920, 0],
       "id": "a2-build-response",
       "name": "Build Response"
     },
@@ -187,106 +207,44 @@
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
-        "options": {}
+        "options": {
+          "responseCode": 200
+        }
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [
-        1920,
-        0
-      ],
+      "position": [2160, 0],
       "id": "a2-respond-webhook",
-      "name": "Respond to Webhook"
+      "name": "Respond - Output Generate"
     }
   ],
   "connections": {
     "Webhook - Output Generate": {
-      "main": [
-        [
-          {
-            "node": "Normalize Service Scenario Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Normalize - Output Request", "type": "main", "index": 0 }]]
     },
-    "Normalize Service Scenario Request": {
-      "main": [
-        [
-          {
-            "node": "Read Scenario Prompt",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Normalize - Output Request": {
+      "main": [[{ "node": "Read Prompt from Blob", "type": "main", "index": 0 }]]
     },
-    "Read Scenario Prompt": {
-      "main": [
-        [
-          {
-            "node": "Build OpenAI Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Read Prompt from Blob": {
+      "main": [[{ "node": "Build OpenAI Request", "type": "main", "index": 0 }]]
     },
     "Build OpenAI Request": {
-      "main": [
-        [
-          {
-            "node": "Generate Service Scenario",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Generate Output", "type": "main", "index": 0 }]]
     },
-    "Generate Service Scenario": {
-      "main": [
-        [
-          {
-            "node": "Normalize Scenario Output",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Generate Output": {
+      "main": [[{ "node": "Prepare Output Result", "type": "main", "index": 0 }]]
     },
-    "Normalize Scenario Output": {
-      "main": [
-        [
-          {
-            "node": "Save Scenario to Blob",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Prepare Output Result": {
+      "main": [[{ "node": "Save Output to Blob", "type": "main", "index": 0 }]]
     },
-    "Save Scenario to Blob": {
-      "main": [
-        [
-          {
-            "node": "Build Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Save Output to Blob": {
+      "main": [[{ "node": "Save Log to Blob", "type": "main", "index": 0 }]]
+    },
+    "Save Log to Blob": {
+      "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]]
     },
     "Build Response": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Respond - Output Generate", "type": "main", "index": 0 }]]
     }
   },
   "pinData": {},
@@ -297,5 +255,5 @@
   "tags": [],
   "triggerCount": 0,
   "updatedAt": "2026-06-23T00:00:00.000Z",
-  "versionId": "agent2-service-scenario-vercel-poc-v1"
+  "versionId": "agent2-output-generate-vercel-poc-v2"
 }
