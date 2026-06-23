@@ -1640,6 +1640,76 @@ select:focus, input:focus, textarea:focus {
   margin: 0 0 16px;
 }
 
+.modal_body_document {
+  white-space: normal;
+  padding: 18px;
+}
+
+.modal_body_document h2 {
+  font-size: 20px;
+  line-height: 1.35;
+  margin: 0 0 14px;
+}
+
+.modal_body_document h3 {
+  font-size: 17px;
+  line-height: 1.4;
+  margin: 20px 0 10px;
+}
+
+.modal_body_document p,
+.modal_body_document li {
+  color: #374151;
+  line-height: 1.7;
+}
+
+.modal_body_document p {
+  margin: 8px 0;
+}
+
+.modal_body_document table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  margin: 14px 0 18px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.modal_body_document td {
+  min-width: 120px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  vertical-align: top;
+  white-space: normal;
+}
+
+.modal_body_document tr:first-child td {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 800;
+}
+
+.modal_body_code {
+  padding: 0;
+  background: #0f172a;
+  border-color: #0f172a;
+}
+
+.modal_body_code pre {
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  color: #dbeafe;
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre;
+}
+
+.modal_body_code code {
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+}
+
 .modal_actions {
   display: flex;
   justify-content: flex-end;

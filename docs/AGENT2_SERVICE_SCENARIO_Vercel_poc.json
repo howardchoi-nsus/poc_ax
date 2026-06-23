@@ -1,0 +1,301 @@
+{
+  "name": "AGENT2_ServiceScenario_Vercel_poc",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent2-output-generate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a2-webhook-output-generate",
+      "name": "Webhook - Output Generate",
+      "webhookId": "agent2-output-generate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.body && typeof $json.body === 'object' ? $json.body : $json;\n\nfunction pick(...values) {\n  return values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');\n}\n\nfunction normalizePath(value) {\n  return String(value || '').trim().replace(/^\\/+/, '');\n}\n\nfunction normalizeDir(value, fallback) {\n  return String(value || fallback).trim().replace(/^\\/+|\\/+$/g, '');\n}\n\nfunction slug(value) {\n  return String(value || 'output')\n    .replace(/\\.[^.]+$/, '')\n    .replace(/^APPROVED_/i, '')\n    .replace(/^PRD_/i, '')\n    .replace(/\\s+/g, '_')\n    .replace(/[^A-Za-z0-9가-힣_-]+/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '') || 'output';\n}\n\nfunction timestamp() {\n  const d = new Date();\n  const yy = String(d.getFullYear()).slice(-2);\n  const mm = String(d.getMonth() + 1).padStart(2, '0');\n  const dd = String(d.getDate()).padStart(2, '0');\n  const hh = String(d.getHours()).padStart(2, '0');\n  const mi = String(d.getMinutes()).padStart(2, '0');\n  const ss = String(d.getSeconds()).padStart(2, '0');\n  return yy + mm + dd + '_' + hh + mi + ss;\n}\n\nconst targetOutputType = pick(payload.targetOutputType, 'service_scenario');\nif (targetOutputType !== 'service_scenario') {\n  throw new Error('This workflow only supports targetOutputType=service_scenario');\n}\n\nconst sourcePrdPath = normalizePath(payload.sourcePrdPath);\nconst prdMarkdown = pick(payload.prdMarkdown, payload.prdContent, payload.content, '');\n\nif (!sourcePrdPath) throw new Error('sourcePrdPath is required');\nif (!String(prdMarkdown).trim()) throw new Error('prdMarkdown is required');\n\nconst sourcePrdName = slug(pick(payload.sourcePrdName, sourcePrdPath.split('/').pop(), 'approved_prd'));\nconst ts = timestamp();\nconst outputDir = normalizeDir(pick(payload.outputDir, payload.scenarioDir), 'scenario');\nconst outputFileName = 'SCN_' + sourcePrdName + '_' + ts + '.md';\nconst outputPath = outputDir + '/' + outputFileName;\nconst promptTemplate = normalizePath(pick(payload.promptTemplate, 'prompts/output/scenario/scenario-prompt-v1.md'));\nconst targetRegions = Array.isArray(payload.targetRegions) && payload.targetRegions.length\n  ? payload.targetRegions\n  : ['KR', 'US-CA', 'EU', 'UK', 'JP'];\nconst supportedLanguages = Array.isArray(payload.supportedLanguages) && payload.supportedLanguages.length\n  ? payload.supportedLanguages\n  : ['ko', 'en', 'ja'];\n\nreturn [{ json: {\n  action: 'agent2_output_generate',\n  targetOutputType,\n  sourcePrdPath,\n  sourcePrdName,\n  prdMarkdown: String(prdMarkdown).trim(),\n  serviceType: pick(payload.serviceType, 'global_b2c_web_promotion'),\n  targetRegions,\n  supportedLanguages,\n  outputLanguage: pick(payload.outputLanguage, 'ko'),\n  promptTemplate,\n  promptTemplateType: pick(payload.promptTemplateType, 'service_scenario'),\n  businessPolicyOverrides: payload.businessPolicyOverrides || {},\n  regionPolicyMatrix: payload.regionPolicyMatrix || [],\n  documentVersion: pick(payload.documentVersion, '1.0'),\n  generatedDate: pick(payload.generatedDate, new Date().toISOString().slice(0, 10)),\n  requestedBy: pick(payload.requestedBy, 'web'),\n  model: pick(payload.model, 'gpt-4o-mini'),\n  temperature: Number(payload.temperature ?? 0.2),\n  maxTokens: Number(payload.maxTokens || 12000),\n  vercelBaseUrl: String(pick(payload.vercelBaseUrl, payload.baseUrl, 'https://howardchoi-nsus-pocax.vercel.app')).replace(/\\/+$/, ''),\n  outputPath,\n  outputFileName,\n  outputDir,\n  timestamp: ts,\n  receivedAt: new Date().toISOString()\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "a2-normalize-request",
+      "name": "Normalize Service Scenario Request"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.vercelBaseUrl + '/api/blob-file?path=' + encodeURIComponent($json.promptTemplate) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ],
+      "id": "a2-read-prompt",
+      "name": "Read Scenario Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Normalize Service Scenario Request').item.json;\nconst promptResponse = $json;\nconst promptText = String(promptResponse.content || promptResponse.text || '').trim();\n\nif (!promptText) {\n  throw new Error('Scenario prompt file is empty or unreadable: ' + base.promptTemplate);\n}\n\nconst userContent = [\n  '# Service Scenario Generation Input',\n  '',\n  '## Request Metadata',\n  '- targetOutputType: ' + base.targetOutputType,\n  '- sourcePrdPath: ' + base.sourcePrdPath,\n  '- serviceType: ' + base.serviceType,\n  '- targetRegions: ' + base.targetRegions.join(', '),\n  '- supportedLanguages: ' + base.supportedLanguages.join(', '),\n  '- outputLanguage: ' + base.outputLanguage,\n  '- documentVersion: ' + base.documentVersion,\n  '- generatedDate: ' + base.generatedDate,\n  '',\n  '## Region Policy Matrix',\n  JSON.stringify(base.regionPolicyMatrix || [], null, 2),\n  '',\n  '## Business Policy Overrides',\n  JSON.stringify(base.businessPolicyOverrides || {}, null, 2),\n  '',\n  '## PRD Markdown',\n  base.prdMarkdown\n].join('\\n');\n\nreturn [{ json: {\n  ...base,\n  promptText,\n  openAiRequestBody: {\n    model: base.model,\n    temperature: base.temperature,\n    max_tokens: base.maxTokens,\n    messages: [\n      { role: 'system', content: promptText },\n      { role: 'user', content: userContent }\n    ]\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "id": "a2-build-openai-request",
+      "name": "Build OpenAI Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.openAiRequestBody) }}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "a2-generate-service-scenario",
+      "name": "Generate Service Scenario",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_OPENAI_HTTP_HEADER_AUTH_CREDENTIAL_ID",
+          "name": "OpenAI HTTP Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Build OpenAI Request').item.json;\nconst llm = $json;\n\nfunction extractText(value) {\n  if (!value) return '';\n  if (typeof value === 'string') return value;\n  if (Array.isArray(value)) return value.map(extractText).filter(Boolean).join('\\n');\n  if (typeof value === 'object') {\n    if (typeof value.text === 'string') return value.text;\n    if (typeof value.output_text === 'string') return value.output_text;\n    if (typeof value.content === 'string') return value.content;\n    if (Array.isArray(value.content)) return extractText(value.content);\n    if (Array.isArray(value.output)) return extractText(value.output);\n    if (value.message?.content) return extractText(value.message.content);\n    if (value.choices) return extractText(value.choices);\n  }\n  return '';\n}\n\nconst generatedContent = extractText(llm).trim();\nif (!generatedContent) {\n  throw new Error('LLM output did not contain service scenario markdown');\n}\n\nreturn [{ json: {\n  success: true,\n  targetOutputType: base.targetOutputType,\n  path: base.outputPath,\n  content: generatedContent,\n  generatedContent,\n  contentType: 'text/markdown; charset=utf-8',\n  access: 'private',\n  metadata: {\n    sourcePrdPath: base.sourcePrdPath,\n    sourcePrdName: base.sourcePrdName,\n    promptTemplate: base.promptTemplate,\n    targetRegions: base.targetRegions,\n    supportedLanguages: base.supportedLanguages,\n    outputLanguage: base.outputLanguage,\n    model: base.model,\n    generatedDate: base.generatedDate,\n    documentVersion: base.documentVersion,\n    createdAt: new Date().toISOString()\n  }\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "a2-normalize-scenario-output",
+      "name": "Normalize Scenario Output"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Normalize Service Scenario Request').item.json.vercelBaseUrl + '/api/blob-save' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "path",
+              "value": "={{ $json.path }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.content }}"
+            },
+            {
+              "name": "contentType",
+              "value": "={{ $json.contentType }}"
+            },
+            {
+              "name": "access",
+              "value": "={{ $json.access }}"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ $json.metadata }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        0
+      ],
+      "id": "a2-save-scenario",
+      "name": "Save Scenario to Blob"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $('Normalize Scenario Output').item.json;\nconst save = $json || {};\n\nreturn [{ json: {\n  success: true,\n  targetOutputType: output.targetOutputType,\n  path: save.pathname || output.path,\n  url: save.url || null,\n  downloadUrl: save.downloadUrl || null,\n  contentType: output.contentType,\n  content: output.content,\n  output: output.content,\n  generatedContent: output.content,\n  message: 'service scenario generated',\n  savedAt: new Date().toISOString()\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        0
+      ],
+      "id": "a2-build-response",
+      "name": "Build Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1920,
+        0
+      ],
+      "id": "a2-respond-webhook",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook - Output Generate": {
+      "main": [
+        [
+          {
+            "node": "Normalize Service Scenario Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Service Scenario Request": {
+      "main": [
+        [
+          {
+            "node": "Read Scenario Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Scenario Prompt": {
+      "main": [
+        [
+          {
+            "node": "Build OpenAI Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build OpenAI Request": {
+      "main": [
+        [
+          {
+            "node": "Generate Service Scenario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Service Scenario": {
+      "main": [
+        [
+          {
+            "node": "Normalize Scenario Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Scenario Output": {
+      "main": [
+        [
+          {
+            "node": "Save Scenario to Blob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Scenario to Blob": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-06-23T00:00:00.000Z",
+  "versionId": "agent2-service-scenario-vercel-poc-v1"
+}

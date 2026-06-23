@@ -60,6 +60,7 @@ const outputState = {
   selectedOutputType: 'service_scenario',
   scenario: null,
   generated: {},
+  resultModalContent: '',
   rawMode: false,
   generationStartedAt: null,
   generationTimer: null,
@@ -148,7 +149,7 @@ function bindOutputEvents() {
   outputElements.generationModalOpen.addEventListener('click', () => outputElements.generationModal.showModal());
   outputElements.generationModalClose.addEventListener('click', () => outputElements.generationModal.close());
   outputElements.resultModalClose.addEventListener('click', () => outputElements.resultModal.close());
-  outputElements.resultModalCopy.addEventListener('click', () => copyToClipboard(outputElements.resultModalBody.textContent));
+  outputElements.resultModalCopy.addEventListener('click', () => copyToClipboard(outputState.resultModalContent));
   outputElements.prdDetailModalClose.addEventListener('click', () => outputElements.prdDetailModal.close());
   outputElements.prdDetailModalSelect.addEventListener('click', () => {
     if (outputState.prdDetailTarget) {
@@ -479,14 +480,29 @@ function createSampleOutput(type) {
 }
 
 function openResultModal(type, content, result = {}) {
+  outputState.resultModalContent = content || '';
   outputElements.resultModalBadge.textContent = type === 'service_diagram' ? 'DRAW.IO' : 'OUTPUT';
   outputElements.resultModalTitle.textContent = `${getOutputTypeLabel(type)} 보기`;
   outputElements.resultModalMeta.innerHTML = `
     <div>경로: <b>${escapeHtml(result.path || 'local-preview')}</b></div>
     <div>형식: ${type === 'service_diagram' ? '.drawio XML' : 'Markdown'}</div>
   `;
-  outputElements.resultModalBody.textContent = content;
+  renderResultModalBody(type, content);
   outputElements.resultModal.showModal();
+}
+
+function renderResultModalBody(type, content) {
+  const body = outputElements.resultModalBody;
+  body.className = 'modal_body';
+
+  if (type === 'service_diagram') {
+    body.classList.add('modal_body_code');
+    body.innerHTML = `<pre><code>${escapeHtml(content)}</code></pre>`;
+    return;
+  }
+
+  body.classList.add('modal_body_document');
+  body.innerHTML = simpleMarkdown(content);
 }
 
 function startGenerationStatus(title) {
