@@ -1592,7 +1592,23 @@ select:focus, input:focus, textarea:focus {
   margin-bottom: 14px;
 }
 
-.modal_head h3 { font-size: 20px; font-weight: 800; margin-top: 6px; }
+.modal_head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal_head h3 {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.35;
+  margin-top: 6px;
+}
+
+.modal_title {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 
 .modal_badge {
   display: inline-flex;
@@ -1607,6 +1623,7 @@ select:focus, input:focus, textarea:focus {
 }
 
 .modal_btn_close {
+  flex: 0 0 auto;
   border: 0;
   background: transparent;
   font-size: 24px;
