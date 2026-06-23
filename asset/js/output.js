@@ -3,7 +3,12 @@ const OUTPUT_CONFIG = {
     baseUrl: location.origin,
     folders: {
       approvedPrd: 'prd-approved',
-      prompts: 'prompts',
+      prompts: {
+        scenario: 'prompts/output/scenario',
+        policy: 'prompts/output/policy',
+        ia: 'prompts/output/ia',
+        diagram: 'prompts/output/diagram'
+      },
       scenario: 'scenario',
       policy: 'policy',
       ia: 'ia',
@@ -44,7 +49,12 @@ const OUTPUT_CONFIG = {
 
 const outputState = {
   approvedPrds: [],
-  prompts: [],
+  prompts: {
+    service_scenario: [],
+    service_policy: [],
+    ia: [],
+    service_diagram: []
+  },
   selectedPrd: null,
   prdDetailTarget: null,
   selectedOutputType: 'service_scenario',
@@ -213,17 +223,58 @@ async function refreshApprovedPrds() {
 }
 
 async function refreshOutputPrompts() {
-  try {
-    outputState.prompts = await fetchBlobFolder(OUTPUT_CONFIG.storage.folders.prompts);
-  } catch {
-    outputState.prompts = [
-      { name: '서비스 시나리오 기본 프롬프트', path: 'docs/n8n_prompt_service_scenario_v1.md' },
-      { name: '서비스 정책서 기본 프롬프트', path: 'docs/n8n_prompt_service_policy_v1.md' },
-      { name: '서비스 IA 기본 프롬프트', path: 'docs/n8n_prompt_ia_v1.md' },
-      { name: 'Draw.io 다이어그램 기본 프롬프트', path: 'docs/n8n_prompt_service_diagram_drawio_v1.md' }
-    ];
-  }
+  const promptFolders = OUTPUT_CONFIG.storage.folders.prompts;
+  const fallbackPrompts = getFallbackPromptsByType();
+
+  const entries = [
+    ['service_scenario', promptFolders.scenario],
+    ['service_policy', promptFolders.policy],
+    ['ia', promptFolders.ia],
+    ['service_diagram', promptFolders.diagram]
+  ];
+
+  const results = await Promise.allSettled(
+    entries.map(async ([type, folder]) => [type, await fetchBlobFolder(folder)])
+  );
+
+  outputState.prompts = results.reduce((acc, result, index) => {
+    const type = entries[index][0];
+    acc[type] = result.status === 'fulfilled' && result.value[1].length
+      ? result.value[1]
+      : fallbackPrompts[type];
+    return acc;
+  }, {});
+
   renderAllPromptOptions();
+}
+
+function getFallbackPromptsByType() {
+  return {
+    service_scenario: [
+      {
+        name: '서비스 시나리오 기본 프롬프트',
+        path: 'prompts/output/scenario/scenario-prompt-v1.md'
+      }
+    ],
+    service_policy: [
+      {
+        name: '서비스 정책서 기본 프롬프트',
+        path: 'prompts/output/policy/policy-prompt-v1.md'
+      }
+    ],
+    ia: [
+      {
+        name: '서비스 IA 기본 프롬프트',
+        path: 'prompts/output/ia/ia-prompt-v1.md'
+      }
+    ],
+    service_diagram: [
+      {
+        name: 'Draw.io 다이어그램 기본 프롬프트',
+        path: 'prompts/output/diagram/drawio-diagram-prompt-v1.md'
+      }
+    ]
+  };
 }
 
 function getPromptSelectForType(type) {
@@ -236,14 +287,7 @@ function getPromptSelectForType(type) {
 }
 
 function renderPromptOptions(type) {
-  const keyword = {
-    service_scenario: ['scenario', '시나리오', 'SCN'],
-    service_policy: ['policy', '정책', 'POL'],
-    ia: ['ia', 'IA'],
-    service_diagram: ['diagram', 'drawio', '다이어그램', 'DGM']
-  }[type] || [];
-  const prompts = outputState.prompts.filter((item) => keyword.some((key) => item.name.includes(key) || item.path.includes(key)));
-  const list = prompts.length ? prompts : outputState.prompts;
+  const list = outputState.prompts[type] || [];
   const select = getPromptSelectForType(type);
   if (!select) return;
   select.innerHTML = list
@@ -340,6 +384,7 @@ async function requestOutputGenerate(type) {
 
   try {
     const prdMarkdown = await fetchBlobText(outputState.selectedPrd.path);
+    const promptTemplate = getPromptSelectForType(type)?.value || '';
     const payload = {
       targetOutputType: type,
       sourcePrdPath: outputState.selectedPrd.path,
@@ -348,7 +393,9 @@ async function requestOutputGenerate(type) {
       targetRegions: getSelectedRegions(),
       supportedLanguages: ['ko', 'en', 'ja'],
       outputLanguage: 'ko',
-      promptTemplate: getPromptSelectForType(type)?.value || '',
+      promptTemplate,
+      promptTemplateType: type,
+      promptTemplateUrl: promptTemplate ? `${OUTPUT_CONFIG.storage.baseUrl}/${promptTemplate}` : '',
       prdMarkdown
     };
 
