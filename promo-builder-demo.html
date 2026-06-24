@@ -64,6 +64,19 @@
     .brand_title { font-size: 17px; font-weight: 900; }
     .brand_subtitle { margin-top: 4px; color: var(--muted); font-size: 12px; }
     .topbar_actions { display: flex; align-items: center; gap: 10px; }
+    .topbar_link {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: #334155;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
+    }
     .status_badge {
       min-height: 30px;
       display: inline-flex;
@@ -380,6 +393,7 @@
       </div>
       <div class="topbar_actions">
         <span class="status_badge" id="runStatus">로컬 미리보기</span>
+        <a class="topbar_link" href="./promo-builder-design-system.html">Design System</a>
         <button class="button" id="localPreviewButton">로컬 미리보기</button>
         <button class="button" id="resetButton">초기화</button>
         <button class="button button_primary" id="generateButton">생성 테스트</button>
