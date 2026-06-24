@@ -113,11 +113,27 @@
     }
 
     .workspace {
+      --left-panel: 42%;
       display: grid;
-      grid-template-columns: minmax(340px, 420px) minmax(420px, 1fr) minmax(390px, 520px);
-      gap: 18px;
+      grid-template-columns: minmax(320px, var(--left-panel)) 10px minmax(420px, 1fr);
+      gap: 14px;
       padding: 18px;
       min-height: calc(100vh - 72px);
+    }
+    .resize_handle {
+      width: 10px;
+      min-height: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, transparent 0 3px, #cbd5e1 3px 4px, transparent 4px 6px, #cbd5e1 6px 7px, transparent 7px 100%),
+        #eef3ff;
+      cursor: col-resize;
+      touch-action: none;
+    }
+    .workspace.is_resizing {
+      user-select: none;
+      cursor: col-resize;
     }
     .panel {
       min-width: 0;
@@ -259,12 +275,6 @@
       word-break: break-word;
     }
 
-    .preview_frame {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #0b0f17;
-      overflow: hidden;
-    }
     .promo_header {
       height: 52px;
       display: flex;
@@ -368,6 +378,7 @@
 
     @media (max-width: 1180px) {
       .workspace { grid-template-columns: 1fr; }
+      .resize_handle { display: none; }
       body { overflow: auto; }
       .promo_hero { grid-template-columns: 1fr; }
       .result_grid { grid-template-columns: 1fr; }
@@ -392,15 +403,15 @@
         </div>
       </div>
       <div class="topbar_actions">
-        <span class="status_badge" id="runStatus">로컬 미리보기</span>
+        <span class="status_badge" id="runStatus">로컬 결과</span>
         <a class="topbar_link" href="./promo-builder-design-system.html">Design System</a>
-        <button class="button" id="localPreviewButton">로컬 미리보기</button>
+        <button class="button" id="localResultButton">로컬 결과 갱신</button>
         <button class="button" id="resetButton">초기화</button>
         <button class="button button_primary" id="generateButton">생성 테스트</button>
       </div>
     </header>
 
-    <main class="workspace">
+    <main class="workspace" id="workspace">
       <section class="panel">
         <div class="panel_header">
           <h2 class="panel_title">요구사항 입력</h2>
@@ -571,6 +582,8 @@
         </div>
       </section>
 
+      <div class="resize_handle" id="workspaceResizeHandle" aria-label="패널 폭 조절" role="separator"></div>
+
       <section class="panel">
         <div class="panel_header">
           <h2 class="panel_title">AI 하네스 처리 결과</h2>
@@ -612,26 +625,19 @@
         </div>
       </section>
 
-      <section class="panel">
-        <div class="panel_header">
-          <h2 class="panel_title">미리보기</h2>
-          <span class="tag tag_orange">Review UI</span>
-        </div>
-        <div class="panel_body">
-          <div class="preview_frame" id="previewView"></div>
-        </div>
-      </section>
     </main>
   </div>
 
   <script>
     const templateSegment = document.getElementById("templateSegment");
     const generateButton = document.getElementById("generateButton");
-    const localPreviewButton = document.getElementById("localPreviewButton");
+    const localResultButton = document.getElementById("localResultButton");
     const resetButton = document.getElementById("resetButton");
     const saveWebhookButton = document.getElementById("saveWebhookButton");
     const webhookUrlInput = document.getElementById("webhookUrlInput");
     const runStatus = document.getElementById("runStatus");
+    const workspace = document.getElementById("workspace");
+    const workspaceResizeHandle = document.getElementById("workspaceResizeHandle");
     const promptInput = document.getElementById("promptInput");
     const regionInput = document.getElementById("regionInput");
     const languageInput = document.getElementById("languageInput");
@@ -652,7 +658,6 @@
     const contextView = document.getElementById("contextView");
     const validationView = document.getElementById("validationView");
     const jsonView = document.getElementById("jsonView");
-    const previewView = document.getElementById("previewView");
     const templateBadge = document.getElementById("templateBadge");
 
     let selectedTemplate = "auto";
@@ -931,86 +936,62 @@
       return [...passed, ...warnings, ...errors];
     }
 
-    function renderPreview(pageJson) {
-      const hero = pageJson.sections.find((section) => section.type === "hero");
-      const steps = pageJson.sections.find((section) => section.type === "steps");
-      const stats = pageJson.sections.find((section) => section.type === "community_stats");
-      const winners = pageJson.sections.find((section) => section.type === "winners");
-      const rewards = pageJson.sections.find((section) => section.type === "rewards");
-      const terms = pageJson.sections.find((section) => section.type === "terms");
-
-      previewView.innerHTML = `
-        <div class="promo_header">
-          <div class="promo_logo">GGPoker</div>
-          <div class="promo_badges"><span class="promo_badge"></span><span class="promo_badge"></span><span class="promo_badge"></span></div>
-        </div>
-        <section class="promo_hero">
-          <div>
-            <div class="promo_eyebrow">${pageJson.campaign_context.target_region.toUpperCase()} PROMOTION</div>
-            <div class="promo_headline">${hero.headline}</div>
-            <p class="promo_sub">${hero.subheadline}</p>
-            <div class="promo_cta">${hero.cta.label}</div>
-          </div>
-          <div class="promo_visual"></div>
-        </section>
-        ${steps ? `
-          <section class="promo_section dark">
-            <h3>Get started in three steps</h3>
-            <div class="steps">
-              ${steps.items.map((item, index) => `
-                <div class="promo_step">
-                  <div class="step_num">${index + 1}</div>
-                  <div><strong>${item.title}</strong><span>${item.description}</span></div>
-                </div>
-              `).join("")}
-            </div>
-          </section>
-        ` : ""}
-        ${stats ? `
-          <section class="promo_section">
-            <h3>${stats.headline}</h3>
-            <div class="stats">
-              ${stats.items.map((item) => `
-                <div class="stat"><strong>${item.value}</strong><span>${item.label}</span></div>
-              `).join("")}
-            </div>
-          </section>
-        ` : ""}
-        ${winners ? `
-          <section class="promo_section dark">
-            <h3>${winners.headline}</h3>
-            <p class="promo_sub">Weekly top and latest winners can be rendered from Winners API.</p>
-          </section>
-        ` : ""}
-        ${rewards ? `
-          <section class="promo_section">
-            <h3>${rewards.headline}</h3>
-            <div class="promo_cta">${rewards.cta.label}</div>
-          </section>
-        ` : ""}
-        <section class="promo_section">
-          <h3>Terms & Conditions</h3>
-          <p class="terms">${terms ? terms.content : termsText}</p>
-        </section>
-      `;
-    }
-
     function generate() {
       const context = inferContext();
       const ruleResult = applyRules(context);
       const pageJson = buildPageJson(context, ruleResult);
-      setStatus("로컬 미리보기");
+      setStatus("로컬 결과");
       templateBadge.textContent = context.template_family;
       templateBadge.className = `tag ${context.template_family === "promo_002" ? "tag_purple" : context.template_family === "promo_001" ? "tag_orange" : "tag_blue"}`;
       renderContext(context);
       renderValidation(ruleResult.validations);
       jsonView.textContent = JSON.stringify(pageJson, null, 2);
-      renderPreview(pageJson);
     }
 
-    function runLocalPreview() {
+    function runLocalResult() {
       generate();
-      setStatus("로컬 미리보기");
+      setStatus("로컬 결과");
+    }
+
+    function setLeftPanelWidth(percent) {
+      const next = Math.min(68, Math.max(28, percent));
+      workspace.style.setProperty("--left-panel", `${next}%`);
+      localStorage.setItem("promo_builder_left_panel", String(Math.round(next * 10) / 10));
+    }
+
+    function initResizableWorkspace() {
+      const savedWidth = Number(localStorage.getItem("promo_builder_left_panel"));
+      if (Number.isFinite(savedWidth) && savedWidth > 0) {
+        setLeftPanelWidth(savedWidth);
+      }
+
+      let isDragging = false;
+
+      workspaceResizeHandle.addEventListener("pointerdown", (event) => {
+        if (window.matchMedia("(max-width: 1180px)").matches) return;
+        isDragging = true;
+        workspace.classList.add("is_resizing");
+        workspaceResizeHandle.setPointerCapture(event.pointerId);
+      });
+
+      workspaceResizeHandle.addEventListener("pointermove", (event) => {
+        if (!isDragging) return;
+        const rect = workspace.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        setLeftPanelWidth((x / rect.width) * 100);
+      });
+
+      const stopDragging = (event) => {
+        if (!isDragging) return;
+        isDragging = false;
+        workspace.classList.remove("is_resizing");
+        if (workspaceResizeHandle.hasPointerCapture(event.pointerId)) {
+          workspaceResizeHandle.releasePointerCapture(event.pointerId);
+        }
+      };
+
+      workspaceResizeHandle.addEventListener("pointerup", stopDragging);
+      workspaceResizeHandle.addEventListener("pointercancel", stopDragging);
     }
 
     function buildWebhookPayload() {
@@ -1052,7 +1033,6 @@
       renderContext(context);
       renderValidation(validation);
       jsonView.textContent = JSON.stringify(pageJson, null, 2);
-      renderPreview(pageJson);
     }
 
     async function runWebhookGenerate() {
@@ -1065,7 +1045,7 @@
 
       setStatus("n8n 요청 중", "pending");
       generateButton.disabled = true;
-      localPreviewButton.disabled = true;
+      localResultButton.disabled = true;
       generateButton.textContent = "요청 중";
 
       try {
@@ -1099,15 +1079,14 @@
         ]);
         jsonView.textContent = JSON.stringify({
           error: error.message,
-          fallback: "local_preview",
+          fallback: "local_result",
           expectedWebhookPath: "promo-builder-generate",
           sentPayload: buildWebhookPayload(),
           localPageJson
         }, null, 2);
-        renderPreview(localPageJson);
       } finally {
         generateButton.disabled = false;
-        localPreviewButton.disabled = false;
+        localResultButton.disabled = false;
         generateButton.textContent = "생성 테스트";
       }
     }
@@ -1122,10 +1101,10 @@
     });
 
     generateButton.addEventListener("click", runWebhookGenerate);
-    localPreviewButton.addEventListener("click", runLocalPreview);
+    localResultButton.addEventListener("click", runLocalResult);
     saveWebhookButton.addEventListener("click", () => {
       localStorage.setItem("promo_builder_webhook_url", webhookUrlInput.value.trim());
-      setStatus(webhookUrlInput.value.trim() ? "Webhook 저장됨" : "로컬 미리보기");
+      setStatus(webhookUrlInput.value.trim() ? "Webhook 저장됨" : "로컬 결과");
     });
     [promptInput, regionInput, languageInput, goalInput, targetInput, affiliateInput, bonusInput, campaignNameInput, ctaLabelInput, ctaUrlInput, termsInput, desktopImageInput, mobileImageInput, communityOptionInput, rewardsOptionInput, winnersOptionInput, customCssOptionInput].forEach((input) => {
       input.addEventListener("change", generate);
@@ -1161,6 +1140,7 @@
     });
 
     webhookUrlInput.value = localStorage.getItem("promo_builder_webhook_url") || "";
+    initResizableWorkspace();
     generate();
   </script>
 </body>
