@@ -477,6 +477,82 @@
                 </select>
               </label>
             </div>
+
+            <div class="mini_panel">
+              <div class="mini_head">공통 필수 Requirement</div>
+              <div class="mini_body">
+                <div class="stack">
+                  <div class="grid_2">
+                    <label class="field">
+                      <span class="label">Campaign Name</span>
+                      <input id="campaignNameInput" value="Casino Slots Promotion" />
+                    </label>
+                    <label class="field">
+                      <span class="label">CTA Label</span>
+                      <input id="ctaLabelInput" value="PLAY NOW" />
+                    </label>
+                  </div>
+                  <div class="field">
+                    <span class="label">CTA URL / Action Target</span>
+                    <input id="ctaUrlInput" value="https://ggpoker.com/download" />
+                  </div>
+                  <div class="field">
+                    <span class="label">Terms / Responsible Gaming</span>
+                    <textarea id="termsInput">Players must be aged 18+ or 19+, depending on jurisdiction. Promotions, games, rewards and features are subject to change. Standard GGPoker rules apply. Please play responsibly.</textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mini_panel">
+              <div class="mini_head">옵션 Option</div>
+              <div class="mini_body">
+                <div class="stack">
+                  <div class="grid_2">
+                    <label class="field">
+                      <span class="label">Desktop Hero Image</span>
+                      <input id="desktopImageInput" value="https://promo.ggpoker.com/wp-content/uploads/2026/06/SB-Desktop-AB.png" />
+                    </label>
+                    <label class="field">
+                      <span class="label">Mobile Hero Image</span>
+                      <input id="mobileImageInput" value="https://promo.ggpoker.com/wp-content/uploads/2026/06/SB-LP-Mobile-AB.png" />
+                    </label>
+                  </div>
+                  <div class="grid_2">
+                    <label class="field">
+                      <span class="label">Community Stats</span>
+                      <select id="communityOptionInput">
+                        <option value="true">사용</option>
+                        <option value="false">사용 안 함</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span class="label">Rewards Section</span>
+                      <select id="rewardsOptionInput">
+                        <option value="true">사용</option>
+                        <option value="false">사용 안 함</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="grid_2">
+                    <label class="field">
+                      <span class="label">Winners Section</span>
+                      <select id="winnersOptionInput">
+                        <option value="false">사용 안 함</option>
+                        <option value="true">사용</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span class="label">Custom CSS</span>
+                      <select id="customCssOptionInput">
+                        <option value="false">사용 안 함</option>
+                        <option value="true">사용</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -549,6 +625,16 @@
     const targetInput = document.getElementById("targetInput");
     const affiliateInput = document.getElementById("affiliateInput");
     const bonusInput = document.getElementById("bonusInput");
+    const campaignNameInput = document.getElementById("campaignNameInput");
+    const ctaLabelInput = document.getElementById("ctaLabelInput");
+    const ctaUrlInput = document.getElementById("ctaUrlInput");
+    const termsInput = document.getElementById("termsInput");
+    const desktopImageInput = document.getElementById("desktopImageInput");
+    const mobileImageInput = document.getElementById("mobileImageInput");
+    const communityOptionInput = document.getElementById("communityOptionInput");
+    const rewardsOptionInput = document.getElementById("rewardsOptionInput");
+    const winnersOptionInput = document.getElementById("winnersOptionInput");
+    const customCssOptionInput = document.getElementById("customCssOptionInput");
     const contextView = document.getElementById("contextView");
     const validationView = document.getElementById("validationView");
     const jsonView = document.getElementById("jsonView");
@@ -565,6 +651,16 @@
       target: "new_user",
       affiliate: "true",
       bonus: "false",
+      campaignName: "Casino Slots Promotion",
+      ctaLabel: "PLAY NOW",
+      ctaUrl: "https://ggpoker.com/download",
+      terms: "Players must be aged 18+ or 19+, depending on jurisdiction. Promotions, games, rewards and features are subject to change. Standard GGPoker rules apply. Please play responsibly.",
+      desktopImage: "https://promo.ggpoker.com/wp-content/uploads/2026/06/SB-Desktop-AB.png",
+      mobileImage: "https://promo.ggpoker.com/wp-content/uploads/2026/06/SB-LP-Mobile-AB.png",
+      community: "true",
+      rewards: "true",
+      winners: "false",
+      customCss: "false",
       template: "auto",
       webhookUrl: ""
     };
@@ -605,7 +701,7 @@
 
       return {
         raw_input: raw,
-        campaign_name: campaignType === "casino_slots" ? "Casino Slots Promotion" : "Promotion Campaign",
+        campaign_name: campaignNameInput.value.trim() || (campaignType === "casino_slots" ? "Casino Slots Promotion" : "Promotion Campaign"),
         industry: "gaming",
         campaign_type: campaignType,
         target_region: regionInput.value,
@@ -615,6 +711,20 @@
         device: "mobile_first",
         affiliate_enabled: affiliateEnabled,
         bonus_code_enabled: bonusEnabled,
+        common_requirements: {
+          campaign_name: campaignNameInput.value.trim(),
+          cta_label: ctaLabelInput.value.trim(),
+          cta_url: ctaUrlInput.value.trim(),
+          terms: termsInput.value.trim()
+        },
+        options: {
+          desktop_image: desktopImageInput.value.trim(),
+          mobile_image: mobileImageInput.value.trim(),
+          community_stats: communityOptionInput.value === "true",
+          rewards: rewardsOptionInput.value === "true",
+          winners: winnersOptionInput.value === "true",
+          custom_css: customCssOptionInput.value === "true"
+        },
         template_family: templateFamily,
         confidence: {
           campaign_type: campaignType === "casino_slots" ? 0.91 : 0.76,
@@ -631,11 +741,26 @@
         { type: "passed", title: "CTA 필수", body: `${context.goal} 목표에 CTA가 필요합니다.` },
         { type: "passed", title: "Terms 필수", body: "Gaming 프로모션은 약관 및 책임 게임 문구를 포함합니다." }
       ];
+      const requiredFields = [
+        ["campaign_name", context.common_requirements.campaign_name],
+        ["cta_label", context.common_requirements.cta_label],
+        ["cta_url", context.common_requirements.cta_url],
+        ["terms", context.common_requirements.terms]
+      ];
 
       if (context.campaign_type === "casino_slots") {
-        ["steps", "community_stats", "rewards"].forEach((section) => requiredSections.add(section));
+        requiredSections.add("steps");
+        if (context.options.community_stats) requiredSections.add("community_stats");
+        if (context.options.rewards) requiredSections.add("rewards");
         validations.push({ type: "passed", title: "카지노 캠페인 구조", body: "promo_002 유형의 Steps, Stats, Rewards 섹션을 권장합니다." });
       }
+
+      if (context.options.winners) requiredSections.add("winners");
+      if (context.options.custom_css) validations.push({ type: "warning", title: "Custom CSS 사용", body: "페이지 단위 CSS는 관리 통제와 QA 확인이 필요합니다." });
+
+      requiredFields.forEach(([name, value]) => {
+        if (!value) validations.push({ type: "error", title: `필수값 누락: ${name}`, body: `${name} 값은 공통 필수 Requirement입니다.` });
+      });
 
       if (context.bonus_code_enabled) {
         requiredSections.add("bonus_offer");
@@ -650,6 +775,7 @@
 
       return {
         required_sections: Array.from(requiredSections),
+        required_fields: requiredFields.map(([name]) => name),
         validations
       };
     }
@@ -660,17 +786,17 @@
         : context.campaign_type === "bonus_offer"
           ? "CLAIM YOUR EXCLUSIVE BONUS"
           : "JOIN THE NEXT GGPOKER PROMOTION";
-      const ctaLabel = context.goal === "download" ? "PLAY NOW" : context.goal === "registration" ? "REGISTER NOW" : "JOIN NOW";
+      const ctaLabel = context.common_requirements.cta_label || (context.goal === "download" ? "PLAY NOW" : context.goal === "registration" ? "REGISTER NOW" : "JOIN NOW");
 
       const sections = [
         {
           type: "hero",
           headline,
           subheadline: "Enjoy a fast, mobile-first promotion experience built from campaign context.",
-          cta: { label: ctaLabel, action: context.goal },
+          cta: { label: ctaLabel, action: context.goal, url: context.common_requirements.cta_url },
           assets: {
-            desktop_image: "https://promo.ggpoker.com/wp-content/uploads/2026/06/SB-Desktop-AB.png",
-            mobile_image: "https://promo.ggpoker.com/wp-content/uploads/2026/06/SB-LP-Mobile-AB.png"
+            desktop_image: context.options.desktop_image,
+            mobile_image: context.options.mobile_image
           }
         }
       ];
@@ -699,9 +825,26 @@
         });
       }
 
+      if (ruleResult.required_sections.includes("winners")) {
+        sections.push({
+          type: "winners",
+          headline: "REAL PLAYERS. REAL WINS.",
+          source: "winners_api",
+          visibility: "always_render_with_default"
+        });
+      }
+
+      if (ruleResult.required_sections.includes("rewards")) {
+        sections.push({
+          type: "rewards",
+          headline: "PLAY AT ANY TIME - ANYWHERE, ON ANY DEVICE",
+          cta: { label: ctaLabel, action: context.goal, url: context.common_requirements.cta_url }
+        });
+      }
+
       sections.push({
         type: "terms",
-        content: termsText
+        content: context.common_requirements.terms || termsText
       });
 
       sections.push({
@@ -714,7 +857,8 @@
         template_family: context.template_family,
         campaign_context: context,
         rule_base_result: {
-          required_sections: ruleResult.required_sections
+          required_sections: ruleResult.required_sections,
+          required_fields: ruleResult.required_fields
         },
         sections,
         validation: ruleResult.validations
@@ -736,6 +880,7 @@
         ["Target", context.target_user],
         ["Affiliate", context.affiliate_enabled ? "enabled" : "disabled"],
         ["Bonus Code", context.bonus_code_enabled ? "enabled" : "disabled"],
+        ["Options", Object.entries(context.options || {}).filter(([, value]) => value === true).map(([key]) => key).join(", ") || "none"],
         ["Confidence", context.confidence ? `type ${context.confidence.campaign_type}, goal ${context.confidence.goal}` : "n8n response"]
       ];
       contextView.innerHTML = rows.map(([key, value]) => `
@@ -776,6 +921,8 @@
       const hero = pageJson.sections.find((section) => section.type === "hero");
       const steps = pageJson.sections.find((section) => section.type === "steps");
       const stats = pageJson.sections.find((section) => section.type === "community_stats");
+      const winners = pageJson.sections.find((section) => section.type === "winners");
+      const rewards = pageJson.sections.find((section) => section.type === "rewards");
       const terms = pageJson.sections.find((section) => section.type === "terms");
 
       previewView.innerHTML = `
@@ -815,6 +962,18 @@
             </div>
           </section>
         ` : ""}
+        ${winners ? `
+          <section class="promo_section dark">
+            <h3>${winners.headline}</h3>
+            <p class="promo_sub">Weekly top and latest winners can be rendered from Winners API.</p>
+          </section>
+        ` : ""}
+        ${rewards ? `
+          <section class="promo_section">
+            <h3>${rewards.headline}</h3>
+            <div class="promo_cta">${rewards.cta.label}</div>
+          </section>
+        ` : ""}
         <section class="promo_section">
           <h3>Terms & Conditions</h3>
           <p class="terms">${terms ? terms.content : termsText}</p>
@@ -850,6 +1009,18 @@
         targetUser: targetInput.value,
         affiliateEnabled: affiliateInput.value === "true",
         bonusCodeEnabled: bonusInput.value === "true",
+        campaignName: campaignNameInput.value.trim(),
+        ctaLabel: ctaLabelInput.value.trim(),
+        ctaUrl: ctaUrlInput.value.trim(),
+        terms: termsInput.value.trim(),
+        desktopImage: desktopImageInput.value.trim(),
+        mobileImage: mobileImageInput.value.trim(),
+        options: {
+          communityStats: communityOptionInput.value === "true",
+          rewards: rewardsOptionInput.value === "true",
+          winners: winnersOptionInput.value === "true",
+          customCss: customCssOptionInput.value === "true"
+        },
         templateFamily: selectedTemplate,
         requestedBy: "promo-builder-demo-ui"
       };
@@ -942,7 +1113,7 @@
       localStorage.setItem("promo_builder_webhook_url", webhookUrlInput.value.trim());
       setStatus(webhookUrlInput.value.trim() ? "Webhook 저장됨" : "로컬 미리보기");
     });
-    [promptInput, regionInput, languageInput, goalInput, targetInput, affiliateInput, bonusInput].forEach((input) => {
+    [promptInput, regionInput, languageInput, goalInput, targetInput, affiliateInput, bonusInput, campaignNameInput, ctaLabelInput, ctaUrlInput, termsInput, desktopImageInput, mobileImageInput, communityOptionInput, rewardsOptionInput, winnersOptionInput, customCssOptionInput].forEach((input) => {
       input.addEventListener("change", generate);
     });
     promptInput.addEventListener("input", () => {
@@ -958,6 +1129,16 @@
       targetInput.value = defaults.target;
       affiliateInput.value = defaults.affiliate;
       bonusInput.value = defaults.bonus;
+      campaignNameInput.value = defaults.campaignName;
+      ctaLabelInput.value = defaults.ctaLabel;
+      ctaUrlInput.value = defaults.ctaUrl;
+      termsInput.value = defaults.terms;
+      desktopImageInput.value = defaults.desktopImage;
+      mobileImageInput.value = defaults.mobileImage;
+      communityOptionInput.value = defaults.community;
+      rewardsOptionInput.value = defaults.rewards;
+      winnersOptionInput.value = defaults.winners;
+      customCssOptionInput.value = defaults.customCss;
       webhookUrlInput.value = defaults.webhookUrl;
       localStorage.removeItem("promo_builder_webhook_url");
       selectedTemplate = defaults.template;
