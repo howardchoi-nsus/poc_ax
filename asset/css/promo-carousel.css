@@ -1,0 +1,308 @@
+.promo_card_carousel {
+  width: 100%;
+  min-height: 516px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 22px;
+  padding: 24px 18px 20px;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(71, 104, 216, 0.18), transparent 34%),
+    linear-gradient(180deg, #fbfcff 0%, #f2f6ff 100%);
+}
+
+.promo_card_carousel_head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 6px;
+}
+
+.promo_card_carousel_head h2 {
+  margin: 0;
+  color: #101522;
+  font-size: 22px;
+  font-weight: 950;
+}
+
+.promo_card_carousel_head p {
+  margin: 7px 0 0;
+  color: #5f6f8a;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.promo_card_carousel_badge {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 7px;
+  background: #e9f8f0;
+  color: #12a66a;
+  font-size: 12px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.promo_card_carousel .embla {
+  width: 100%;
+  min-width: 0;
+  align-self: center;
+}
+
+.promo_card_carousel .embla__viewport {
+  width: 100%;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.promo_card_carousel .embla__viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.promo_card_carousel .embla__container {
+  display: flex;
+  align-items: flex-start;
+  touch-action: pan-y pinch-zoom;
+  will-change: transform;
+}
+
+.promo_card_carousel .embla__slide {
+  flex: 0 0 190px;
+  min-width: 0;
+  padding: 0 8px;
+  transform: translate3d(0, 0, 0);
+}
+
+.promo_card_carousel .promo_card_wrap {
+  min-height: 296px;
+  perspective: 1000px;
+  transform-origin: center bottom;
+  transition: transform 0.38s ease;
+}
+
+.promo_card_carousel .promo_card {
+  position: relative;
+  min-height: 296px;
+  border-radius: 8px;
+  transform-style: preserve-3d;
+  transition: transform 0.36s ease, box-shadow 0.28s ease;
+  user-select: none;
+}
+
+.promo_card_carousel .promo_card_front,
+.promo_card_carousel .promo_card_back {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 8px;
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.promo_card_carousel .promo_card_front {
+  color: #fff;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0)),
+    linear-gradient(145deg, #111827 0%, #24314c 54%, #4768d8 100%);
+  box-shadow: 0 18px 38px rgba(17, 24, 39, 0.20);
+}
+
+.promo_card_carousel .promo_card_back {
+  color: #101522;
+  background:
+    radial-gradient(circle at 26% 18%, rgba(18, 166, 106, 0.18), transparent 36%),
+    #ffffff;
+  border-color: #dfe6f2;
+  transform: rotateY(180deg);
+}
+
+.promo_card_carousel .promo_card_label {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.promo_card_carousel .promo_card_title {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.promo_card_carousel .promo_card_reward {
+  font-size: 28px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.promo_card_carousel .promo_card_back strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.promo_card_carousel .promo_card_back p {
+  margin: 10px 0 0;
+  color: #5f6f8a;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.promo_card_carousel .promo_card_action {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.promo_card_carousel .embla__slide.flip {
+  z-index: 2;
+}
+
+.promo_card_carousel .embla__slide.flip .promo_card {
+  transform: rotateY(180deg);
+  box-shadow: 0 0 38px rgba(71, 104, 216, 0.30);
+}
+
+.promo_card_carousel .embla__slide.is-prev2 .promo_card_wrap {
+  transform: rotate(-11.5deg) scale(0.9);
+}
+
+.promo_card_carousel .embla__slide.is-prev .promo_card_wrap {
+  transform: rotate(-7.641deg) scale(0.92);
+}
+
+.promo_card_carousel .embla__slide.is-next .promo_card_wrap {
+  transform: rotate(7.641deg) scale(0.92);
+}
+
+.promo_card_carousel .embla__slide.is-next2 .promo_card_wrap {
+  transform: rotate(11.5deg) scale(0.9);
+}
+
+.promo_card_carousel .embla__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.promo_card_carousel .embla__dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(91, 107, 137, 0.34);
+  transition: width 0.22s ease, background 0.22s ease;
+}
+
+.promo_card_carousel .embla__dot--selected {
+  width: 26px;
+  background: #4768d8;
+}
+
+.promo_card_carousel_hint {
+  margin: -10px 0 0;
+  color: #6a7892;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (min-width: 1024px) {
+  .promo_card_carousel .embla__viewport {
+    overflow: visible;
+    cursor: default;
+  }
+
+  .promo_card_carousel .embla__container {
+    justify-content: center;
+    transform: none !important;
+  }
+
+  .promo_card_carousel .embla__slide {
+    flex-basis: 132px;
+    padding: 0;
+  }
+
+  .promo_card_carousel .embla__slide:nth-child(1) .promo_card_wrap {
+    margin-top: 52px;
+    transform: rotate(-11.45deg) scale(0.9);
+  }
+
+  .promo_card_carousel .embla__slide:nth-child(2) .promo_card_wrap {
+    margin-top: 32px;
+    transform: rotate(-7.641deg) scale(0.9);
+  }
+
+  .promo_card_carousel .embla__slide:nth-child(3) .promo_card_wrap {
+    transform: scale(0.9);
+  }
+
+  .promo_card_carousel .embla__slide:nth-child(4) .promo_card_wrap {
+    margin-top: 32px;
+    transform: rotate(7.641deg) scale(0.9);
+  }
+
+  .promo_card_carousel .embla__slide:nth-child(5) .promo_card_wrap {
+    margin-top: 52px;
+    transform: rotate(11.45deg) scale(0.9);
+  }
+
+  .promo_card_carousel .embla__slide:nth-child(1).flip .promo_card_wrap {
+    transform: rotate(-11.45deg) scale(1);
+  }
+
+  .promo_card_carousel .embla__slide:nth-child(2).flip .promo_card_wrap {
+    transform: rotate(-7.641deg) scale(1);
+  }
+
+  .promo_card_carousel .embla__slide:nth-child(3).flip .promo_card_wrap {
+    transform: scale(1);
+  }
+
+  .promo_card_carousel .embla__slide:nth-child(4).flip .promo_card_wrap {
+    transform: rotate(7.641deg) scale(1);
+  }
+
+  .promo_card_carousel .embla__slide:nth-child(5).flip .promo_card_wrap {
+    transform: rotate(11.45deg) scale(1);
+  }
+
+  .promo_card_carousel .embla__dots,
+  .promo_card_carousel_hint {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .promo_card_carousel {
+    min-height: auto;
+    padding: 20px 10px 18px;
+  }
+
+  .promo_card_carousel_head {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .promo_card_carousel .embla__slide {
+    flex-basis: min(72vw, 220px);
+  }
+}

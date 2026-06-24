@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AGENT Workspace Promotion</title>
+  <link rel="stylesheet" href="./asset/css/promo-carousel.css" />
+  <style>
+    :root {
+      --bg: #f6f8fc;
+      --surface: #ffffff;
+      --ink: #101522;
+      --sub: #5f6f8a;
+      --muted: #91a0b8;
+      --line: #dfe6f2;
+      --blue: #4768d8;
+      --blue-soft: #edf3ff;
+      --green: #12a66a;
+      --green-soft: #e9f8f0;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --shadow: 0 18px 48px rgba(23, 36, 66, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; cursor: pointer; }
+    h1, h2, h3, p { margin: 0; }
+
+    .promo_shell {
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(246, 248, 252, 0) 0%, #f6f8fc 720px),
+        radial-gradient(circle at 74% 22%, rgba(18, 166, 106, 0.20), transparent 28%),
+        linear-gradient(132deg, #eef3ff 0%, #ffffff 46%, #e9f8f0 100%);
+    }
+
+    .promo_header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 0 max(24px, calc((100vw - 1180px) / 2));
+      border-bottom: 1px solid rgba(223, 230, 242, 0.82);
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand_logo {
+      width: 112px;
+      height: 34px;
+      background-image: url("https://nsuslab.com/assets/nsuslab_logo-DIbegr9K.png");
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: left center;
+      flex: 0 0 auto;
+    }
+
+    .brand_text strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .brand_text span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav a {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 13px;
+      border-radius: 8px;
+      color: #344158;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .nav a:hover { background: #f2f5fb; }
+    .nav .primary_link { background: #111827; color: #fff; }
+    .nav .primary_link:hover { background: #263244; }
+
+    .hero {
+      min-height: calc(100vh - 72px);
+      display: grid;
+      align-items: center;
+      padding: 48px max(24px, calc((100vw - 1180px) / 2)) 72px;
+    }
+
+    .hero_grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.92fr) minmax(420px, 1.08fr);
+      align-items: center;
+      gap: 54px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid rgba(71, 104, 216, 0.22);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.74);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(18, 166, 106, 0.16);
+    }
+
+    .hero h1 {
+      margin-top: 24px;
+      font-size: clamp(42px, 6vw, 74px);
+      line-height: 0.98;
+      letter-spacing: 0;
+      font-weight: 950;
+    }
+
+    .hero_copy {
+      max-width: 620px;
+      margin-top: 22px;
+      color: var(--sub);
+      font-size: 18px;
+      line-height: 1.72;
+      font-weight: 600;
+    }
+
+    .hero_actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 34px;
+    }
+
+    .button {
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 18px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      font-weight: 900;
+    }
+
+    .button_primary {
+      background: #111827;
+      color: #fff;
+      box-shadow: 0 14px 28px rgba(17, 24, 39, 0.16);
+    }
+
+    .button_secondary {
+      background: rgba(255, 255, 255, 0.82);
+      border-color: var(--line);
+      color: #263244;
+    }
+
+    .hero_metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 42px;
+      max-width: 660px;
+    }
+
+    .metric {
+      padding: 18px;
+      border: 1px solid rgba(223, 230, 242, 0.9);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.70);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 25px;
+      font-weight: 950;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 6px;
+      color: var(--sub);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .product_scene {
+      position: relative;
+      min-height: 570px;
+      border: 1px solid rgba(185, 199, 226, 0.84);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .scene_topbar {
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcff;
+    }
+
+    .window_dots { display: flex; gap: 7px; }
+    .window_dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #c8d3e6;
+    }
+    .window_dots span:nth-child(1) { background: #ff6b6b; }
+    .window_dots span:nth-child(2) { background: #fbbf24; }
+    .window_dots span:nth-child(3) { background: #34d399; }
+
+    .scene_status {
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: 210px minmax(0, 1fr);
+      min-height: 516px;
+    }
+
+    .workflow_rail {
+      padding: 18px;
+      border-right: 1px solid var(--line);
+      background: #f7f9ff;
+    }
+
+    .rail_item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 42px;
+      margin-bottom: 9px;
+      padding: 0 12px;
+      border-radius: 8px;
+      color: #43516b;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .rail_item.is_active {
+      background: #111827;
+      color: #fff;
+    }
+
+    .rail_item small {
+      color: inherit;
+      opacity: 0.72;
+      font-weight: 900;
+    }
+
+    .workflow_main {
+      padding: 22px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+    }
+
+    .panel_title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .panel_title h2 {
+      font-size: 21px;
+      font-weight: 950;
+    }
+
+    .panel_title p {
+      margin-top: 6px;
+      color: var(--sub);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 9px;
+      border-radius: 7px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .doc_stack {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .doc_card {
+      min-height: 148px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .doc_card strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 950;
+    }
+
+    .doc_card p {
+      margin-top: 9px;
+      color: var(--sub);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    .progress {
+      height: 8px;
+      margin-top: 16px;
+      border-radius: 999px;
+      background: #edf1f8;
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      width: var(--value);
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+    }
+
+    .generation_box {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border: 1px solid #cfe0ff;
+      border-radius: 8px;
+      background: var(--blue-soft);
+    }
+
+    .generation_box strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 950;
+    }
+
+    .generation_box span {
+      display: block;
+      margin-top: 5px;
+      color: #4b5c79;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .pulse {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #111827;
+      color: #fff;
+      font-weight: 950;
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(0.94); opacity: 0.82; }
+    }
+
+    .section {
+      padding: 78px max(24px, calc((100vw - 1180px) / 2));
+    }
+
+    .section_head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 24px;
+      margin-bottom: 26px;
+    }
+
+    .section_head h2 {
+      max-width: 650px;
+      font-size: clamp(30px, 4vw, 46px);
+      line-height: 1.08;
+      font-weight: 950;
+    }
+
+    .section_head p {
+      max-width: 440px;
+      color: var(--sub);
+      line-height: 1.65;
+      font-weight: 650;
+    }
+
+    .feature_grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .feature {
+      min-height: 218px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 12px 30px rgba(23, 36, 66, 0.05);
+    }
+
+    .feature_icon {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-weight: 950;
+    }
+
+    .feature:nth-child(2) .feature_icon { background: var(--green-soft); color: var(--green); }
+    .feature:nth-child(3) .feature_icon { background: #fff7e6; color: var(--amber); }
+    .feature:nth-child(4) .feature_icon { background: #fef0f0; color: var(--red); }
+
+    .feature h3 {
+      margin-top: 18px;
+      font-size: 18px;
+      font-weight: 950;
+    }
+
+    .feature p {
+      margin-top: 10px;
+      color: var(--sub);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .step {
+      position: relative;
+      min-height: 238px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .step_num {
+      display: block;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .step h3 {
+      margin-top: 28px;
+      font-size: 22px;
+      font-weight: 950;
+    }
+
+    .step p {
+      margin-top: 12px;
+      color: var(--sub);
+      line-height: 1.68;
+    }
+
+    .cta_band {
+      margin: 20px max(24px, calc((100vw - 1180px) / 2)) 72px;
+      padding: 38px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 24px;
+      border-radius: 8px;
+      background: #111827;
+      color: #fff;
+    }
+
+    .cta_band h2 {
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 1.12;
+      font-weight: 950;
+    }
+
+    .cta_band p {
+      margin-top: 12px;
+      color: #c7d2e5;
+      line-height: 1.65;
+      max-width: 680px;
+    }
+
+    .cta_band .button {
+      background: #fff;
+      color: #111827;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1020px) {
+      .promo_header { position: static; }
+      .hero_grid { grid-template-columns: 1fr; }
+      .product_scene { min-height: 520px; }
+      .feature_grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .section_head { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (max-width: 720px) {
+      .promo_header {
+        height: auto;
+        padding: 16px;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+
+      .hero {
+        min-height: auto;
+        padding: 38px 16px 54px;
+      }
+
+      .hero h1 { font-size: 42px; }
+      .hero_copy { font-size: 16px; }
+      .hero_metrics { grid-template-columns: 1fr; }
+      .product_scene { min-height: auto; }
+      .workflow { grid-template-columns: 1fr; }
+      .workflow_rail {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .rail_item { margin: 0; }
+      .doc_stack { grid-template-columns: 1fr; }
+      .generation_box { grid-template-columns: 1fr; }
+      .pulse { width: 100%; }
+      .section { padding: 56px 16px; }
+      .feature_grid,
+      .steps { grid-template-columns: 1fr; }
+      .cta_band {
+        margin: 0 16px 48px;
+        padding: 28px;
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="promo_shell">
+    <header class="promo_header">
+      <a class="brand" href="./index.html" aria-label="AGENT Workspace home">
+        <span class="brand_logo" aria-hidden="true"></span>
+        <span class="brand_text">
+          <strong>AGENT Workspace</strong>
+          <span>AI-NATIVE SERVICE BUILDER</span>
+        </span>
+      </a>
+
+      <nav class="nav" aria-label="Promotion navigation">
+        <a href="#features">핵심 기능</a>
+        <a href="#workflow">워크플로우</a>
+        <a href="./prd.html">PRD 생성</a>
+        <a class="primary_link" href="./output.html">산출물 생성</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-label="AGENT Workspace promotion">
+        <div class="hero_grid">
+          <div>
+            <span class="eyebrow">PRD부터 정책, IA, 다이어그램까지 한 번에</span>
+            <h1>기획 산출물 제작을 더 빠르고 일관되게.</h1>
+            <p class="hero_copy">
+              AGENT Workspace는 요구사항을 선택하고, 승인된 PRD를 기반으로 서비스 시나리오와 정책, IA, Draw.io 다이어그램을 생성하는 실무형 AI 워크스페이스입니다.
+            </p>
+            <div class="hero_actions">
+              <a class="button button_primary" href="./prd.html">PRD 생성 시작</a>
+              <a class="button button_secondary" href="#workflow">흐름 보기</a>
+            </div>
+            <div class="hero_metrics" aria-label="Promotion highlights">
+              <div class="metric">
+                <strong>4종</strong>
+                <span>PRD 기반 후속 산출물 자동 생성</span>
+              </div>
+              <div class="metric">
+                <strong>1곳</strong>
+                <span>요구사항, 템플릿, 결과물 통합 관리</span>
+              </div>
+              <div class="metric">
+                <strong>Blob</strong>
+                <span>Vercel Blob 저장소 연동 구조</span>
+              </div>
+            </div>
+          </div>
+
+          <aside class="product_scene" aria-label="AGENT Workspace product preview">
+            <div class="scene_topbar">
+              <div class="window_dots" aria-hidden="true"><span></span><span></span><span></span></div>
+              <span class="scene_status">Blob Storage ON</span>
+            </div>
+            <section class="promo_card_carousel" data-promo-carousel aria-label="프로모션 카드 캐러셀">
+              <div class="promo_card_carousel_head">
+                <div>
+                  <h2>추천 프로모션 패키지</h2>
+                  <p>참조 페이지의 카드 펼침, 드래그, dots, flip 효과를 독립 모듈로 재구성했습니다.</p>
+                </div>
+                <span class="promo_card_carousel_badge">Embla Style</span>
+              </div>
+
+              <div class="embla">
+                <div class="embla__viewport">
+                  <div class="embla__container">
+                    <article class="embla__slide">
+                      <div class="promo_card_wrap">
+                        <div class="promo_card">
+                          <div class="promo_card_front">
+                            <span class="promo_card_label">Welcome</span>
+                            <h3 class="promo_card_title">신규 가입 보너스</h3>
+                            <strong class="promo_card_reward">30일</strong>
+                          </div>
+                          <div class="promo_card_back">
+                            <div>
+                              <strong>온보딩 캠페인</strong>
+                              <p>첫 방문자에게 단계별 혜택을 노출하고 가입 전환을 유도합니다.</p>
+                            </div>
+                            <span class="promo_card_action">자세히 보기</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                    <article class="embla__slide">
+                      <div class="promo_card_wrap">
+                        <div class="promo_card">
+                          <div class="promo_card_front">
+                            <span class="promo_card_label">Reward</span>
+                            <h3 class="promo_card_title">친구 초대 리워드</h3>
+                            <strong class="promo_card_reward">+20%</strong>
+                          </div>
+                          <div class="promo_card_back">
+                            <div>
+                              <strong>추천인 확산</strong>
+                              <p>공유 링크와 초대 보상을 연결해 바이럴 참여를 설계합니다.</p>
+                            </div>
+                            <span class="promo_card_action">자세히 보기</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                    <article class="embla__slide">
+                      <div class="promo_card_wrap">
+                        <div class="promo_card">
+                          <div class="promo_card_front">
+                            <span class="promo_card_label">Coupon</span>
+                            <h3 class="promo_card_title">한정 쿠폰팩</h3>
+                            <strong class="promo_card_reward">5종</strong>
+                          </div>
+                          <div class="promo_card_back">
+                            <div>
+                              <strong>쿠폰 다운로드</strong>
+                              <p>기간, 대상, 발급 조건을 카드형 혜택으로 명확하게 보여줍니다.</p>
+                            </div>
+                            <span class="promo_card_action">자세히 보기</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                    <article class="embla__slide">
+                      <div class="promo_card_wrap">
+                        <div class="promo_card">
+                          <div class="promo_card_front">
+                            <span class="promo_card_label">Event</span>
+                            <h3 class="promo_card_title">월간 이벤트</h3>
+                            <strong class="promo_card_reward">D-14</strong>
+                          </div>
+                          <div class="promo_card_back">
+                            <div>
+                              <strong>참여형 랜딩</strong>
+                              <p>이벤트 기간과 참여 방법을 연결해 빠른 액션을 만듭니다.</p>
+                            </div>
+                            <span class="promo_card_action">자세히 보기</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                    <article class="embla__slide">
+                      <div class="promo_card_wrap">
+                        <div class="promo_card">
+                          <div class="promo_card_front">
+                            <span class="promo_card_label">VIP</span>
+                            <h3 class="promo_card_title">멤버십 혜택</h3>
+                            <strong class="promo_card_reward">VIP</strong>
+                          </div>
+                          <div class="promo_card_back">
+                            <div>
+                              <strong>등급별 보상</strong>
+                              <p>회원 등급, 조건, 보상 정보를 한 장의 카드로 정리합니다.</p>
+                            </div>
+                            <span class="promo_card_action">자세히 보기</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+                <div class="embla__dots" aria-label="프로모션 카드 이동"></div>
+              </div>
+              <p class="promo_card_carousel_hint">카드를 드래그하고 선택한 카드를 눌러 상세를 확인하세요.</p>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="section_head">
+          <h2>기획자가 매번 반복하던 정리 작업을 워크플로우로 고정합니다.</h2>
+          <p>요구사항 수집부터 후속 산출물 생성까지 같은 구조로 반복할 수 있어 리뷰 기준과 문서 품질이 흔들리지 않습니다.</p>
+        </div>
+
+        <div class="feature_grid">
+          <article class="feature">
+            <div class="feature_icon">01</div>
+            <h3>요구사항 선택</h3>
+            <p>파일, 직접 입력, 외부 소스에서 모은 요구사항을 확인하고 PRD 생성 대상을 선택합니다.</p>
+          </article>
+          <article class="feature">
+            <div class="feature_icon">02</div>
+            <h3>PRD 생성 및 승인</h3>
+            <p>정해진 템플릿으로 PRD 초안을 만들고 피드백 반영 후 승인본으로 전환합니다.</p>
+          </article>
+          <article class="feature">
+            <div class="feature_icon">03</div>
+            <h3>후속 산출물 확장</h3>
+            <p>승인 PRD를 기준으로 시나리오, 정책, IA, 다이어그램을 이어서 생성합니다.</p>
+          </article>
+          <article class="feature">
+            <div class="feature_icon">04</div>
+            <h3>저장소 연동</h3>
+            <p>Vercel Blob 기반 파일 목록과 결과물을 확인하며 작업 이력을 이어갑니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="workflow">
+        <div class="section_head">
+          <h2>세 단계로 팀의 산출물 흐름을 정리하세요.</h2>
+          <p>입력, 생성, 검토가 분리되어 있어 빠르게 만들고 필요한 부분만 다시 조정할 수 있습니다.</p>
+        </div>
+
+        <div class="steps">
+          <article class="step">
+            <span class="step_num">STEP 1</span>
+            <h3>요구사항을 모읍니다</h3>
+            <p>프로모션 정책, 쿠폰 조건, 운영 제약을 요구사항 파일이나 직접 입력으로 등록합니다.</p>
+          </article>
+          <article class="step">
+            <span class="step_num">STEP 2</span>
+            <h3>PRD를 생성합니다</h3>
+            <p>선택한 요구사항과 템플릿을 결합해 바로 리뷰 가능한 PRD 초안을 만듭니다.</p>
+          </article>
+          <article class="step">
+            <span class="step_num">STEP 3</span>
+            <h3>산출물을 확장합니다</h3>
+            <p>승인된 PRD를 기준으로 시나리오, 정책, IA, 다이어그램을 일관된 관점으로 생성합니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="cta_band" aria-label="Start using AGENT Workspace">
+        <div>
+          <h2>오늘의 요구사항을 바로 산출물로 바꾸세요.</h2>
+          <p>AGENT Workspace의 PRD 생성 화면에서 요구사항을 선택하고 첫 문서를 만들어 보세요.</p>
+        </div>
+        <a class="button" href="./prd.html">시작하기</a>
+      </section>
+    </main>
+  </div>
+  <script src="./asset/js/promo-carousel.js"></script>
+</body>
+</html>

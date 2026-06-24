@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Promotion Builder Demo</title>
+  <style>
+    :root {
+      --bg: #f6f8fc;
+      --surface: #ffffff;
+      --surface-2: #f9fbff;
+      --line: #dfe6f2;
+      --line-strong: #c9d4e7;
+      --text: #111827;
+      --sub: #63708a;
+      --muted: #8b98ad;
+      --blue: #2563eb;
+      --blue-soft: #eaf2ff;
+      --green: #16a34a;
+      --green-soft: #eaf8ef;
+      --orange: #f97316;
+      --orange-soft: #fff4e5;
+      --purple: #7c3aed;
+      --purple-soft: #f2edff;
+      --red: #ef4444;
+      --red-soft: #fff1f2;
+      --shadow: 0 14px 40px rgba(20, 35, 70, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+    button, textarea, input, select { font: inherit; }
+    button { cursor: pointer; }
+    h1, h2, h3, p { margin: 0; }
+
+    .shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+    .topbar {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .brand_mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: #111827;
+      color: #fff;
+      font-weight: 900;
+    }
+    .brand_title { font-size: 17px; font-weight: 900; }
+    .brand_subtitle { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .topbar_actions { display: flex; align-items: center; gap: 10px; }
+    .topbar_link {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: #334155;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .status_badge {
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 10px;
+      border-radius: 8px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-weight: 800;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .status_badge.is_pending {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+    .status_badge.is_error {
+      background: var(--red-soft);
+      color: var(--red);
+    }
+    .button {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: #334155;
+      font-weight: 800;
+      padding: 0 13px;
+    }
+    .button_primary {
+      border-color: #111827;
+      background: #111827;
+      color: #fff;
+    }
+
+    .workspace {
+      --left-panel: 42%;
+      display: grid;
+      grid-template-columns: minmax(320px, var(--left-panel)) 10px minmax(420px, 1fr);
+      gap: 14px;
+      padding: 18px;
+      min-height: calc(100vh - 72px);
+    }
+    .resize_handle {
+      width: 10px;
+      min-height: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, transparent 0 3px, #cbd5e1 3px 4px, transparent 4px 6px, #cbd5e1 6px 7px, transparent 7px 100%),
+        #eef3ff;
+      cursor: col-resize;
+      touch-action: none;
+    }
+    .workspace.is_resizing {
+      user-select: none;
+      cursor: col-resize;
+    }
+    .panel {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel_header {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-2);
+    }
+    .panel_title { font-size: 14px; font-weight: 900; }
+    .panel_body { padding: 16px; }
+    .stack { display: grid; gap: 14px; }
+    .field { display: grid; gap: 7px; }
+    .label {
+      color: #40516a;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    textarea, input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      padding: 10px 11px;
+      outline: none;
+    }
+    textarea { min-height: 138px; resize: vertical; line-height: 1.55; }
+    textarea:focus, input:focus, select:focus { border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08); }
+    .grid_2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .hint { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .webhook_row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: end;
+    }
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #f8fafc;
+    }
+    .segmented button {
+      min-height: 34px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .segmented button.is_active { background: #111827; color: #fff; }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .step {
+      min-height: 58px;
+      display: grid;
+      align-content: center;
+      gap: 4px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .step strong { font-size: 12px; }
+    .step span { color: var(--muted); font-size: 11px; }
+    .step.is_on { border-color: #b6c6ff; background: var(--blue-soft); }
+
+    .result_grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .mini_panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+    .mini_head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 40px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--line);
+      background: #f8fafc;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .mini_body { padding: 12px; }
+    .kv { display: grid; gap: 8px; }
+    .kv_row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; align-items: start; }
+    .kv_key { color: var(--muted); font-size: 12px; font-weight: 800; }
+    .kv_value { color: var(--text); font-size: 12px; font-weight: 800; line-height: 1.45; }
+    .tag_list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 7px;
+      background: #f1f5f9;
+      color: #334155;
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .tag_blue { background: var(--blue-soft); color: var(--blue); }
+    .tag_green { background: var(--green-soft); color: var(--green); }
+    .tag_orange { background: var(--orange-soft); color: #c2410c; }
+    .tag_purple { background: var(--purple-soft); color: var(--purple); }
+    .tag_red { background: var(--red-soft); color: var(--red); }
+    pre {
+      max-height: 340px;
+      margin: 0;
+      overflow: auto;
+      border-radius: 8px;
+      background: #0f172a;
+      color: #dbeafe;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .promo_header {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      background: #111;
+      color: #fff;
+    }
+    .promo_logo { font-size: 17px; font-weight: 950; }
+    .promo_badges { display: flex; gap: 6px; }
+    .promo_badge { width: 30px; height: 18px; border-radius: 999px; background: #334155; }
+    .promo_hero {
+      min-height: 285px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 18px;
+      padding: 28px;
+      background:
+        radial-gradient(circle at 78% 40%, rgba(96, 165, 250, 0.35), transparent 28%),
+        linear-gradient(135deg, #050505 0%, #111827 50%, #0b0f17 100%);
+      color: #fff;
+    }
+    .promo_eyebrow { color: #f87171; font-size: 13px; font-weight: 950; letter-spacing: 0.04em; }
+    .promo_headline { margin-top: 8px; font-size: 36px; line-height: 1.03; font-weight: 950; }
+    .promo_sub { margin-top: 12px; color: #cbd5e1; line-height: 1.55; }
+    .promo_cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      margin-top: 18px;
+      padding: 0 20px;
+      border-radius: 999px;
+      background: #e11d48;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 950;
+    }
+    .promo_visual {
+      min-height: 190px;
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 45% 45%, rgba(255, 255, 255, 0.28), transparent 22%),
+        url("https://promo.ggpoker.com/wp-content/uploads/2026/06/SB-Desktop-AB.png") center / cover no-repeat;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .promo_section {
+      padding: 24px 26px;
+      background: #fff;
+      color: #111827;
+      border-top: 1px solid #e5e7eb;
+    }
+    .promo_section.dark { background: #171717; color: #fff; border-color: #262626; }
+    .promo_section h3 { font-size: 18px; font-weight: 950; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 16px; }
+    .promo_step {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: start;
+      min-height: 72px;
+    }
+    .step_num { color: #ef4444; font-size: 32px; font-weight: 950; line-height: 1; }
+    .promo_step strong { display: block; font-size: 12px; }
+    .promo_step span { display: block; margin-top: 5px; color: #cbd5e1; font-size: 12px; line-height: 1.35; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+    .stat { padding: 14px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; }
+    .stat strong { display: block; font-size: 17px; font-weight: 950; }
+    .stat span { display: block; margin-top: 5px; color: #64748b; font-size: 12px; line-height: 1.35; }
+    .terms {
+      max-height: 120px;
+      overflow: auto;
+      color: #64748b;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+    .validation_list { display: grid; gap: 8px; }
+    .validation_item {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px;
+      align-items: start;
+      padding: 9px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 6px;
+      background: var(--green);
+    }
+    .dot.warn { background: var(--orange); }
+    .dot.error { background: var(--red); }
+    .validation_item strong { display: block; font-size: 12px; }
+    .validation_item span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+    @media (max-width: 1180px) {
+      .workspace { grid-template-columns: 1fr; }
+      .resize_handle { display: none; }
+      body { overflow: auto; }
+      .promo_hero { grid-template-columns: 1fr; }
+      .result_grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .topbar { height: auto; align-items: flex-start; padding: 14px; flex-direction: column; }
+      .workspace { padding: 12px; }
+      .grid_2, .steps, .stats, .pipeline { grid-template-columns: 1fr; }
+      .webhook_row { grid-template-columns: 1fr; }
+      .promo_headline { font-size: 29px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand_mark">AI</div>
+        <div>
+          <h1 class="brand_title">AI Promotion Builder Demo</h1>
+          <p class="brand_subtitle">NLP + Rule Base + AI Harness E2E 테스트 UI</p>
+        </div>
+      </div>
+      <div class="topbar_actions">
+        <span class="status_badge" id="runStatus">로컬 결과</span>
+        <a class="topbar_link" href="./promo-builder-design-system.html">Design System</a>
+        <button class="button" id="localResultButton">로컬 결과 갱신</button>
+        <button class="button" id="resetButton">초기화</button>
+        <button class="button button_primary" id="generateButton">생성 테스트</button>
+      </div>
+    </header>
+
+    <main class="workspace" id="workspace">
+      <section class="panel">
+        <div class="panel_header">
+          <h2 class="panel_title">요구사항 입력</h2>
+          <span class="tag tag_blue">Web 서비스</span>
+        </div>
+        <div class="panel_body">
+          <div class="stack">
+            <div class="field">
+              <label class="label" for="promptInput">자연어 요청</label>
+              <textarea id="promptInput">글로벌 신규 유저 대상으로 카지노 슬롯 다운로드 유도 페이지 만들어줘. Sweet Bonanza 게임을 강조하고, CTA는 Play Now로 해줘. 보너스 코드는 없고 Q-TAG 제휴사 유입은 고려해야 해.</textarea>
+              <p class="hint">키워드 기반 NLP 모의 분석입니다. 실제 LLM 연동 전 E2E 흐름 검증용입니다.</p>
+            </div>
+
+            <div class="field">
+              <label class="label" for="webhookUrlInput">n8n Webhook URL</label>
+              <div class="webhook_row">
+                <input id="webhookUrlInput" placeholder="https://{n8n-domain}/webhook/promo-builder-generate" />
+                <button class="button" type="button" id="saveWebhookButton">저장</button>
+              </div>
+              <p class="hint">[생성 테스트] 버튼을 누르면 이 URL로 POST 요청을 보냅니다. 비워두면 로컬 모의 결과를 사용합니다.</p>
+            </div>
+
+            <div class="grid_2">
+              <div class="field">
+                <label class="label" for="regionInput">리전</label>
+                <select id="regionInput">
+                  <option value="global">Global</option>
+                  <option value="nl">Netherlands</option>
+                  <option value="br">Brazil</option>
+                  <option value="uk">United Kingdom</option>
+                  <option value="kr">Korea</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label" for="languageInput">언어</label>
+                <select id="languageInput">
+                  <option value="en">English</option>
+                  <option value="ko">Korean</option>
+                  <option value="pt">Portuguese</option>
+                  <option value="nl">Dutch</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid_2">
+              <div class="field">
+                <label class="label" for="goalInput">목표</label>
+                <select id="goalInput">
+                  <option value="auto">자동 추론</option>
+                  <option value="download">Download</option>
+                  <option value="registration">Registration</option>
+                  <option value="reservation">Reservation</option>
+                  <option value="play">Play</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label" for="targetInput">타겟</label>
+                <select id="targetInput">
+                  <option value="new_user">신규 유저</option>
+                  <option value="return_user">복귀 유저</option>
+                  <option value="all_user">전체 유저</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label">Template Family 후보</label>
+              <div class="segmented" id="templateSegment">
+                <button type="button" data-template="template_4">Template 4</button>
+                <button type="button" data-template="promo_001">promo_001</button>
+                <button type="button" class="is_active" data-template="auto">자동</button>
+              </div>
+            </div>
+
+            <div class="grid_2">
+              <label class="field">
+                <span class="label">Affiliate / Q-TAG</span>
+                <select id="affiliateInput">
+                  <option value="true">사용</option>
+                  <option value="false">사용 안 함</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="label">Bonus Code</span>
+                <select id="bonusInput">
+                  <option value="false">없음</option>
+                  <option value="true">있음</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="mini_panel">
+              <div class="mini_head">공통 필수 Requirement</div>
+              <div class="mini_body">
+                <div class="stack">
+                  <div class="grid_2">
+                    <label class="field">
+                      <span class="label">Campaign Name</span>
+                      <input id="campaignNameInput" value="Casino Slots Promotion" />
+                    </label>
+                    <label class="field">
+                      <span class="label">CTA Label</span>
+                      <input id="ctaLabelInput" value="PLAY NOW" />
+                    </label>
+                  </div>
+                  <div class="field">
+                    <span class="label">CTA URL / Action Target</span>
+                    <input id="ctaUrlInput" value="https://ggpoker.com/download" />
+                  </div>
+                  <div class="field">
+                    <span class="label">Terms / Responsible Gaming</span>
+                    <textarea id="termsInput">Players must be aged 18+ or 19+, depending on jurisdiction. Promotions, games, rewards and features are subject to change. Standard GGPoker rules apply. Please play responsibly.</textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mini_panel">
+              <div class="mini_head">옵션 Option</div>
+              <div class="mini_body">
+                <div class="stack">
+                  <div class="grid_2">
+                    <label class="field">
+                      <span class="label">Desktop Hero Image</span>
+                      <input id="desktopImageInput" value="https://promo.ggpoker.com/wp-content/uploads/2026/06/SB-Desktop-AB.png" />
+                    </label>
+                    <label class="field">
+                      <span class="label">Mobile Hero Image</span>
+                      <input id="mobileImageInput" value="https://promo.ggpoker.com/wp-content/uploads/2026/06/SB-LP-Mobile-AB.png" />
+                    </label>
+                  </div>
+                  <div class="grid_2">
+                    <label class="field">
+                      <span class="label">Community Stats</span>
+                      <select id="communityOptionInput">
+                        <option value="true">사용</option>
+                        <option value="false">사용 안 함</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span class="label">Rewards Section</span>
+                      <select id="rewardsOptionInput">
+                        <option value="true">사용</option>
+                        <option value="false">사용 안 함</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="grid_2">
+                    <label class="field">
+                      <span class="label">Winners Section</span>
+                      <select id="winnersOptionInput">
+                        <option value="false">사용 안 함</option>
+                        <option value="true">사용</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span class="label">Custom CSS</span>
+                      <select id="customCssOptionInput">
+                        <option value="false">사용 안 함</option>
+                        <option value="true">사용</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="resize_handle" id="workspaceResizeHandle" aria-label="패널 폭 조절" role="separator"></div>
+
+      <section class="panel">
+        <div class="panel_header">
+          <h2 class="panel_title">AI 하네스 처리 결과</h2>
+          <span class="tag tag_green">n8n 기준</span>
+        </div>
+        <div class="panel_body">
+          <div class="pipeline">
+            <div class="step is_on"><strong>NLP</strong><span>요구사항 해석</span></div>
+            <div class="step is_on"><strong>Rule Base</strong><span>필수 조건 보정</span></div>
+            <div class="step is_on"><strong>Planner</strong><span>섹션 구조 생성</span></div>
+            <div class="step is_on"><strong>JSON</strong><span>페이지 스키마</span></div>
+            <div class="step is_on"><strong>Validation</strong><span>정책 검증</span></div>
+          </div>
+
+          <div class="result_grid">
+            <div class="mini_panel">
+              <div class="mini_head">정규화 Context</div>
+              <div class="mini_body">
+                <div class="kv" id="contextView"></div>
+              </div>
+            </div>
+            <div class="mini_panel">
+              <div class="mini_head">Rule 적용 결과</div>
+              <div class="mini_body">
+                <div class="validation_list" id="validationView"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mini_panel" style="margin-top:14px;">
+            <div class="mini_head">
+              <span>Page JSON</span>
+              <span class="tag tag_purple" id="templateBadge">promo_002</span>
+            </div>
+            <div class="mini_body">
+              <pre id="jsonView"></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    const templateSegment = document.getElementById("templateSegment");
+    const generateButton = document.getElementById("generateButton");
+    const localResultButton = document.getElementById("localResultButton");
+    const resetButton = document.getElementById("resetButton");
+    const saveWebhookButton = document.getElementById("saveWebhookButton");
+    const webhookUrlInput = document.getElementById("webhookUrlInput");
+    const runStatus = document.getElementById("runStatus");
+    const workspace = document.getElementById("workspace");
+    const workspaceResizeHandle = document.getElementById("workspaceResizeHandle");
+    const promptInput = document.getElementById("promptInput");
+    const regionInput = document.getElementById("regionInput");
+    const languageInput = document.getElementById("languageInput");
+    const goalInput = document.getElementById("goalInput");
+    const targetInput = document.getElementById("targetInput");
+    const affiliateInput = document.getElementById("affiliateInput");
+    const bonusInput = document.getElementById("bonusInput");
+    const campaignNameInput = document.getElementById("campaignNameInput");
+    const ctaLabelInput = document.getElementById("ctaLabelInput");
+    const ctaUrlInput = document.getElementById("ctaUrlInput");
+    const termsInput = document.getElementById("termsInput");
+    const desktopImageInput = document.getElementById("desktopImageInput");
+    const mobileImageInput = document.getElementById("mobileImageInput");
+    const communityOptionInput = document.getElementById("communityOptionInput");
+    const rewardsOptionInput = document.getElementById("rewardsOptionInput");
+    const winnersOptionInput = document.getElementById("winnersOptionInput");
+    const customCssOptionInput = document.getElementById("customCssOptionInput");
+    const contextView = document.getElementById("contextView");
+    const validationView = document.getElementById("validationView");
+    const jsonView = document.getElementById("jsonView");
+    const templateBadge = document.getElementById("templateBadge");
+
+    let selectedTemplate = "auto";
+
+    const defaults = {
+      prompt: promptInput.value,
+      region: "global",
+      language: "en",
+      goal: "auto",
+      target: "new_user",
+      affiliate: "true",
+      bonus: "false",
+      campaignName: "Casino Slots Promotion",
+      ctaLabel: "PLAY NOW",
+      ctaUrl: "https://ggpoker.com/download",
+      terms: "Players must be aged 18+ or 19+, depending on jurisdiction. Promotions, games, rewards and features are subject to change. Standard GGPoker rules apply. Please play responsibly.",
+      desktopImage: "https://promo.ggpoker.com/wp-content/uploads/2026/06/SB-Desktop-AB.png",
+      mobileImage: "https://promo.ggpoker.com/wp-content/uploads/2026/06/SB-LP-Mobile-AB.png",
+      community: "true",
+      rewards: "true",
+      winners: "false",
+      customCss: "false",
+      template: "auto",
+      webhookUrl: ""
+    };
+
+    const termsText = "Players must be aged 18+ or 19+, depending on jurisdiction. Promotions, games, rewards and specific features are subject to change. All bonuses and offers may be subject to eligibility criteria, wagering requirements and time limits. Standard GGPoker rules apply. Please play responsibly.";
+
+    function includesAny(text, words) {
+      const lower = text.toLowerCase();
+      return words.some((word) => lower.includes(word));
+    }
+
+    function inferContext() {
+      const raw = promptInput.value.trim();
+      const lower = raw.toLowerCase();
+      const campaignType = includesAny(lower, ["casino", "slot", "slots", "sweet bonanza", "카지노", "슬롯"])
+        ? "casino_slots"
+        : includesAny(lower, ["bonus", "promo code", "보너스", "코드"])
+          ? "bonus_offer"
+          : "standard_promotion";
+      const inferredGoal = goalInput.value !== "auto"
+        ? goalInput.value
+        : includesAny(lower, ["download", "다운로드"])
+          ? "download"
+          : includesAny(lower, ["registration", "register", "가입"])
+            ? "registration"
+            : includesAny(lower, ["reservation", "사전예약"])
+              ? "reservation"
+              : "play";
+      const bonusEnabled = bonusInput.value === "true" || includesAny(lower, ["bonus code", "promo code", "보너스 코드", "프로모 코드"]);
+      const affiliateEnabled = affiliateInput.value === "true" || includesAny(lower, ["q-tag", "qtag", "affiliate", "제휴"]);
+      const templateFamily = selectedTemplate !== "auto"
+        ? selectedTemplate
+        : campaignType === "casino_slots"
+          ? "promo_002"
+          : campaignType === "bonus_offer"
+            ? "promo_001"
+            : "template_4";
+
+      return {
+        raw_input: raw,
+        campaign_name: campaignNameInput.value.trim() || (campaignType === "casino_slots" ? "Casino Slots Promotion" : "Promotion Campaign"),
+        industry: "gaming",
+        campaign_type: campaignType,
+        target_region: regionInput.value,
+        language: languageInput.value,
+        target_user: targetInput.value,
+        goal: inferredGoal,
+        device: "mobile_first",
+        affiliate_enabled: affiliateEnabled,
+        bonus_code_enabled: bonusEnabled,
+        common_requirements: {
+          campaign_name: campaignNameInput.value.trim(),
+          cta_label: ctaLabelInput.value.trim(),
+          cta_url: ctaUrlInput.value.trim(),
+          terms: termsInput.value.trim()
+        },
+        options: {
+          desktop_image: desktopImageInput.value.trim(),
+          mobile_image: mobileImageInput.value.trim(),
+          community_stats: communityOptionInput.value === "true",
+          rewards: rewardsOptionInput.value === "true",
+          winners: winnersOptionInput.value === "true",
+          custom_css: customCssOptionInput.value === "true"
+        },
+        template_family: templateFamily,
+        confidence: {
+          campaign_type: campaignType === "casino_slots" ? 0.91 : 0.76,
+          goal: goalInput.value !== "auto" ? 0.99 : 0.84,
+          template_family: selectedTemplate !== "auto" ? 0.99 : 0.82
+        }
+      };
+    }
+
+    function applyRules(context) {
+      const requiredSections = new Set(["hero", "cta", "terms", "footer"]);
+      const validations = [
+        { type: "passed", title: "Hero 필수", body: "모든 프로모션 페이지에 Hero 섹션을 포함합니다." },
+        { type: "passed", title: "CTA 필수", body: `${context.goal} 목표에 CTA가 필요합니다.` },
+        { type: "passed", title: "Terms 필수", body: "Gaming 프로모션은 약관 및 책임 게임 문구를 포함합니다." }
+      ];
+      const requiredFields = [
+        ["campaign_name", context.common_requirements.campaign_name],
+        ["cta_label", context.common_requirements.cta_label],
+        ["cta_url", context.common_requirements.cta_url],
+        ["terms", context.common_requirements.terms]
+      ];
+
+      if (context.campaign_type === "casino_slots") {
+        requiredSections.add("steps");
+        if (context.options.community_stats) requiredSections.add("community_stats");
+        if (context.options.rewards) requiredSections.add("rewards");
+        validations.push({ type: "passed", title: "카지노 캠페인 구조", body: "promo_002 유형의 Steps, Stats, Rewards 섹션을 권장합니다." });
+      }
+
+      if (context.options.winners) requiredSections.add("winners");
+      if (context.options.custom_css) validations.push({ type: "warning", title: "Custom CSS 사용", body: "페이지 단위 CSS는 관리 통제와 QA 확인이 필요합니다." });
+
+      requiredFields.forEach(([name, value]) => {
+        if (!value) validations.push({ type: "error", title: `필수값 누락: ${name}`, body: `${name} 값은 공통 필수 Requirement입니다.` });
+      });
+
+      if (context.bonus_code_enabled) {
+        requiredSections.add("bonus_offer");
+        validations.push({ type: "warning", title: "Bonus Code 매핑 필요", body: "Bonus Code는 Q-TAG Tracker와 직접 매핑되어야 합니다." });
+      }
+
+      if (context.affiliate_enabled) {
+        validations.push({ type: "warning", title: "Affiliate 브랜드 확인 필요", body: "Q-TAG 감지 시 Affiliate 브랜드명 노출과 site_url Sanitization을 확인해야 합니다." });
+      }
+
+      validations.push({ type: "passed", title: "실시간 API 의존 금지", body: "랜딩 페이지는 CMS 로컬 DB 기반으로 동작하는 정책을 따릅니다." });
+
+      return {
+        required_sections: Array.from(requiredSections),
+        required_fields: requiredFields.map(([name]) => name),
+        validations
+      };
+    }
+
+    function buildPageJson(context, ruleResult) {
+      const headline = context.campaign_type === "casino_slots"
+        ? "PLAY YOUR FAVOURITE SLOTS AT GGPOKER"
+        : context.campaign_type === "bonus_offer"
+          ? "CLAIM YOUR EXCLUSIVE BONUS"
+          : "JOIN THE NEXT GGPOKER PROMOTION";
+      const ctaLabel = context.common_requirements.cta_label || (context.goal === "download" ? "PLAY NOW" : context.goal === "registration" ? "REGISTER NOW" : "JOIN NOW");
+
+      const sections = [
+        {
+          type: "hero",
+          headline,
+          subheadline: "Enjoy a fast, mobile-first promotion experience built from campaign context.",
+          cta: { label: ctaLabel, action: context.goal, url: context.common_requirements.cta_url },
+          assets: {
+            desktop_image: context.options.desktop_image,
+            mobile_image: context.options.mobile_image
+          }
+        }
+      ];
+
+      if (ruleResult.required_sections.includes("steps")) {
+        sections.push({
+          type: "steps",
+          items: [
+            { title: "REGISTER FOR FREE", description: "Sign up and download the GGPoker app." },
+            { title: "GET READY", description: "Complete your account setup in a few steps." },
+            { title: "START PLAYING", description: "Enjoy your favourite casino games." }
+          ]
+        });
+      }
+
+      if (ruleResult.required_sections.includes("community_stats")) {
+        sections.push({
+          type: "community_stats",
+          headline: "JOIN THE WORLD'S LARGEST WINNERS CIRCLE",
+          items: [
+            { value: "384K+", label: "Players Online" },
+            { value: "$20M", label: "Monthly Promotion Prize Pool" },
+            { value: "5,000+", label: "Games" },
+            { value: "$1.5B+", label: "Monthly Payouts" }
+          ]
+        });
+      }
+
+      if (ruleResult.required_sections.includes("winners")) {
+        sections.push({
+          type: "winners",
+          headline: "REAL PLAYERS. REAL WINS.",
+          source: "winners_api",
+          visibility: "always_render_with_default"
+        });
+      }
+
+      if (ruleResult.required_sections.includes("rewards")) {
+        sections.push({
+          type: "rewards",
+          headline: "PLAY AT ANY TIME - ANYWHERE, ON ANY DEVICE",
+          cta: { label: ctaLabel, action: context.goal, url: context.common_requirements.cta_url }
+        });
+      }
+
+      sections.push({
+        type: "terms",
+        content: context.common_requirements.terms || termsText
+      });
+
+      sections.push({
+        type: "footer",
+        responsible_gaming: "Please play responsibly.",
+        license_badges_required: true
+      });
+
+      return {
+        template_family: context.template_family,
+        campaign_context: context,
+        rule_base_result: {
+          required_sections: ruleResult.required_sections,
+          required_fields: ruleResult.required_fields
+        },
+        sections,
+        validation: ruleResult.validations
+      };
+    }
+
+    function setStatus(text, state = "idle") {
+      runStatus.textContent = text;
+      runStatus.classList.toggle("is_pending", state === "pending");
+      runStatus.classList.toggle("is_error", state === "error");
+    }
+
+    function renderContext(context) {
+      const rows = [
+        ["Template", context.template_family],
+        ["Campaign Type", context.campaign_type],
+        ["Goal", context.goal],
+        ["Region / Lang", `${context.target_region} / ${context.language}`],
+        ["Target", context.target_user],
+        ["Affiliate", context.affiliate_enabled ? "enabled" : "disabled"],
+        ["Bonus Code", context.bonus_code_enabled ? "enabled" : "disabled"],
+        ["Options", Object.entries(context.options || {}).filter(([, value]) => value === true).map(([key]) => key).join(", ") || "none"],
+        ["Confidence", context.confidence ? `type ${context.confidence.campaign_type}, goal ${context.confidence.goal}` : "n8n response"]
+      ];
+      contextView.innerHTML = rows.map(([key, value]) => `
+        <div class="kv_row">
+          <div class="kv_key">${key}</div>
+          <div class="kv_value">${value}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderValidation(validations) {
+      validationView.innerHTML = validations.map((item) => {
+        const dotClass = item.type === "warning" ? "warn" : item.type === "error" ? "error" : "";
+        const tagClass = item.type === "warning" ? "tag_orange" : item.type === "error" ? "tag_red" : "tag_green";
+        const label = item.type === "warning" ? "확인" : item.type === "error" ? "오류" : "통과";
+        return `
+          <div class="validation_item">
+            <span class="dot ${dotClass}"></span>
+            <div>
+              <strong>${item.title} <span class="tag ${tagClass}">${label}</span></strong>
+              <span>${item.body}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function normalizeValidation(validation) {
+      if (Array.isArray(validation)) return validation;
+      if (!validation || typeof validation !== "object") return [];
+      const passed = (validation.passed || []).map((item) => ({ ...item, type: "passed" }));
+      const warnings = (validation.warnings || validation.needs_review || []).map((item) => ({ ...item, type: "warning" }));
+      const errors = (validation.errors || []).map((item) => ({ ...item, type: "error" }));
+      return [...passed, ...warnings, ...errors];
+    }
+
+    function generate() {
+      const context = inferContext();
+      const ruleResult = applyRules(context);
+      const pageJson = buildPageJson(context, ruleResult);
+      setStatus("로컬 결과");
+      templateBadge.textContent = context.template_family;
+      templateBadge.className = `tag ${context.template_family === "promo_002" ? "tag_purple" : context.template_family === "promo_001" ? "tag_orange" : "tag_blue"}`;
+      renderContext(context);
+      renderValidation(ruleResult.validations);
+      jsonView.textContent = JSON.stringify(pageJson, null, 2);
+    }
+
+    function runLocalResult() {
+      generate();
+      setStatus("로컬 결과");
+    }
+
+    function setLeftPanelWidth(percent) {
+      const next = Math.min(68, Math.max(28, percent));
+      workspace.style.setProperty("--left-panel", `${next}%`);
+      localStorage.setItem("promo_builder_left_panel", String(Math.round(next * 10) / 10));
+    }
+
+    function initResizableWorkspace() {
+      const savedWidth = Number(localStorage.getItem("promo_builder_left_panel"));
+      if (Number.isFinite(savedWidth) && savedWidth > 0) {
+        setLeftPanelWidth(savedWidth);
+      }
+
+      let isDragging = false;
+
+      workspaceResizeHandle.addEventListener("pointerdown", (event) => {
+        if (window.matchMedia("(max-width: 1180px)").matches) return;
+        isDragging = true;
+        workspace.classList.add("is_resizing");
+        workspaceResizeHandle.setPointerCapture(event.pointerId);
+      });
+
+      workspaceResizeHandle.addEventListener("pointermove", (event) => {
+        if (!isDragging) return;
+        const rect = workspace.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        setLeftPanelWidth((x / rect.width) * 100);
+      });
+
+      const stopDragging = (event) => {
+        if (!isDragging) return;
+        isDragging = false;
+        workspace.classList.remove("is_resizing");
+        if (workspaceResizeHandle.hasPointerCapture(event.pointerId)) {
+          workspaceResizeHandle.releasePointerCapture(event.pointerId);
+        }
+      };
+
+      workspaceResizeHandle.addEventListener("pointerup", stopDragging);
+      workspaceResizeHandle.addEventListener("pointercancel", stopDragging);
+    }
+
+    function buildWebhookPayload() {
+      return {
+        prompt: promptInput.value.trim(),
+        rawInput: promptInput.value.trim(),
+        region: regionInput.value,
+        language: languageInput.value,
+        goal: goalInput.value,
+        targetUser: targetInput.value,
+        affiliateEnabled: affiliateInput.value === "true",
+        bonusCodeEnabled: bonusInput.value === "true",
+        campaignName: campaignNameInput.value.trim(),
+        ctaLabel: ctaLabelInput.value.trim(),
+        ctaUrl: ctaUrlInput.value.trim(),
+        terms: termsInput.value.trim(),
+        desktopImage: desktopImageInput.value.trim(),
+        mobileImage: mobileImageInput.value.trim(),
+        options: {
+          communityStats: communityOptionInput.value === "true",
+          rewards: rewardsOptionInput.value === "true",
+          winners: winnersOptionInput.value === "true",
+          customCss: customCssOptionInput.value === "true"
+        },
+        templateFamily: selectedTemplate,
+        requestedBy: "promo-builder-demo-ui"
+      };
+    }
+
+    function renderWebhookResponse(response) {
+      const pageJson = response.pageJson || response.page_json || response.output?.pageJson;
+      if (!pageJson) {
+        throw new Error("n8n 응답에 pageJson이 없습니다.");
+      }
+      const context = response.normalizedContext || response.normalized_context || pageJson.campaign_context || {};
+      const validation = normalizeValidation(response.validation || pageJson.validation || pageJson.rule_base_result?.validations);
+      templateBadge.textContent = pageJson.template_family || response.templateFamily || context.template_family || "unknown";
+      templateBadge.className = `tag ${templateBadge.textContent === "promo_002" ? "tag_purple" : templateBadge.textContent === "promo_001" ? "tag_orange" : "tag_blue"}`;
+      renderContext(context);
+      renderValidation(validation);
+      jsonView.textContent = JSON.stringify(pageJson, null, 2);
+    }
+
+    async function runWebhookGenerate() {
+      const webhookUrl = webhookUrlInput.value.trim();
+      localStorage.setItem("promo_builder_webhook_url", webhookUrl);
+      if (!webhookUrl) {
+        generate();
+        return;
+      }
+
+      setStatus("n8n 요청 중", "pending");
+      generateButton.disabled = true;
+      localResultButton.disabled = true;
+      generateButton.textContent = "요청 중";
+
+      try {
+        const response = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildWebhookPayload())
+        });
+        const text = await response.text();
+        let data;
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error(`JSON 응답이 아닙니다: ${text.slice(0, 160)}`);
+        }
+        if (!response.ok) {
+          throw new Error(data.message || data.error || `HTTP ${response.status}`);
+        }
+        renderWebhookResponse(data);
+        setStatus("n8n 응답 반영");
+      } catch (error) {
+        console.error(error);
+        setStatus("n8n 오류", "error");
+        const localContext = inferContext();
+        const localRule = applyRules(localContext);
+        const localPageJson = buildPageJson(localContext, localRule);
+        renderContext(localContext);
+        renderValidation([
+          { type: "error", title: "n8n Webhook 호출 실패", body: error.message },
+          ...localRule.validations
+        ]);
+        jsonView.textContent = JSON.stringify({
+          error: error.message,
+          fallback: "local_result",
+          expectedWebhookPath: "promo-builder-generate",
+          sentPayload: buildWebhookPayload(),
+          localPageJson
+        }, null, 2);
+      } finally {
+        generateButton.disabled = false;
+        localResultButton.disabled = false;
+        generateButton.textContent = "생성 테스트";
+      }
+    }
+
+    templateSegment.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      templateSegment.querySelectorAll("button").forEach((item) => item.classList.remove("is_active"));
+      button.classList.add("is_active");
+      selectedTemplate = button.dataset.template;
+      generate();
+    });
+
+    generateButton.addEventListener("click", runWebhookGenerate);
+    localResultButton.addEventListener("click", runLocalResult);
+    saveWebhookButton.addEventListener("click", () => {
+      localStorage.setItem("promo_builder_webhook_url", webhookUrlInput.value.trim());
+      setStatus(webhookUrlInput.value.trim() ? "Webhook 저장됨" : "로컬 결과");
+    });
+    [promptInput, regionInput, languageInput, goalInput, targetInput, affiliateInput, bonusInput, campaignNameInput, ctaLabelInput, ctaUrlInput, termsInput, desktopImageInput, mobileImageInput, communityOptionInput, rewardsOptionInput, winnersOptionInput, customCssOptionInput].forEach((input) => {
+      input.addEventListener("change", generate);
+    });
+    promptInput.addEventListener("input", () => {
+      window.clearTimeout(promptInput._timer);
+      promptInput._timer = window.setTimeout(generate, 350);
+    });
+
+    resetButton.addEventListener("click", () => {
+      promptInput.value = defaults.prompt;
+      regionInput.value = defaults.region;
+      languageInput.value = defaults.language;
+      goalInput.value = defaults.goal;
+      targetInput.value = defaults.target;
+      affiliateInput.value = defaults.affiliate;
+      bonusInput.value = defaults.bonus;
+      campaignNameInput.value = defaults.campaignName;
+      ctaLabelInput.value = defaults.ctaLabel;
+      ctaUrlInput.value = defaults.ctaUrl;
+      termsInput.value = defaults.terms;
+      desktopImageInput.value = defaults.desktopImage;
+      mobileImageInput.value = defaults.mobileImage;
+      communityOptionInput.value = defaults.community;
+      rewardsOptionInput.value = defaults.rewards;
+      winnersOptionInput.value = defaults.winners;
+      customCssOptionInput.value = defaults.customCss;
+      webhookUrlInput.value = defaults.webhookUrl;
+      localStorage.removeItem("promo_builder_webhook_url");
+      selectedTemplate = defaults.template;
+      templateSegment.querySelectorAll("button").forEach((item) => item.classList.toggle("is_active", item.dataset.template === selectedTemplate));
+      generate();
+    });
+
+    webhookUrlInput.value = localStorage.getItem("promo_builder_webhook_url") || "";
+    initResizableWorkspace();
+    generate();
+  </script>
+</body>
+</html>

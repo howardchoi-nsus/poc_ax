@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Promo Builder Design System</title>
+  <style>
+    :root {
+      --app-bg: #f4f6fa;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --line: #d8e0ec;
+      --line-strong: #b9c5d6;
+      --text: #101828;
+      --text-soft: #475467;
+      --muted: #7a8799;
+      --brand-black: #050505;
+      --brand-red: #e52323;
+      --brand-red-dark: #b31218;
+      --brand-gold: #f3c74d;
+      --brand-green: #1faa59;
+      --casino-blue: #38bdf8;
+      --casino-violet: #6d5dfc;
+      --warning: #f97316;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --radius: 8px;
+      --shadow: 0 18px 42px rgba(16, 24, 40, 0.08);
+      --container: min(1480px, calc(100vw - 40px));
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: var(--app-bg);
+      color: var(--text);
+      font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    h1, h2, h3, h4, p { margin: 0; }
+    a { color: inherit; }
+    button, input, select, textarea { font: inherit; }
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: #eef2f7;
+      color: #344054;
+      font-size: 12px;
+    }
+
+    .topbar {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .brand_mark {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius);
+      background: var(--brand-black);
+      color: #fff;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+    .brand_title { font-size: 17px; font-weight: 950; letter-spacing: 0; }
+    .brand_subtitle { margin-top: 2px; color: var(--muted); font-size: 12px; }
+    .nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    .nav a {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      color: #344054;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .page {
+      width: var(--container);
+      margin: 0 auto;
+      padding: 22px 0 48px;
+      display: grid;
+      gap: 18px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+      gap: 20px;
+      align-items: stretch;
+    }
+    .hero_copy,
+    .analysis_card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .hero_copy {
+      padding: 26px;
+      display: grid;
+      align-content: center;
+      gap: 14px;
+    }
+    .eyebrow {
+      color: var(--brand-red);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      font-size: 32px;
+      line-height: 1.15;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+    .lead { color: var(--text-soft); font-size: 15px; line-height: 1.65; }
+    .hero_tags,
+    .tag_row { display: flex; flex-wrap: wrap; gap: 7px; }
+    .tag {
+      min-height: 24px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 8px;
+      border-radius: 7px;
+      background: #eef2f7;
+      color: #344054;
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .tag_red { background: #fff0f0; color: var(--brand-red-dark); }
+    .tag_gold { background: #fff8dc; color: #8a5a00; }
+    .tag_green { background: #eaf8ef; color: #147a3b; }
+    .tag_blue { background: #e8f7ff; color: #0369a1; }
+    .tag_dark { background: #111827; color: #fff; }
+
+    .analysis_card { overflow: hidden; }
+    .analysis_card_head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-soft);
+      font-weight: 950;
+    }
+    .analysis_list { display: grid; }
+    .analysis_row {
+      display: grid;
+      grid-template-columns: 118px minmax(0, 1fr);
+      gap: 12px;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .analysis_row:last-child { border-bottom: 0; }
+    .analysis_key { color: var(--muted); font-size: 12px; font-weight: 950; }
+    .analysis_val { color: var(--text-soft); font-size: 13px; }
+    .analysis_val strong { color: var(--text); }
+
+    .section {
+      border-top: 1px solid var(--line);
+      background: transparent;
+      overflow: hidden;
+    }
+    .section_head {
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+    }
+    .section_head h2 { font-size: 15px; font-weight: 950; }
+    .section_body { padding: 16px; }
+    .grid_2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .grid_3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .grid_4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .stack { display: grid; gap: 14px; }
+
+    .template_card,
+    .token_card,
+    .component_card,
+    .rule_card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      overflow: hidden;
+    }
+    .card_head {
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 13px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfe;
+      font-weight: 950;
+      font-size: 13px;
+    }
+    .card_body { padding: 13px; }
+    .card_body p { color: var(--text-soft); font-size: 13px; line-height: 1.55; }
+    .bullet_list {
+      margin: 10px 0 0;
+      padding-left: 17px;
+      color: var(--text-soft);
+      font-size: 13px;
+    }
+    .bullet_list li { margin: 5px 0; }
+
+    .swatch_grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .swatch {
+      min-height: 78px;
+      display: grid;
+      align-content: end;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+    .swatch_sample {
+      height: 30px;
+      border-radius: 7px;
+      border: 1px solid rgba(16, 24, 40, 0.12);
+    }
+    .swatch strong { font-size: 12px; }
+    .swatch span { color: var(--muted); font-size: 11px; }
+
+    .type_row {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+    .type_meta { color: var(--muted); font-size: 12px; font-weight: 950; }
+    .display_type { font-size: 38px; line-height: 1.05; font-weight: 950; text-transform: uppercase; }
+    .hero_type { font-size: 28px; line-height: 1.12; font-weight: 950; }
+    .section_type { font-size: 20px; line-height: 1.2; font-weight: 950; }
+    .body_type { color: var(--text-soft); font-size: 14px; line-height: 1.6; }
+    .caption_type { color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+    .layout_map {
+      display: grid;
+      gap: 10px;
+    }
+    .layout_row {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr) 160px;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+    .layout_name { font-weight: 950; font-size: 12px; }
+    .layout_desc { color: var(--text-soft); font-size: 12px; }
+    .layout_usage { color: var(--muted); font-size: 12px; text-align: right; }
+
+    .component_canvas {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #f8fafc;
+      overflow: hidden;
+    }
+    .gg_header {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: #050505;
+      color: #fff;
+    }
+    .gg_logo { font-size: 16px; font-weight: 950; }
+    .gg_flags { display: flex; gap: 6px; }
+    .gg_flag { width: 30px; height: 18px; border-radius: 999px; background: #2f3645; }
+    .tpl4_hero,
+    .promo001_hero,
+    .promo002_hero {
+      display: grid;
+      align-items: center;
+      min-height: 236px;
+      padding: 26px;
+      color: #fff;
+    }
+    .tpl4_hero {
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 20px;
+      background: linear-gradient(135deg, #161616 0%, #262626 100%);
+    }
+    .promo001_hero {
+      grid-template-columns: minmax(0, 0.9fr) minmax(220px, 1.1fr);
+      gap: 20px;
+      background:
+        radial-gradient(circle at 78% 42%, rgba(243, 199, 77, 0.3), transparent 28%),
+        linear-gradient(135deg, #0b0b0b 0%, #18120a 58%, #090909 100%);
+    }
+    .promo002_hero {
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 1fr);
+      gap: 20px;
+      background:
+        radial-gradient(circle at 76% 38%, rgba(56, 189, 248, 0.36), transparent 26%),
+        radial-gradient(circle at 52% 70%, rgba(109, 93, 252, 0.28), transparent 24%),
+        linear-gradient(135deg, #050505 0%, #121826 58%, #070b14 100%);
+    }
+    .promo_eyebrow { color: #ff6b6b; font-size: 12px; font-weight: 950; letter-spacing: 0.04em; text-transform: uppercase; }
+    .promo_title { margin-top: 8px; font-size: 32px; line-height: 1.05; font-weight: 950; text-transform: uppercase; }
+    .promo_text { margin-top: 10px; color: #d0d5dd; font-size: 13px; line-height: 1.55; }
+    .cta {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 18px;
+      padding: 0 20px;
+      border-radius: 999px;
+      background: var(--brand-red);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 950;
+      text-decoration: none;
+    }
+    .cta_green { background: var(--brand-green); }
+    .cta_gold { background: var(--brand-gold); color: #111; }
+    .visual_box {
+      min-height: 150px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.16);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.04)),
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.08) 0 8px, transparent 8px 18px);
+    }
+    .section_band {
+      padding: 20px;
+      border-top: 1px solid #e5e7eb;
+      background: #fff;
+    }
+    .section_band.dark { background: #171717; color: #fff; border-color: #2c2c2c; }
+    .section_band h4 { font-size: 17px; font-weight: 950; }
+    .step_grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+    .step_item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+    .step_no { color: var(--brand-red); font-size: 32px; line-height: 1; font-weight: 950; }
+    .step_item strong { display: block; font-size: 12px; }
+    .step_item span { display: block; margin-top: 4px; color: #98a2b3; font-size: 12px; line-height: 1.35; }
+    .stat_grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+    .stat_item {
+      padding: 12px;
+      border-radius: var(--radius);
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+    }
+    .stat_item strong { display: block; font-size: 20px; font-weight: 950; }
+    .stat_item span { color: var(--muted); font-size: 12px; }
+    .content_row {
+      display: grid;
+      grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+      padding: 20px;
+      border-top: 1px solid #e5e7eb;
+      background: #fff;
+    }
+    .image_slot {
+      min-height: 150px;
+      border-radius: var(--radius);
+      border: 1px solid #d0d5dd;
+      background: linear-gradient(135deg, #edf2f7, #ffffff);
+    }
+    .text_block h4 { font-size: 18px; font-weight: 950; }
+    .text_block p { margin-top: 8px; color: var(--text-soft); font-size: 13px; line-height: 1.55; }
+    .terms_footer {
+      padding: 18px 20px;
+      background: #0f0f0f;
+      color: #d0d5dd;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .matrix {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: #fff;
+      font-size: 12px;
+    }
+    .matrix th,
+    .matrix td {
+      padding: 11px;
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+    .matrix th { background: #f8fafc; font-weight: 950; color: #344054; }
+    .matrix tr:last-child td { border-bottom: 0; }
+    .matrix th:last-child,
+    .matrix td:last-child { border-right: 0; }
+    .matrix td { color: var(--text-soft); }
+
+    @media (max-width: 1080px) {
+      .hero,
+      .grid_2,
+      .grid_3,
+      .grid_4,
+      .tpl4_hero,
+      .promo001_hero,
+      .promo002_hero,
+      .content_row { grid-template-columns: 1fr; }
+      .step_grid,
+      .stat_grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .layout_row { grid-template-columns: 1fr; }
+      .layout_usage { text-align: left; }
+    }
+    @media (max-width: 720px) {
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .page { width: min(100vw - 24px, 1480px); padding-top: 14px; }
+      .hero_copy { padding: 20px; }
+      .hero h1 { font-size: 26px; }
+      .display_type { font-size: 30px; }
+      .promo_title { font-size: 26px; }
+      .type_row,
+      .analysis_row { grid-template-columns: 1fr; }
+      .step_grid,
+      .stat_grid,
+      .swatch_grid { grid-template-columns: 1fr; }
+      .section_body { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand_mark">DS</div>
+      <div>
+        <div class="brand_title">Promo Builder Design System</div>
+        <div class="brand_subtitle">Template 4, promo_001, promo_002 분석 기반 디자인 시스템</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="./promo-builder-demo.html">Builder Demo</a>
+      <a href="./">Home</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <div class="hero_copy">
+        <div class="eyebrow">Promotion Template System</div>
+        <h1>3개 프로모션 템플릿에서 반복되는 디자인 규칙만 남긴 상세 시스템</h1>
+        <p class="lead">
+          현재 페이지는 범용 UI 샘플을 제거하고, 전달받은 Template 4, promo_001, promo_002의 실제 구성 요소를 기준으로
+          색상, 타이포그래피, 레이아웃, 컴포넌트, 빌더 입력값 매핑을 정리합니다.
+        </p>
+        <div class="hero_tags">
+          <span class="tag tag_dark">WordPress Current</span>
+          <span class="tag tag_red">Template 4</span>
+          <span class="tag tag_gold">promo_001</span>
+          <span class="tag tag_blue">promo_002</span>
+          <span class="tag tag_green">Builder Mapping</span>
+        </div>
+      </div>
+
+      <aside class="analysis_card">
+        <div class="analysis_card_head">분석 범위</div>
+        <div class="analysis_list">
+          <div class="analysis_row">
+            <div class="analysis_key">Template 4</div>
+            <div class="analysis_val"><strong>일반 운영형 랜딩</strong><br />Header, Hero Banner, Step Bar, CTA, Image/Text Row, Title/Description, Footer 중심</div>
+          </div>
+          <div class="analysis_row">
+            <div class="analysis_key">promo_001</div>
+            <div class="analysis_val"><strong>보너스/가입 유도형</strong><br />Bonus Code, No Promo Code, 가입 단계, 오퍼 강조, 약관 고지가 핵심</div>
+          </div>
+          <div class="analysis_row">
+            <div class="analysis_key">promo_002</div>
+            <div class="analysis_val"><strong>카지노/슬롯 동적 캠페인형</strong><br />Dark Hero, 게임 비주얼, Community Stats, Winners, Rewards, Widget Footer 사용</div>
+          </div>
+          <div class="analysis_row">
+            <div class="analysis_key">제거 기준</div>
+            <div class="analysis_val">템플릿에서 근거가 약한 장식성 팔레트, 범용 샘플, 빌더 내부 UI 전용 컴포넌트는 제외</div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section">
+      <div class="section_head">
+        <h2>1. Template Role Matrix</h2>
+        <span class="tag">템플릿 역할 정의</span>
+      </div>
+      <div class="section_body">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th>Template</th>
+              <th>주요 목적</th>
+              <th>레이아웃 성격</th>
+              <th>필수 섹션</th>
+              <th>옵션 섹션</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Template 4</strong></td>
+              <td>가장 노멀한 실 운영 프로모션. 다양한 리전 담당자가 안정적으로 입력 가능한 기본형</td>
+              <td>상단 Hero 이후 정보 블록을 순차 노출하는 정적 랜딩</td>
+              <td>Header, Hero, Step Bar, CTA, Terms, Footer</td>
+              <td>Image/Text Row, Title/Description, FAQ, 보조 CTA</td>
+            </tr>
+            <tr>
+              <td><strong>promo_001</strong></td>
+              <td>가입, 무료 보너스, Bonus Code/No Code 메시지를 빠르게 전달</td>
+              <td>오퍼 중심 Hero와 짧은 전환 단계가 강조되는 세일즈형 랜딩</td>
+              <td>Header, Offer Hero, CTA, Registration Steps, Bonus Policy, Terms, Footer</td>
+              <td>Bonus Code Box, Eligibility, Affiliate Q-TAG Notice, FAQ</td>
+            </tr>
+            <tr>
+              <td><strong>promo_002</strong></td>
+              <td>카지노/슬롯처럼 시각 임팩트와 동적 데이터가 필요한 캠페인</td>
+              <td>Dark Visual Hero 이후 Stats, Winners, Rewards 등 모듈형 섹션 조합</td>
+              <td>Header, Casino Hero, CTA, Terms, Widget Footer</td>
+              <td>Community Stats, Winners API, Rewards, Game Gallery, Custom Motion</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section_head">
+        <h2>2. Color System</h2>
+        <span class="tag">템플릿 근거 토큰</span>
+      </div>
+      <div class="section_body">
+        <div class="grid_3">
+          <div class="token_card">
+            <div class="card_head">Core Brand</div>
+            <div class="card_body">
+              <div class="swatch_grid">
+                <div class="swatch"><div class="swatch_sample" style="background:#050505"></div><strong>Brand Black</strong><span>#050505 / Header, Footer, Dark Hero</span></div>
+                <div class="swatch"><div class="swatch_sample" style="background:#e52323"></div><strong>GG Red</strong><span>#e52323 / Primary CTA, Accent</span></div>
+                <div class="swatch"><div class="swatch_sample" style="background:#f3c74d"></div><strong>Offer Gold</strong><span>#f3c74d / Bonus, Reward Emphasis</span></div>
+                <div class="swatch"><div class="swatch_sample" style="background:#1faa59"></div><strong>Action Green</strong><span>#1faa59 / Join, Success CTA</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="token_card">
+            <div class="card_head">Template Surfaces</div>
+            <div class="card_body">
+              <div class="swatch_grid">
+                <div class="swatch"><div class="swatch_sample" style="background:#ffffff"></div><strong>Content White</strong><span>본문 섹션, 약관 전 단계</span></div>
+                <div class="swatch"><div class="swatch_sample" style="background:#f8fafc"></div><strong>Soft Gray</strong><span>Step, Card, Builder panel</span></div>
+                <div class="swatch"><div class="swatch_sample" style="background:#171717"></div><strong>Dark Section</strong><span>promo_002 Steps/Winners</span></div>
+                <div class="swatch"><div class="swatch_sample" style="background:#d8e0ec"></div><strong>Divider</strong><span>정적 정보 구분선</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="token_card">
+            <div class="card_head">Casino Dynamic</div>
+            <div class="card_body">
+              <div class="swatch_grid">
+                <div class="swatch"><div class="swatch_sample" style="background:#38bdf8"></div><strong>Casino Blue</strong><span>promo_002 glow, game visual</span></div>
+                <div class="swatch"><div class="swatch_sample" style="background:#6d5dfc"></div><strong>Casino Violet</strong><span>dynamic depth accent</span></div>
+                <div class="swatch"><div class="swatch_sample" style="background:#16a34a"></div><strong>Pass Green</strong><span>Rule 통과 상태</span></div>
+                <div class="swatch"><div class="swatch_sample" style="background:#f97316"></div><strong>Review Orange</strong><span>정책 확인 필요</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section_head">
+        <h2>3. Typography System</h2>
+        <span class="tag">Promo page scale</span>
+      </div>
+      <div class="section_body">
+        <div class="stack">
+          <div class="type_row">
+            <div class="type_meta">Hero Display</div>
+            <div class="display_type">Get Your Welcome Bonus</div>
+          </div>
+          <div class="type_row">
+            <div class="type_meta">Campaign Hero</div>
+            <div class="hero_type">Play your favourite slots at GGPoker</div>
+          </div>
+          <div class="type_row">
+            <div class="type_meta">Section Title</div>
+            <div class="section_type">Get started in three steps</div>
+          </div>
+          <div class="type_row">
+            <div class="type_meta">Body Copy</div>
+            <div class="body_type">프로모션 설명은 짧고 직접적으로 작성합니다. 리전별 담당자가 입력하더라도 Hero, CTA, Terms의 계층이 유지되어야 합니다.</div>
+          </div>
+          <div class="type_row">
+            <div class="type_meta">Legal Caption</div>
+            <div class="caption_type">약관, 라이선스, Responsible Gaming, Bonus Code 조건은 본문보다 작지만 읽을 수 있는 대비와 줄간격을 유지합니다.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section_head">
+        <h2>4. Layout Grammar</h2>
+        <span class="tag">레이아웃 분석 결과</span>
+      </div>
+      <div class="section_body">
+        <div class="layout_map">
+          <div class="layout_row">
+            <div class="layout_name">Global Header</div>
+            <div class="layout_desc">검은색 상단 바, GGPoker 로고, 리전/언어/보조 링크 영역. 모든 템플릿 공통 진입 안정 장치</div>
+            <div class="layout_usage">All Templates</div>
+          </div>
+          <div class="layout_row">
+            <div class="layout_name">Hero Split</div>
+            <div class="layout_desc">좌측 메시지와 CTA, 우측 비주얼. Template 4와 promo_001의 기본 구조</div>
+            <div class="layout_usage">Template 4, promo_001</div>
+          </div>
+          <div class="layout_row">
+            <div class="layout_name">Dark Visual Hero</div>
+            <div class="layout_desc">게임 이미지, glow, 짧은 CTA를 중심으로 강한 첫 화면을 구성. 동적 캠페인에 적합</div>
+            <div class="layout_usage">promo_002</div>
+          </div>
+          <div class="layout_row">
+            <div class="layout_name">Step Bar / Steps</div>
+            <div class="layout_desc">3단계 행동 흐름을 숫자와 짧은 문장으로 노출. 가입/다운로드/플레이 전환에 반복 사용</div>
+            <div class="layout_usage">Template 4, promo_001, promo_002</div>
+          </div>
+          <div class="layout_row">
+            <div class="layout_name">Content Row</div>
+            <div class="layout_desc">이미지와 텍스트를 좌우 배치하는 설명형 섹션. 운영 담당자가 가장 안정적으로 관리 가능</div>
+            <div class="layout_usage">Template 4</div>
+          </div>
+          <div class="layout_row">
+            <div class="layout_name">Dynamic Modules</div>
+            <div class="layout_desc">Community Stats, Winners, Rewards처럼 데이터 소스 또는 옵션에 의해 렌더링되는 카드형 섹션</div>
+            <div class="layout_usage">promo_002</div>
+          </div>
+          <div class="layout_row">
+            <div class="layout_name">Terms / Footer</div>
+            <div class="layout_desc">약관, 라이선스, Responsible Gaming, Footer Widget. 정책상 모든 템플릿에서 필수</div>
+            <div class="layout_usage">All Templates</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section_head">
+        <h2>5. Template Layout Spec</h2>
+        <span class="tag">실제 페이지 조립 기준</span>
+      </div>
+      <div class="section_body">
+        <div class="grid_3">
+          <div class="template_card">
+            <div class="card_head">Template 4 <span class="tag tag_red">Normal</span></div>
+            <div class="card_body">
+              <p>운영 안정성이 가장 중요한 기본 랜딩입니다. 디자인 자유도는 낮지만, 리전 담당자가 콘텐츠를 교체해도 깨지지 않는 구조가 핵심입니다.</p>
+              <ul class="bullet_list">
+                <li>Hero는 문구와 CTA를 우선하고 이미지는 보조로 사용</li>
+                <li>Step Bar는 3단계 고정 또는 2-4단계 확장 가능</li>
+                <li>Image/Text Row는 반복 섹션으로 사용 가능</li>
+                <li>Terms와 Footer는 hide-on-empty가 아니라 정책 필수로 유지</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="template_card">
+            <div class="card_head">promo_001 <span class="tag tag_gold">Bonus</span></div>
+            <div class="card_body">
+              <p>보너스, 가입, 코드 사용 여부를 명확히 보여주는 전환형 랜딩입니다. Bonus Code 정책과 Affiliate Q-TAG 규칙의 영향을 직접 받습니다.</p>
+              <ul class="bullet_list">
+                <li>Hero에 Offer value, CTA, Bonus Code/No Code 메시지 노출</li>
+                <li>가입 단계와 보너스 수령 조건을 가까운 위치에 배치</li>
+                <li>Bonus Code 사용 시 Tracker mapping과 eligibility 고지 필요</li>
+                <li>Affiliate 유입 시 brand_name, site_url sanitization 확인</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="template_card">
+            <div class="card_head">promo_002 <span class="tag tag_blue">Casino</span></div>
+            <div class="card_body">
+              <p>시각 임팩트와 동적 모듈이 필요한 카지노/슬롯 캠페인형입니다. 관리 통제가 어려운 요소는 옵션화하고 Rule Base로 제한합니다.</p>
+              <ul class="bullet_list">
+                <li>Dark Hero와 게임 비주얼을 첫 화면 핵심으로 사용</li>
+                <li>Community, Winners, Rewards는 옵션 모듈로 분리</li>
+                <li>Winners는 API 또는 mock 데이터 상태를 명확히 표시</li>
+                <li>Footer는 Widget과 license_section 정책을 유지</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section_head">
+        <h2>6. Component Reference</h2>
+        <span class="tag">템플릿 공통 컴포넌트</span>
+      </div>
+      <div class="section_body">
+        <div class="grid_2">
+          <div class="component_card">
+            <div class="card_head">Template 4 - Standard Landing</div>
+            <div class="component_canvas">
+              <div class="gg_header">
+                <div class="gg_logo">GGPoker</div>
+                <div class="gg_flags"><span class="gg_flag"></span><span class="gg_flag"></span><span class="gg_flag"></span></div>
+              </div>
+              <section class="tpl4_hero">
+                <div>
+                  <div class="promo_eyebrow">REGION PROMOTION</div>
+                  <div class="promo_title">Start playing with a simple offer</div>
+                  <p class="promo_text">A controlled hero layout for operational campaigns and repeatable regional content.</p>
+                  <a class="cta" href="#">JOIN NOW</a>
+                </div>
+                <div class="visual_box"></div>
+              </section>
+              <section class="section_band">
+                <h4>How it works</h4>
+                <div class="step_grid">
+                  <div class="step_item"><div class="step_no">1</div><div><strong>REGISTER</strong><span>Create your account.</span></div></div>
+                  <div class="step_item"><div class="step_no">2</div><div><strong>OPT IN</strong><span>Check campaign terms.</span></div></div>
+                  <div class="step_item"><div class="step_no">3</div><div><strong>PLAY</strong><span>Use the CTA target.</span></div></div>
+                </div>
+              </section>
+              <section class="content_row">
+                <div class="image_slot"></div>
+                <div class="text_block">
+                  <h4>Reusable content row</h4>
+                  <p>Template 4는 이미지와 설명 텍스트를 반복해서 구성하는 안정적인 정보 전달 패턴을 사용합니다.</p>
+                </div>
+              </section>
+              <footer class="terms_footer">Terms, Responsible Gaming, license and footer links are required.</footer>
+            </div>
+          </div>
+
+          <div class="component_card">
+            <div class="card_head">promo_001 - Bonus Offer</div>
+            <div class="component_canvas">
+              <div class="gg_header">
+                <div class="gg_logo">GGPoker</div>
+                <div class="gg_flags"><span class="gg_flag"></span><span class="gg_flag"></span><span class="gg_flag"></span></div>
+              </div>
+              <section class="promo001_hero">
+                <div>
+                  <div class="promo_eyebrow">WELCOME BONUS</div>
+                  <div class="promo_title">Free bonus landing page</div>
+                  <p class="promo_text">Offer value, bonus code policy, and CTA must be visible without deep scrolling.</p>
+                  <a class="cta cta_gold" href="#">GET BONUS</a>
+                </div>
+                <div class="visual_box"></div>
+              </section>
+              <section class="section_band">
+                <h4>Bonus flow</h4>
+                <div class="step_grid">
+                  <div class="step_item"><div class="step_no">1</div><div><strong>SIGN UP</strong><span>Use affiliate context when needed.</span></div></div>
+                  <div class="step_item"><div class="step_no">2</div><div><strong>ENTER CODE</strong><span>Show code or no-code rule.</span></div></div>
+                  <div class="step_item"><div class="step_no">3</div><div><strong>CLAIM</strong><span>Explain eligibility.</span></div></div>
+                </div>
+              </section>
+              <footer class="terms_footer">Bonus Code, Q-TAG, Tracker mapping, eligibility and legal copy are required when enabled.</footer>
+            </div>
+          </div>
+
+          <div class="component_card">
+            <div class="card_head">promo_002 - Casino Dynamic</div>
+            <div class="component_canvas">
+              <div class="gg_header">
+                <div class="gg_logo">GGPoker</div>
+                <div class="gg_flags"><span class="gg_flag"></span><span class="gg_flag"></span><span class="gg_flag"></span></div>
+              </div>
+              <section class="promo002_hero">
+                <div>
+                  <div class="promo_eyebrow">GLOBAL CASINO</div>
+                  <div class="promo_title">Play your favourite slots</div>
+                  <p class="promo_text">Dark visual hierarchy supports casino assets, motion, and dynamic modules.</p>
+                  <a class="cta cta_green" href="#">PLAY NOW</a>
+                </div>
+                <div class="visual_box"></div>
+              </section>
+              <section class="section_band dark">
+                <h4>Community stats</h4>
+                <div class="stat_grid">
+                  <div class="stat_item"><strong>24/7</strong><span>Games</span></div>
+                  <div class="stat_item"><strong>100K+</strong><span>Players</span></div>
+                  <div class="stat_item"><strong>Live</strong><span>Winners</span></div>
+                  <div class="stat_item"><strong>Daily</strong><span>Rewards</span></div>
+                </div>
+              </section>
+              <footer class="terms_footer">Winners, rewards, community and license areas must degrade gracefully when data is empty.</footer>
+            </div>
+          </div>
+
+          <div class="component_card">
+            <div class="card_head">Terms / Footer Policy</div>
+            <div class="card_body">
+              <p>모든 템플릿에서 Footer와 정책 영역은 디자인 장식이 아니라 운영 안전장치입니다. 빌더는 이 영역을 삭제 옵션으로 제공하지 않고, 문구와 표시 조건만 조절해야 합니다.</p>
+              <ul class="bullet_list">
+                <li>Responsible Gaming 문구와 연령 제한 표시</li>
+                <li>License section 또는 Widget footer 연결</li>
+                <li>Bonus Code 사용 시 bonus/tracker/eligibility 조건</li>
+                <li>Affiliate 사용 시 Q-TAG, brand name, sanitized site_url</li>
+                <li>빈 데이터가 있어도 footer는 유지, 동적 모듈만 fallback 처리</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section_head">
+        <h2>7. Builder Field Mapping</h2>
+        <span class="tag tag_green">Requirement / Option</span>
+      </div>
+      <div class="section_body">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th>Builder 입력</th>
+              <th>디자인 시스템 반영</th>
+              <th>Template 4</th>
+              <th>promo_001</th>
+              <th>promo_002</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Campaign Name / Goal</td>
+              <td>Hero headline, eyebrow, CTA 우선순위 결정</td>
+              <td>필수</td>
+              <td>필수</td>
+              <td>필수</td>
+            </tr>
+            <tr>
+              <td>Region / Language</td>
+              <td>Header, Legal, CTA label, 문구 길이 대응</td>
+              <td>필수</td>
+              <td>필수</td>
+              <td>필수</td>
+            </tr>
+            <tr>
+              <td>CTA Label / URL</td>
+              <td>Primary CTA 색상과 위치. Hero와 중간 CTA에 재사용</td>
+              <td>필수</td>
+              <td>필수</td>
+              <td>필수</td>
+            </tr>
+            <tr>
+              <td>Bonus Code</td>
+              <td>Offer box, code/no-code label, policy notice</td>
+              <td>선택</td>
+              <td>조건부 필수</td>
+              <td>선택</td>
+            </tr>
+            <tr>
+              <td>Affiliate / Q-TAG</td>
+              <td>brand_name 표시, site_url sanitization, footer/legal note</td>
+              <td>조건부</td>
+              <td>조건부</td>
+              <td>조건부</td>
+            </tr>
+            <tr>
+              <td>Desktop / Mobile Image</td>
+              <td>Hero visual, image row, casino game visual</td>
+              <td>권장</td>
+              <td>권장</td>
+              <td>필수에 가까운 권장</td>
+            </tr>
+            <tr>
+              <td>Community / Winners / Rewards</td>
+              <td>동적 모듈 렌더링 및 empty/fallback 상태</td>
+              <td>미사용</td>
+              <td>선택</td>
+              <td>주요 옵션</td>
+            </tr>
+            <tr>
+              <td>Terms / Footer</td>
+              <td>Legal caption, footer widget, license section</td>
+              <td>필수</td>
+              <td>필수</td>
+              <td>필수</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section_head">
+        <h2>8. Rule Base Design Constraints</h2>
+        <span class="tag">디자인 통제 규칙</span>
+      </div>
+      <div class="section_body">
+        <div class="grid_3">
+          <div class="rule_card">
+            <div class="card_head">공통 고정 규칙</div>
+            <div class="card_body">
+              <ul class="bullet_list">
+                <li>Hero, CTA, Terms, Footer는 모든 템플릿에서 필수</li>
+                <li>CTA는 Hero 첫 화면에 1회 이상 노출</li>
+                <li>모바일에서 Hero는 단일 컬럼으로 전환</li>
+                <li>텍스트는 컨테이너를 넘지 않도록 줄바꿈 허용</li>
+              </ul>
+            </div>
+          </div>
+          <div class="rule_card">
+            <div class="card_head">조건부 정책 규칙</div>
+            <div class="card_body">
+              <ul class="bullet_list">
+                <li>Bonus Code 활성화 시 code, tracker, eligibility 검증</li>
+                <li>Affiliate 활성화 시 Q-TAG와 brand_name 확인</li>
+                <li>site_url은 직접 노출 전 sanitize 상태 필요</li>
+                <li>Winners API 의존 구간은 empty state 필수</li>
+              </ul>
+            </div>
+          </div>
+          <div class="rule_card">
+            <div class="card_head">디자인 자유도 제한</div>
+            <div class="card_body">
+              <ul class="bullet_list">
+                <li>Template 4는 레이아웃 변형보다 콘텐츠 안정성 우선</li>
+                <li>promo_001은 보너스 메시지와 약관 근접 배치</li>
+                <li>promo_002의 motion/custom CSS는 옵션으로 격리</li>
+                <li>푸터/라이선스/Responsible Gaming은 숨김 금지</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
