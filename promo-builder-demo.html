@@ -380,6 +380,7 @@
       </div>
       <div class="topbar_actions">
         <span class="status_badge" id="runStatus">로컬 미리보기</span>
+        <button class="button" id="localPreviewButton">로컬 미리보기</button>
         <button class="button" id="resetButton">초기화</button>
         <button class="button button_primary" id="generateButton">생성 테스트</button>
       </div>
@@ -536,6 +537,7 @@
   <script>
     const templateSegment = document.getElementById("templateSegment");
     const generateButton = document.getElementById("generateButton");
+    const localPreviewButton = document.getElementById("localPreviewButton");
     const resetButton = document.getElementById("resetButton");
     const saveWebhookButton = document.getElementById("saveWebhookButton");
     const webhookUrlInput = document.getElementById("webhookUrlInput");
@@ -833,6 +835,11 @@
       renderPreview(pageJson);
     }
 
+    function runLocalPreview() {
+      generate();
+      setStatus("로컬 미리보기");
+    }
+
     function buildWebhookPayload() {
       return {
         prompt: promptInput.value.trim(),
@@ -873,6 +880,7 @@
 
       setStatus("n8n 요청 중", "pending");
       generateButton.disabled = true;
+      localPreviewButton.disabled = true;
       generateButton.textContent = "요청 중";
 
       try {
@@ -914,6 +922,7 @@
         renderPreview(localPageJson);
       } finally {
         generateButton.disabled = false;
+        localPreviewButton.disabled = false;
         generateButton.textContent = "생성 테스트";
       }
     }
@@ -928,6 +937,7 @@
     });
 
     generateButton.addEventListener("click", runWebhookGenerate);
+    localPreviewButton.addEventListener("click", runLocalPreview);
     saveWebhookButton.addEventListener("click", () => {
       localStorage.setItem("promo_builder_webhook_url", webhookUrlInput.value.trim());
       setStatus(webhookUrlInput.value.trim() ? "Webhook 저장됨" : "로컬 미리보기");
