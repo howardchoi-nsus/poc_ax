@@ -76,6 +76,14 @@
       font-size: 12px;
       white-space: nowrap;
     }
+    .status_badge.is_pending {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+    .status_badge.is_error {
+      background: var(--red-soft);
+      color: var(--red);
+    }
     .button {
       min-height: 36px;
       border: 1px solid var(--line);
@@ -138,6 +146,12 @@
     textarea:focus, input:focus, select:focus { border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08); }
     .grid_2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .hint { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .webhook_row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: end;
+    }
     .segmented {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -349,6 +363,7 @@
       .topbar { height: auto; align-items: flex-start; padding: 14px; flex-direction: column; }
       .workspace { padding: 12px; }
       .grid_2, .steps, .stats, .pipeline { grid-template-columns: 1fr; }
+      .webhook_row { grid-template-columns: 1fr; }
       .promo_headline { font-size: 29px; }
     }
   </style>
@@ -364,7 +379,7 @@
         </div>
       </div>
       <div class="topbar_actions">
-        <span class="status_badge">정적 데모</span>
+        <span class="status_badge" id="runStatus">로컬 미리보기</span>
         <button class="button" id="resetButton">초기화</button>
         <button class="button button_primary" id="generateButton">생성 테스트</button>
       </div>
@@ -382,6 +397,15 @@
               <label class="label" for="promptInput">자연어 요청</label>
               <textarea id="promptInput">글로벌 신규 유저 대상으로 카지노 슬롯 다운로드 유도 페이지 만들어줘. Sweet Bonanza 게임을 강조하고, CTA는 Play Now로 해줘. 보너스 코드는 없고 Q-TAG 제휴사 유입은 고려해야 해.</textarea>
               <p class="hint">키워드 기반 NLP 모의 분석입니다. 실제 LLM 연동 전 E2E 흐름 검증용입니다.</p>
+            </div>
+
+            <div class="field">
+              <label class="label" for="webhookUrlInput">n8n Webhook URL</label>
+              <div class="webhook_row">
+                <input id="webhookUrlInput" placeholder="https://{n8n-domain}/webhook/promo-builder-generate" />
+                <button class="button" type="button" id="saveWebhookButton">저장</button>
+              </div>
+              <p class="hint">[생성 테스트] 버튼을 누르면 이 URL로 POST 요청을 보냅니다. 비워두면 로컬 모의 결과를 사용합니다.</p>
             </div>
 
             <div class="grid_2">
@@ -513,6 +537,9 @@
     const templateSegment = document.getElementById("templateSegment");
     const generateButton = document.getElementById("generateButton");
     const resetButton = document.getElementById("resetButton");
+    const saveWebhookButton = document.getElementById("saveWebhookButton");
+    const webhookUrlInput = document.getElementById("webhookUrlInput");
+    const runStatus = document.getElementById("runStatus");
     const promptInput = document.getElementById("promptInput");
     const regionInput = document.getElementById("regionInput");
     const languageInput = document.getElementById("languageInput");
@@ -536,7 +563,8 @@
       target: "new_user",
       affiliate: "true",
       bonus: "false",
-      template: "auto"
+      template: "auto",
+      webhookUrl: ""
     };
 
     const termsText = "Players must be aged 18+ or 19+, depending on jurisdiction. Promotions, games, rewards and specific features are subject to change. All bonuses and offers may be subject to eligibility criteria, wagering requirements and time limits. Standard GGPoker rules apply. Please play responsibly.";
@@ -691,6 +719,12 @@
       };
     }
 
+    function setStatus(text, state = "idle") {
+      runStatus.textContent = text;
+      runStatus.classList.toggle("is_pending", state === "pending");
+      runStatus.classList.toggle("is_error", state === "error");
+    }
+
     function renderContext(context) {
       const rows = [
         ["Template", context.template_family],
@@ -700,7 +734,7 @@
         ["Target", context.target_user],
         ["Affiliate", context.affiliate_enabled ? "enabled" : "disabled"],
         ["Bonus Code", context.bonus_code_enabled ? "enabled" : "disabled"],
-        ["Confidence", `type ${context.confidence.campaign_type}, goal ${context.confidence.goal}`]
+        ["Confidence", context.confidence ? `type ${context.confidence.campaign_type}, goal ${context.confidence.goal}` : "n8n response"]
       ];
       contextView.innerHTML = rows.map(([key, value]) => `
         <div class="kv_row">
@@ -725,6 +759,15 @@
           </div>
         `;
       }).join("");
+    }
+
+    function normalizeValidation(validation) {
+      if (Array.isArray(validation)) return validation;
+      if (!validation || typeof validation !== "object") return [];
+      const passed = (validation.passed || []).map((item) => ({ ...item, type: "passed" }));
+      const warnings = (validation.warnings || validation.needs_review || []).map((item) => ({ ...item, type: "warning" }));
+      const errors = (validation.errors || []).map((item) => ({ ...item, type: "error" }));
+      return [...passed, ...warnings, ...errors];
     }
 
     function renderPreview(pageJson) {
@@ -781,12 +824,98 @@
       const context = inferContext();
       const ruleResult = applyRules(context);
       const pageJson = buildPageJson(context, ruleResult);
+      setStatus("로컬 미리보기");
       templateBadge.textContent = context.template_family;
       templateBadge.className = `tag ${context.template_family === "promo_002" ? "tag_purple" : context.template_family === "promo_001" ? "tag_orange" : "tag_blue"}`;
       renderContext(context);
       renderValidation(ruleResult.validations);
       jsonView.textContent = JSON.stringify(pageJson, null, 2);
       renderPreview(pageJson);
+    }
+
+    function buildWebhookPayload() {
+      return {
+        prompt: promptInput.value.trim(),
+        rawInput: promptInput.value.trim(),
+        region: regionInput.value,
+        language: languageInput.value,
+        goal: goalInput.value,
+        targetUser: targetInput.value,
+        affiliateEnabled: affiliateInput.value === "true",
+        bonusCodeEnabled: bonusInput.value === "true",
+        templateFamily: selectedTemplate,
+        requestedBy: "promo-builder-demo-ui"
+      };
+    }
+
+    function renderWebhookResponse(response) {
+      const pageJson = response.pageJson || response.page_json || response.output?.pageJson;
+      if (!pageJson) {
+        throw new Error("n8n 응답에 pageJson이 없습니다.");
+      }
+      const context = response.normalizedContext || response.normalized_context || pageJson.campaign_context || {};
+      const validation = normalizeValidation(response.validation || pageJson.validation || pageJson.rule_base_result?.validations);
+      templateBadge.textContent = pageJson.template_family || response.templateFamily || context.template_family || "unknown";
+      templateBadge.className = `tag ${templateBadge.textContent === "promo_002" ? "tag_purple" : templateBadge.textContent === "promo_001" ? "tag_orange" : "tag_blue"}`;
+      renderContext(context);
+      renderValidation(validation);
+      jsonView.textContent = JSON.stringify(pageJson, null, 2);
+      renderPreview(pageJson);
+    }
+
+    async function runWebhookGenerate() {
+      const webhookUrl = webhookUrlInput.value.trim();
+      localStorage.setItem("promo_builder_webhook_url", webhookUrl);
+      if (!webhookUrl) {
+        generate();
+        return;
+      }
+
+      setStatus("n8n 요청 중", "pending");
+      generateButton.disabled = true;
+      generateButton.textContent = "요청 중";
+
+      try {
+        const response = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildWebhookPayload())
+        });
+        const text = await response.text();
+        let data;
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error(`JSON 응답이 아닙니다: ${text.slice(0, 160)}`);
+        }
+        if (!response.ok) {
+          throw new Error(data.message || data.error || `HTTP ${response.status}`);
+        }
+        renderWebhookResponse(data);
+        setStatus("n8n 응답 반영");
+      } catch (error) {
+        console.error(error);
+        setStatus("n8n 오류", "error");
+        const localContext = inferContext();
+        const localRule = applyRules(localContext);
+        const localPageJson = buildPageJson(localContext, localRule);
+        renderContext(localContext);
+        renderValidation([
+          { type: "error", title: "n8n Webhook 호출 실패", body: error.message },
+          ...localRule.validations
+        ]);
+        jsonView.textContent = JSON.stringify({
+          error: error.message,
+          fallback: "local_preview",
+          expectedWebhookPath: "promo-builder-generate",
+          sentPayload: buildWebhookPayload(),
+          localPageJson
+        }, null, 2);
+        renderPreview(localPageJson);
+      } finally {
+        generateButton.disabled = false;
+        generateButton.textContent = "생성 테스트";
+      }
     }
 
     templateSegment.addEventListener("click", (event) => {
@@ -798,7 +927,11 @@
       generate();
     });
 
-    generateButton.addEventListener("click", generate);
+    generateButton.addEventListener("click", runWebhookGenerate);
+    saveWebhookButton.addEventListener("click", () => {
+      localStorage.setItem("promo_builder_webhook_url", webhookUrlInput.value.trim());
+      setStatus(webhookUrlInput.value.trim() ? "Webhook 저장됨" : "로컬 미리보기");
+    });
     [promptInput, regionInput, languageInput, goalInput, targetInput, affiliateInput, bonusInput].forEach((input) => {
       input.addEventListener("change", generate);
     });
@@ -815,11 +948,14 @@
       targetInput.value = defaults.target;
       affiliateInput.value = defaults.affiliate;
       bonusInput.value = defaults.bonus;
+      webhookUrlInput.value = defaults.webhookUrl;
+      localStorage.removeItem("promo_builder_webhook_url");
       selectedTemplate = defaults.template;
       templateSegment.querySelectorAll("button").forEach((item) => item.classList.toggle("is_active", item.dataset.template === selectedTemplate));
       generate();
     });
 
+    webhookUrlInput.value = localStorage.getItem("promo_builder_webhook_url") || "";
     generate();
   </script>
 </body>
